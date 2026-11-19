@@ -38,6 +38,10 @@ Beenden mit `Strg + C`.
 | GET | `/api/kunden` | Alle Kunden |
 | GET | `/api/kunden/{kunde}/doku` | Kundendoku als Markdown |
 | POST | `/api/ki/frage` | Antwort der KI auf `{"frage": "..."}` |
+| POST | `/api/tickets/{id}/analyse` | KI bewertet das Ticket: Priorität, Spam, Kategorie, Begründung. Mit `?speichern=false` nur anzeigen, nicht speichern |
+| POST | `/api/testdaten/zuruecksetzen` | Verwirft alle Änderungen und lädt die Testtickets neu |
+
+Das Backend arbeitet mit einer Arbeitskopie der Tickets in `data/laufzeit/` (nicht im Repo). Details in [`docs/datenformat.md`](../docs/datenformat.md#testdaten-und-arbeitskopie).
 
 Das Datenformat steht in [`docs/datenformat.md`](../docs/datenformat.md).
 

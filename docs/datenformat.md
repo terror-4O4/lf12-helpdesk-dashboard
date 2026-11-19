@@ -78,13 +78,16 @@ Alle Dateien liegen unter `data/testdaten/` und sind **frei erfunden**.
 
 ### KI-Block
 
-Der KI-Block wird **nur von der KI** geschrieben und danach nicht mehr verändert. So bleibt nachvollziehbar, was die KI vorgeschlagen hat, auch wenn ein Mitarbeiter die Priorität später ändert. Das ist die Grundlage für die Tests („Wie oft lag die KI richtig?“).
+Der KI-Block wird **nur von der KI** geschrieben, Mitarbeiter ändern ihn nie. Ändert ein Mitarbeiter die Priorität, passiert das im Feld `prioritaet` des Tickets (mit `prioritaet_quelle: "manuell"`), der KI-Block bleibt unverändert. So bleibt nachvollziehbar, was die KI vorgeschlagen hat. Das ist die Grundlage für die Tests („Wie oft lag die KI richtig?“).
+
+Wird ein Ticket erneut analysiert, ersetzt das neue Ergebnis den KI-Block. Eine manuell gesetzte Priorität bleibt dabei erhalten.
 
 | Feld | Typ | Bedeutung |
 |---|---|---|
 | `prioritaet` | Text | Von der KI vorgeschlagene Priorität |
 | `spam` | true/false | Von der KI als Spam erkannt |
-| `kategorie` | Text | z. B. `Software`, `Hardware`, `Netzwerk`, `Drucker`, `Benutzerkonto` |
+| `kategorie` | Text | Genau einer dieser Werte: `Software`, `Hardware`, `Netzwerk`, `Drucker`, `Benutzerkonto`, `E-Mail`, `Spam`, `Sonstiges` |
+| `begruendung` | Text | Kurzer Satz, warum die KI so bewertet hat. Für das Dashboard und zum Nachvollziehen bei Tests |
 | `loesungsvorschlag` | Text oder `null` | Vorschlag auf Basis ähnlicher gelöster Tickets und der Kundendoku |
 | `aehnliche_tickets` | Liste von Zahlen | IDs der gelösten Tickets, auf die sich der Vorschlag stützt |
 
@@ -128,6 +131,12 @@ Eine Markdown-Datei pro Kunde unter `doku/<kunde>.md`, z. B. `doku/bau.md`. Fest
 ```
 - Firewall-Admin: siehe Passwortmanager, Eintrag "bau / Firewall"
 ```
+
+## Testdaten und Arbeitskopie
+
+Das Backend verändert **nie** die Dateien in `data/testdaten/`. Beim ersten Start kopiert es `tickets.json` nach `data/laufzeit/tickets.json` und arbeitet nur noch mit dieser Kopie (z. B. speichert es dort KI-Analysen). `data/laufzeit/` steht in der `.gitignore` und landet nie im Repo.
+
+Zurücksetzen auf den Stand der Testdaten: `POST /api/testdaten/zuruecksetzen` oder den Ordner `data/laufzeit/` löschen.
 
 ## Offene Punkte
 
