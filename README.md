@@ -11,9 +11,9 @@ Verbindliche Grundlage ist der genehmigte **Projektantrag V2.1**.
 | Name | Rolle |
 |---|---|
 | Marlon G. | Server, Bereitstellung, Code-Review |
-| Linus R. | |
-| Ricardo H. | |
-| Jennan H. | |
+| Linus R. | Gar nichts |
+| Ricardo H. | Keine Ahnung |
+| Jennan H. | rauchen |
 
 ## Architektur (Kurzfassung)
 
