@@ -1,0 +1,15 @@
+# Einheitliche Zeilenenden zwischen Windows und macOS
+* text=auto eol=lf
+
+# Windows-Skripte brauchen CRLF
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binärdateien nicht anfassen
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.ico binary

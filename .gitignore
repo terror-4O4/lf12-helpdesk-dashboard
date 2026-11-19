@@ -1,0 +1,41 @@
+# --- Secrets und lokale Konfiguration ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- KI-Modelle (mehrere GB, gehören nie ins Repo) ---
+*.gguf
+*.bin
+*.safetensors
+models/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# --- Lokale Laufzeitdaten ---
+*.sqlite
+*.sqlite3
+*.db
+logs/
+*.log
+vectordb/
+chroma/
+
+# --- Node (falls das Frontend Tools nutzt) ---
+node_modules/
+
+# --- Betriebssysteme ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Editoren ---
+.idea/
+*.swp
