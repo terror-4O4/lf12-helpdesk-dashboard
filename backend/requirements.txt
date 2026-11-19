@@ -1,0 +1,6 @@
+# Feste Versionen, damit bei allen das Gleiche läuft
+fastapi==0.165.0
+fastapi-offline==1.7.7   # Testseite /docs ohne Internet (keine CDN-Dateien)
+uvicorn==0.54.0          # Webserver, der die App ausführt
+httpx==0.28.1            # Anfragen an den llama-server
+python-dotenv==1.2.4     # Liest die .env
