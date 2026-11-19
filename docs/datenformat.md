@@ -9,6 +9,7 @@ Alle Dateien liegen unter `data/testdaten/` und sind **frei erfunden**.
 | `tickets.json` | Liste aller Tickets |
 | `kunden.json` | Liste aller Kunden |
 | `doku/<kunde>.md` | Kundendokumentation, eine Datei pro Kunde |
+| `erwartet.json` | Erwartete KI-Bewertung je Ticket, nur für Tests |
 
 ## Allgemeine Regeln
 
@@ -131,6 +132,41 @@ Eine Markdown-Datei pro Kunde unter `doku/<kunde>.md`, z. B. `doku/bau.md`. Fest
 ```
 - Firewall-Admin: siehe Passwortmanager, Eintrag "bau / Firewall"
 ```
+
+## Erwartete Werte (Tests)
+
+`erwartet.json` enthält für jedes Testticket die Bewertung, die ein Mitarbeiter vergeben würde. Damit lässt sich die Trefferquote der KI messen (Ziel laut Projektantrag: mindestens 80 %). Das Backend liest die Datei nicht, sie ist nur für Tests gedacht.
+
+```json
+{
+  "id": 1012,
+  "prioritaet": "niedrig",
+  "spam": false,
+  "kategorie": "E-Mail",
+  "hinweis": "Kein Spam: echte Kundin fragt nach, enthält aber Phishing-Merkmale"
+}
+```
+
+| Feld | Typ | Bedeutung |
+|---|---|---|
+| `id` | Zahl | Ticketnummer aus `tickets.json` |
+| `prioritaet`, `spam`, `kategorie` | wie im KI-Block | Erwarteter Wert |
+| `hinweis` | Text oder `null` | Warum so bewertet bzw. was das Ticket testet |
+
+Abgrenzung der Kategorien in den Testdaten:
+
+| Kategorie | Gehört dazu |
+|---|---|
+| `Software` | Programm startet nicht, stürzt ab, Fehlermeldung im Programm (auch Outlook als Programm) |
+| `Hardware` | PC, Notebook, Monitor, Netzteil, Kartenlesegerät, sonstige Geräte außer Druckern |
+| `Netzwerk` | Internet, WLAN, VPN, Verbindung zum Server |
+| `Drucker` | Drucker, Multifunktionsgeräte inkl. Scannen, Etikettendrucker, Druckwarteschlange |
+| `Benutzerkonto` | Konto gesperrt, Passwort, MFA, neue Benutzer, Rechte |
+| `E-Mail` | Mailfluss, Postfach, Speicherplatz, Fragen zu verdächtigen Mails |
+| `Spam` | Phishing, Werbung, Betrugsversuche ohne echtes IT-Anliegen |
+| `Sonstiges` | Planung, Umzüge, Termine, kaufmännische Fragen |
+
+Fragt ein echter Kunde, ob eine verdächtige Mail echt ist, ist das **kein Spam**, sondern ein IT-Anliegen (`E-Mail`).
 
 ## Testdaten und Arbeitskopie
 
