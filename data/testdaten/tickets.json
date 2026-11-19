@@ -1,0 +1,75 @@
+[
+  {
+    "id": 1001,
+    "kunde": "bau",
+    "titel": "Outlook startet nicht",
+    "beschreibung": "Seit heute früh startet Outlook bei Herrn Beispiel nicht mehr. Das Fenster erscheint kurz und schließt sich sofort wieder. Ein Neustart des PCs hat nichts geändert.",
+    "status": "geschlossen",
+    "prioritaet": "hoch",
+    "prioritaet_quelle": "ki",
+    "zugewiesen_an": "lena",
+    "erstellt_am": "2026-11-12T07:58:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-12T07:58:00" },
+      { "status": "in_bearbeitung", "seit": "2026-11-12T08:05:00" },
+      { "status": "geschlossen", "seit": "2026-11-12T08:40:00" }
+    ],
+    "ki": {
+      "prioritaet": "hoch",
+      "spam": false,
+      "kategorie": "Software",
+      "loesungsvorschlag": null,
+      "aehnliche_tickets": []
+    },
+    "loesungsweg": "Outlook mit outlook.exe /safe gestartet, das funktionierte. Ursache war das Add-In des Bauzeiten-Programms nach einem Update. Add-In unter Datei > Optionen > Add-Ins deaktiviert, Outlook startet wieder normal. Hersteller-Update für das Add-In beim Kunden angefragt.",
+    "geschlossen_am": "2026-11-12T08:40:00"
+  },
+  {
+    "id": 1002,
+    "kunde": "logistik",
+    "titel": "Lagerdrucker druckt keine Lieferscheine",
+    "beschreibung": "Der Drucker im Lager druckt seit gestern Nachmittag keine Lieferscheine mehr. Die Aufträge bleiben in der Warteschlange hängen. Andere Drucker funktionieren.",
+    "status": "warten_auf_kunde",
+    "prioritaet": "sehr_hoch",
+    "prioritaet_quelle": "manuell",
+    "zugewiesen_an": "tim",
+    "erstellt_am": "2026-11-18T14:20:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-18T14:20:00" },
+      { "status": "in_bearbeitung", "seit": "2026-11-18T14:31:00" },
+      { "status": "warten_auf_kunde", "seit": "2026-11-18T15:10:00" }
+    ],
+    "ki": {
+      "prioritaet": "hoch",
+      "spam": false,
+      "kategorie": "Drucker",
+      "loesungsvorschlag": "Prüfen, ob der Drucker im Netzwerk erreichbar ist (IP laut Kundendoku anpingen). Druckwarteschlange auf dem Druckserver leeren und den Druckspooler neu starten.",
+      "aehnliche_tickets": []
+    },
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1003,
+    "kunde": null,
+    "titel": "Ihr Postfach ist voll - jetzt bestätigen",
+    "beschreibung": "Sehr geehrter Nutzer, Ihr Postfach hat das Speicherlimit erreicht. Bestätigen Sie innerhalb von 24 Stunden über den folgenden Link Ihre Zugangsdaten, sonst wird Ihr Konto gesperrt.",
+    "status": "neu",
+    "prioritaet": "niedrig",
+    "prioritaet_quelle": "ki",
+    "zugewiesen_an": null,
+    "erstellt_am": "2026-11-19T06:47:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-19T06:47:00" }
+    ],
+    "ki": {
+      "prioritaet": "niedrig",
+      "spam": true,
+      "kategorie": "Spam",
+      "loesungsvorschlag": "Typische Phishing-Mail (Zeitdruck, Aufforderung zur Eingabe von Zugangsdaten, kein bekannter Kunde). Ticket schließen, nicht auf den Link klicken.",
+      "aehnliche_tickets": []
+    },
+    "loesungsweg": null,
+    "geschlossen_am": null
+  }
+]
