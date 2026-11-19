@@ -294,8 +294,18 @@ def ki_frage(eingabe: Frage):
 # --- KI: Ticket-Analyse --------------------------------------------------
 
 PRIORITAETEN = ["niedrig", "mittel", "hoch", "sehr_hoch"]
-KATEGORIEN = ["Software", "Hardware", "Netzwerk", "Drucker",
-              "Benutzerkonto", "E-Mail", "Spam", "Sonstiges"]
+# Abgrenzung der Kategorien, gleiche Tabelle wie in docs/datenformat.md
+KATEGORIE_BESCHREIBUNG = {
+    "Software": "Programm startet nicht, stürzt ab oder zeigt eine Fehlermeldung (auch Outlook als Programm)",
+    "Hardware": "PC, Notebook, Monitor, Netzteil, Kartenlesegerät und andere Geräte außer Druckern",
+    "Netzwerk": "Internet, WLAN, VPN, Verbindung zum Server",
+    "Drucker": "Drucker, Multifunktionsgeräte und Kopierer inklusive Scannen, Etikettendrucker, Druckwarteschlange",
+    "Benutzerkonto": "Konto gesperrt, Passwort, Anmeldung mit MFA, neue Benutzer, Rechte",
+    "E-Mail": "Mailfluss, Postfach, Speicherplatz des Postfachs, Fragen zu verdächtigen Mails",
+    "Spam": "Phishing, Werbung, Betrugsversuche ohne echtes IT-Anliegen",
+    "Sonstiges": "Planung, Umzüge, Termine, kaufmännische Fragen",
+}
+KATEGORIEN = list(KATEGORIE_BESCHREIBUNG)
 
 SYSTEMPROMPT_ANALYSE = f"""Du bewertest eingehende Tickets im IT-Support eines Systemhauses.
 
@@ -303,13 +313,18 @@ Priorität (wähle genau eine):
 - sehr_hoch: Geschäftsbetrieb steht oder mehrere Nutzer bzw. eine ganze Abteilung sind betroffen, kein Workaround (z. B. Server, Internet, Lager oder Warenausgang fällt aus)
 - hoch: Eine Person kann nicht arbeiten oder eine wichtige Funktion fällt aus
 - mittel: Arbeit ist eingeschränkt, aber ein Workaround ist möglich
-- niedrig: Frage, Wunsch, kosmetisches Problem oder Spam
+- niedrig: Frage, Wunsch, kosmetisches Problem, planbarer Auftrag mit Vorlauf (z. B. neuer Benutzer zu einem späteren Datum, Umzug, Angebot) oder Spam
 
-Spam: true bei Phishing, Werbung, Kettenbriefen oder Nachrichten ohne echtes IT-Anliegen. Typische Merkmale von Phishing sind Zeitdruck, Drohung mit Sperrung und die Aufforderung, Zugangsdaten über einen Link einzugeben. Spam bekommt immer die Priorität niedrig und die Kategorie Spam.
+Regeln für die Priorität:
+- Workaround: Kann weitergearbeitet werden (z. B. an einem anderen Platz, auf einem anderen Weg oder mit Unterbrechungen, die sich von selbst lösen), ist die Priorität höchstens mittel. Das gilt auch, wenn die Arbeit dadurch langsamer wird.
+- Besonderheiten des Kunden gelten nur, wenn das Ticket genau den dort genannten Fall betrifft (dasselbe Gerät, dasselbe Programm, dieselbe Funktion). Dann haben sie Vorrang vor der Workaround-Regel. Sie sind kein Grund, andere Tickets desselben Kunden höher einzustufen.
 
-Kategorie (wähle genau eine): {", ".join(KATEGORIEN)}
+Spam: true bei Phishing, Werbung, Kettenbriefen, Betrugsversuchen oder Nachrichten ohne echtes IT-Anliegen. Typische Merkmale sind Zeitdruck, Drohung mit Sperrung, die Aufforderung, Zugangsdaten über einen Link einzugeben, unerwartete Anhänge (z. B. ZIP-Archiv) und ungewöhnliche Bitten um Zahlungen oder Gutscheinkarten. Spam bekommt immer die Priorität niedrig und die Kategorie Spam.
+Kein Spam: Ein bekannter Kunde fragt nach, ob eine verdächtige Nachricht echt ist, oder meldet eine echte Systemwarnung. Das ist ein IT-Anliegen.
 
-Berücksichtige die Besonderheiten des Kunden, falls angegeben.
+Kategorie (wähle genau eine):
+{chr(10).join(f"- {name}: {text}" for name, text in KATEGORIE_BESCHREIBUNG.items())}
+
 Antworte nur mit dem JSON-Objekt. Die Begründung ist ein kurzer deutscher Satz."""
 
 # Erzwingt bei llama.cpp gültiges JSON mit genau diesen Feldern und Werten

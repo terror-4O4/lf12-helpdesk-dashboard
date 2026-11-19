@@ -168,6 +168,8 @@ Abgrenzung der Kategorien in den Testdaten:
 
 Fragt ein echter Kunde, ob eine verdächtige Mail echt ist, ist das **kein Spam**, sondern ein IT-Anliegen (`E-Mail`).
 
+Diese Abgrenzung steht auch im Analyse-Prompt der KI (`KATEGORIE_BESCHREIBUNG` in `backend/app.py`). Wer sie ändert, passt beide Stellen an.
+
 ## Testdaten und Arbeitskopie
 
 Das Backend verändert **nie** die Dateien in `data/testdaten/`. Beim ersten Start kopiert es `tickets.json` nach `data/laufzeit/tickets.json` und arbeitet nur noch mit dieser Kopie (z. B. speichert es dort KI-Analysen). `data/laufzeit/` steht in der `.gitignore` und landet nie im Repo.
