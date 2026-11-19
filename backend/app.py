@@ -8,10 +8,14 @@ Starten (aus dem Repo-Hauptordner):
     uvicorn backend.app:app --reload
 """
 
+import ipaddress
 import json
 import os
+import socket
+import sys
 import time
 from pathlib import Path
+from urllib.parse import urlparse
 
 import httpx
 from dotenv import load_dotenv
@@ -32,6 +36,38 @@ LLAMA_URL = os.getenv("LLAMA_URL", "http://127.0.0.1:8080").rstrip("/")
 LLAMA_API_KEY = os.getenv("LLAMA_API_KEY", "")
 KI_MOCK = os.getenv("KI_MOCK", "true").lower() == "true"
 KI_TIMEOUT = float(os.getenv("KI_TIMEOUT", "120"))
+
+
+def pruefe_lokale_adresse(url: str) -> None:
+    """Beendet das Backend, wenn die KI-Adresse nicht im lokalen Netz liegt.
+
+    Erlaubt sind nur dieser Rechner (127.0.0.1, localhost) und private
+    Netze (10.x, 172.16-31.x, 192.168.x). Damit können Ticketdaten das
+    lokale Netz nie verlassen, auch nicht durch einen Fehler in der .env.
+    Hostnamen werden aufgelöst, und ALLE zugehörigen Adressen müssen lokal sein.
+    """
+    teile = urlparse(url)
+    if teile.scheme not in ("http", "https") or not teile.hostname:
+        sys.exit(f"ABBRUCH: LLAMA_URL ist keine gültige Adresse: {url!r}")
+
+    try:
+        adressen = {info[4][0] for info in socket.getaddrinfo(teile.hostname, None)}
+    except socket.gaierror:
+        sys.exit(f"ABBRUCH: LLAMA_URL-Host {teile.hostname!r} lässt sich nicht auflösen")
+
+    for adresse in adressen:
+        ip = ipaddress.ip_address(adresse.split("%")[0])
+        if not (ip.is_loopback or ip.is_private) or ip.is_link_local:
+            sys.exit(
+                f"ABBRUCH: LLAMA_URL zeigt auf {adresse} ({teile.hostname}). "
+                "Erlaubt sind nur lokale Adressen. Ticketdaten dürfen das "
+                "lokale Netz nicht verlassen."
+            )
+
+
+# Prüfung beim Start, unabhängig von KI_MOCK: Eine falsche Adresse soll
+# sofort auffallen und nicht erst, wenn jemand den Mock abschaltet.
+pruefe_lokale_adresse(LLAMA_URL)
 
 SYSTEMPROMPT = (
     "Du bist ein Assistent im IT-Support. Antworte auf Deutsch, kurz und "
@@ -71,7 +107,7 @@ def status():
         return {"backend": "ok", "ki_modus": "mock", "ki_erreichbar": None}
 
     try:
-        antwort = httpx.get(f"{LLAMA_URL}/health", timeout=3)
+        antwort = httpx.get(f"{LLAMA_URL}/health", timeout=3, trust_env=False)
         erreichbar = antwort.status_code == 200
     except httpx.HTTPError:
         erreichbar = False
@@ -156,8 +192,11 @@ def ki_frage(eingabe: Frage):
     }
 
     try:
+        # trust_env=False: keine Proxy-Einstellungen des Systems verwenden,
+        # die Anfrage geht immer direkt an den lokalen llama-server.
         r = httpx.post(f"{LLAMA_URL}/v1/chat/completions",
-                       json=anfrage, headers=kopfzeilen, timeout=KI_TIMEOUT)
+                       json=anfrage, headers=kopfzeilen, timeout=KI_TIMEOUT,
+                       trust_env=False)
         r.raise_for_status()
         daten = r.json()
     except httpx.TimeoutException:

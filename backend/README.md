@@ -51,3 +51,13 @@ In der `.env`:
 | `KI_MOCK=false` | Echte Antworten vom llama-server unter `LLAMA_URL` |
 
 Nach einer Änderung an der `.env` das Backend neu starten.
+
+## Sperre: Daten bleiben im lokalen Netz
+
+Beim Start prüft das Backend `LLAMA_URL`. Erlaubt sind **nur**:
+- dieser Rechner (`127.0.0.1`, `localhost`)
+- private Netze (`10.x.x.x`, `172.16.x.x` bis `172.31.x.x`, `192.168.x.x`)
+
+Zeigt `LLAMA_URL` auf etwas anderes, z. B. einen KI-Dienst im Internet, **startet das Backend nicht** und meldet `ABBRUCH: ...`. Das gilt auch bei `KI_MOCK=true`. Außerdem ignoriert das Backend Proxy-Einstellungen des Systems und spricht den llama-server immer direkt an.
+
+Diese Sperre darf nur nach Absprache mit Marlon geändert werden.
