@@ -37,6 +37,9 @@ load_dotenv(REPO / ".env")
 
 LLAMA_URL = os.getenv("LLAMA_URL", "http://127.0.0.1:8080").rstrip("/")
 LLAMA_API_KEY = os.getenv("LLAMA_API_KEY", "")
+# Modellname für den llama-server im Router-Modus (Dateiname ohne .gguf).
+# Leer lassen, wenn der llama-server mit genau einem Modell (-m) läuft.
+LLAMA_MODEL = os.getenv("LLAMA_MODEL", "").strip()
 KI_MOCK = os.getenv("KI_MOCK", "true").lower() == "true"
 KI_TIMEOUT = float(os.getenv("KI_TIMEOUT", "120"))
 
@@ -152,6 +155,9 @@ def frage_llama(nachrichten: list, antwortformat: dict | None = None,
     """Schickt Nachrichten an den llama-server. Gibt (Text, Anzahl Tokens) zurück."""
     kopfzeilen = {"Authorization": f"Bearer {LLAMA_API_KEY}"} if LLAMA_API_KEY else {}
     anfrage = {"messages": nachrichten, "temperature": temperatur}
+    if LLAMA_MODEL:
+        # Im Router-Modus wählt der llama-server anhand dieses Feldes das Modell
+        anfrage["model"] = LLAMA_MODEL
     if antwortformat:
         anfrage["response_format"] = antwortformat
 
@@ -165,6 +171,15 @@ def frage_llama(nachrichten: list, antwortformat: dict | None = None,
         daten = r.json()
     except httpx.TimeoutException:
         raise HTTPException(504, "Die KI hat nicht rechtzeitig geantwortet")
+    except httpx.HTTPStatusError as fehler:
+        # Server erreichbar, lehnt die Anfrage aber ab: Grund mit ausgeben
+        code, text = fehler.response.status_code, fehler.response.text[:200]
+        hinweis = ""
+        if code == 401:
+            hinweis = " (LLAMA_API_KEY in der .env prüfen)"
+        elif code == 400 and "model" in text:
+            hinweis = " (LLAMA_MODEL in der .env setzen, Router-Modus)"
+        raise HTTPException(502, f"KI-Server lehnt ab ({code}){hinweis}: {text}")
     except httpx.HTTPError as fehler:
         raise HTTPException(502, f"KI nicht erreichbar unter {LLAMA_URL}: {fehler}")
 
@@ -185,7 +200,8 @@ def status():
         erreichbar = antwort.status_code == 200
     except httpx.HTTPError:
         erreichbar = False
-    return {"backend": "ok", "ki_modus": "llama", "ki_erreichbar": erreichbar}
+    return {"backend": "ok", "ki_modus": "llama", "ki_erreichbar": erreichbar,
+            "ki_modell": LLAMA_MODEL or None}
 
 
 # --- Tickets -------------------------------------------------------------
