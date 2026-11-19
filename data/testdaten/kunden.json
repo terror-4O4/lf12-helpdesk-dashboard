@@ -1,0 +1,16 @@
+[
+  {
+    "kunde": "bau",
+    "name": "Bauunternehmen GmbH",
+    "branche": "Bau",
+    "ort": "Wiesbaden",
+    "ansprechpartner": "Herr Beispiel"
+  },
+  {
+    "kunde": "logistik",
+    "name": "Logistik-Firma AG",
+    "branche": "Logistik",
+    "ort": "Mainz",
+    "ansprechpartner": "Frau Muster"
+  }
+]
