@@ -71,5 +71,489 @@
     },
     "loesungsweg": null,
     "geschlossen_am": null
+  },
+  {
+    "id": 1004,
+    "kunde": "bau",
+    "titel": "VPN verbindet nicht mehr",
+    "beschreibung": "Herr Beispiel ist auf der Baustelle und kommt seit dem Windows-Update gestern Abend nicht mehr ins VPN. Der VPN-Client meldet nur \"Verbindung fehlgeschlagen\". Er braucht dringend die Baupläne vom Server.",
+    "status": "geschlossen",
+    "prioritaet": "hoch",
+    "prioritaet_quelle": "manuell",
+    "zugewiesen_an": "lena",
+    "erstellt_am": "2026-11-04T09:12:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-04T09:12:00" },
+      { "status": "in_bearbeitung", "seit": "2026-11-04T09:20:00" },
+      { "status": "geschlossen", "seit": "2026-11-04T10:05:00" }
+    ],
+    "ki": null,
+    "loesungsweg": "Per Fernwartung geprüft: Nach dem Windows-Update war das Verbindungsprofil im VPN-Client der Sophos-Firewall leer. Client in der aktuellen Version neu installiert und das Profil aus dem Benutzerportal der Firewall neu importiert. VPN verbindet wieder.",
+    "geschlossen_am": "2026-11-04T10:05:00"
+  },
+  {
+    "id": 1005,
+    "kunde": "logistik",
+    "titel": "Lieferscheine bleiben in der Druckwarteschlange hängen",
+    "beschreibung": "Im Lager kommen keine Lieferscheine mehr aus dem Drucker. In der Warteschlange stehen über 20 Aufträge, der erste zeigt \"Fehler\". Der Warenausgang steht.",
+    "status": "geschlossen",
+    "prioritaet": "sehr_hoch",
+    "prioritaet_quelle": "manuell",
+    "zugewiesen_an": "tim",
+    "erstellt_am": "2026-11-05T07:41:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-05T07:41:00" },
+      { "status": "in_bearbeitung", "seit": "2026-11-05T07:44:00" },
+      { "status": "geschlossen", "seit": "2026-11-05T08:02:00" }
+    ],
+    "ki": null,
+    "loesungsweg": "Auf LOG-DC01 (Druckserver) den fehlerhaften ersten Auftrag gelöscht, danach den Dienst Druckwarteschlange (Spooler) neu gestartet. Die übrigen Aufträge liefen sofort durch. Drucker war unter 10.20.0.51 erreichbar, Ursache war ein beschädigter Druckauftrag.",
+    "geschlossen_am": "2026-11-05T08:02:00"
+  },
+  {
+    "id": 1006,
+    "kunde": "steuerbuero",
+    "titel": "Neue Mitarbeiterin ab 01.12.",
+    "beschreibung": "Ab dem 01.12. fängt Frau Beispiel bei uns an. Bitte ein Benutzerkonto und ein Postfach einrichten, gleiche Rechte wie die anderen Sachbearbeiterinnen.",
+    "status": "in_bearbeitung",
+    "prioritaet": "niedrig",
+    "prioritaet_quelle": "manuell",
+    "zugewiesen_an": "lena",
+    "erstellt_am": "2026-11-13T11:30:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-13T11:30:00" },
+      { "status": "in_bearbeitung", "seit": "2026-11-14T09:00:00" }
+    ],
+    "ki": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1007,
+    "kunde": "autohaus",
+    "titel": "PC an der Fahrzeugannahme bleibt schwarz",
+    "beschreibung": "Der Rechner an der Fahrzeugannahme in der Werkstatt startet nicht mehr. Die Lüfter laufen, der Bildschirm bleibt schwarz. Wir können keine Fahrzeuge annehmen, die Kunden warten.",
+    "status": "neu",
+    "prioritaet": null,
+    "prioritaet_quelle": null,
+    "zugewiesen_an": null,
+    "erstellt_am": "2026-11-19T07:35:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-19T07:35:00" }
+    ],
+    "ki": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1008,
+    "kunde": "praxis",
+    "titel": "Kartenlesegerät an der Anmeldung liest keine Karten",
+    "beschreibung": "Das Kartenlesegerät an der Anmeldung erkennt seit heute früh keine Versichertenkarten mehr. Am zweiten Anmeldeplatz gibt es kein Lesegerät. Die Patientenaufnahme läuft gerade nur mit Papier.",
+    "status": "neu",
+    "prioritaet": null,
+    "prioritaet_quelle": null,
+    "zugewiesen_an": null,
+    "erstellt_am": "2026-11-19T08:05:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-19T08:05:00" }
+    ],
+    "ki": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1009,
+    "kunde": null,
+    "titel": "Zahlungserinnerung Rechnung 4471",
+    "beschreibung": "Sehr geehrte Damen und Herren, leider konnten wir zu Rechnung 4471 noch keinen Zahlungseingang feststellen. Die Rechnung finden Sie im angehängten ZIP-Archiv. Bitte begleichen Sie den Betrag innerhalb von 48 Stunden, um Mahngebühren zu vermeiden.",
+    "status": "neu",
+    "prioritaet": null,
+    "prioritaet_quelle": null,
+    "zugewiesen_an": null,
+    "erstellt_am": "2026-11-18T22:14:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-18T22:14:00" }
+    ],
+    "ki": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1010,
+    "kunde": null,
+    "titel": "Nur heute: 50 % auf Toner und Druckerpatronen",
+    "beschreibung": "Unser Herbst-Angebot für Ihr Büro: Alle Toner und Druckerpatronen heute zum halben Preis. Jetzt im Shop bestellen und zusätzlich einen Gratis-Kugelschreiber sichern!",
+    "status": "neu",
+    "prioritaet": null,
+    "prioritaet_quelle": null,
+    "zugewiesen_an": null,
+    "erstellt_am": "2026-11-19T06:02:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-19T06:02:00" }
+    ],
+    "ki": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1011,
+    "kunde": null,
+    "titel": "Dringende Bitte, bitte vertraulich behandeln",
+    "beschreibung": "Hallo, ich sitze gerade in einem Termin und kann nicht telefonieren. Ich brauche heute noch fünf Gutscheinkarten über je 100 Euro für einen Kunden. Kaufen Sie diese bitte und schicken Sie mir die Codes per Mail. Bitte mit niemandem darüber sprechen. Danke, die Geschäftsführung",
+    "status": "neu",
+    "prioritaet": null,
+    "prioritaet_quelle": null,
+    "zugewiesen_an": null,
+    "erstellt_am": "2026-11-19T09:48:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-19T09:48:00" }
+    ],
+    "ki": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1012,
+    "kunde": "steuerbuero",
+    "titel": "Ist diese Mail echt?",
+    "beschreibung": "Frau Muster hat heute eine Mail bekommen: \"Ihr Microsoft-Konto wird in 24 Stunden gesperrt, bestätigen Sie jetzt Ihre Daten über diesen Link\". Sie hat nicht auf den Link geklickt. Ist die Mail echt oder können wir sie löschen?",
+    "status": "neu",
+    "prioritaet": null,
+    "prioritaet_quelle": null,
+    "zugewiesen_an": null,
+    "erstellt_am": "2026-11-19T10:20:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-19T10:20:00" }
+    ],
+    "ki": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1013,
+    "kunde": "bau",
+    "titel": "Konto gesperrt, Anmeldung nicht möglich",
+    "beschreibung": "Herr Beispiel hat sich heute früh dreimal mit dem falschen Passwort angemeldet. Jetzt steht da, das Konto ist gesperrt. Er kann nicht arbeiten.",
+    "status": "geschlossen",
+    "prioritaet": "hoch",
+    "prioritaet_quelle": "manuell",
+    "zugewiesen_an": "tim",
+    "erstellt_am": "2026-11-06T07:52:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-06T07:52:00" },
+      { "status": "in_bearbeitung", "seit": "2026-11-06T07:55:00" },
+      { "status": "geschlossen", "seit": "2026-11-06T08:03:00" }
+    ],
+    "ki": null,
+    "loesungsweg": "Konto in Active Directory auf BAU-SRV01 entsperrt (Benutzer und Computer, Eigenschaften, Konto, Haken bei \"Konto entsperren\"). Ursache: Feststelltaste aktiv. Kein neues Passwort nötig, Anmeldung danach erfolgreich.",
+    "geschlossen_am": "2026-11-06T08:03:00"
+  },
+  {
+    "id": 1014,
+    "kunde": "logistik",
+    "titel": "Kein Internet im ganzen Büro",
+    "beschreibung": "Seit ca. 10 Uhr gehen bei uns keine Webseiten mehr auf, auch keine Mails. Betroffen sind alle Arbeitsplätze, auch das Lager. Die Warenwirtschaft auf dem Terminalserver läuft noch.",
+    "status": "geschlossen",
+    "prioritaet": "sehr_hoch",
+    "prioritaet_quelle": "manuell",
+    "zugewiesen_an": "lena",
+    "erstellt_am": "2026-11-10T10:07:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-10T10:07:00" },
+      { "status": "in_bearbeitung", "seit": "2026-11-10T10:09:00" },
+      { "status": "geschlossen", "seit": "2026-11-10T11:15:00" }
+    ],
+    "ki": null,
+    "loesungsweg": "FortiGate erreichbar, aber WAN-Schnittstelle ohne Verbindung. Störung beim Provider bestätigt (Ausfall im Ortsnetz). Nach Behebung durch den Provider um 11:10 Uhr Verbindung wieder da. Empfehlung an den Kunden: zweite Leitung (LTE-Backup) prüfen.",
+    "geschlossen_am": "2026-11-10T11:15:00"
+  },
+  {
+    "id": 1015,
+    "kunde": "logistik",
+    "titel": "WLAN im Lager bricht immer wieder ab",
+    "beschreibung": "Die Handscanner im Lager verlieren alle paar Minuten die Verbindung. Nach etwa einer Minute verbinden sie sich wieder von selbst, man kann also weiterarbeiten, aber es dauert alles länger.",
+    "status": "in_bearbeitung",
+    "prioritaet": "mittel",
+    "prioritaet_quelle": "manuell",
+    "zugewiesen_an": "tim",
+    "erstellt_am": "2026-11-17T13:22:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-17T13:22:00" },
+      { "status": "in_bearbeitung", "seit": "2026-11-17T14:00:00" }
+    ],
+    "ki": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1016,
+    "kunde": "steuerbuero",
+    "titel": "Kanzleisoftware: Datenbank nicht erreichbar",
+    "beschreibung": "Heute Morgen startet die Kanzleisoftware an keinem der sechs Arbeitsplätze. Es kommt die Meldung \"Verbindung zur Datenbank konnte nicht hergestellt werden\". Wir können gar nicht arbeiten.",
+    "status": "geschlossen",
+    "prioritaet": "sehr_hoch",
+    "prioritaet_quelle": "manuell",
+    "zugewiesen_an": "lena",
+    "erstellt_am": "2026-11-03T08:01:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-03T08:01:00" },
+      { "status": "in_bearbeitung", "seit": "2026-11-03T08:04:00" },
+      { "status": "geschlossen", "seit": "2026-11-03T08:30:00" }
+    ],
+    "ki": null,
+    "loesungsweg": "Auf STB-SRV01 war nach dem nächtlichen Windows-Update der SQL-Server-Dienst der Kanzleisoftware nicht gestartet. Dienst gestartet und den Starttyp von \"Manuell\" auf \"Automatisch (verzögerter Start)\" gestellt. Alle Arbeitsplätze können wieder arbeiten.",
+    "geschlossen_am": "2026-11-03T08:30:00"
+  },
+  {
+    "id": 1017,
+    "kunde": "steuerbuero",
+    "titel": "Kanzleisoftware startet wieder nicht",
+    "beschreibung": "Wie vor zwei Wochen startet die Kanzleisoftware nicht, diesmal nach dem Neustart des Servers am Wochenende. Wieder die Meldung mit der Datenbank, alle Arbeitsplätze betroffen.",
+    "status": "neu",
+    "prioritaet": null,
+    "prioritaet_quelle": null,
+    "zugewiesen_an": null,
+    "erstellt_am": "2026-11-17T08:03:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-17T08:03:00" }
+    ],
+    "ki": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1018,
+    "kunde": "autohaus",
+    "titel": "Monitor im Verkauf flackert",
+    "beschreibung": "Der Monitor bei Herrn Beispiel im Verkauf flackert ab und zu kurz schwarz. Man kann noch damit arbeiten, aber es nervt.",
+    "status": "geparkt",
+    "prioritaet": "mittel",
+    "prioritaet_quelle": "manuell",
+    "zugewiesen_an": "tim",
+    "erstellt_am": "2026-11-12T15:10:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-12T15:10:00" },
+      { "status": "in_bearbeitung", "seit": "2026-11-12T15:30:00" },
+      { "status": "geparkt", "seit": "2026-11-13T09:00:00" }
+    ],
+    "ki": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1019,
+    "kunde": "autohaus",
+    "titel": "Scannen in Ordner funktioniert nicht",
+    "beschreibung": "Am Kopierer im Büro geht \"Scannen in Ordner\" nicht mehr, es kommt \"Anmeldung am Server fehlgeschlagen\". Scannen auf USB-Stick geht noch.",
+    "status": "geschlossen",
+    "prioritaet": "mittel",
+    "prioritaet_quelle": "manuell",
+    "zugewiesen_an": "lena",
+    "erstellt_am": "2026-11-07T10:15:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-07T10:15:00" },
+      { "status": "in_bearbeitung", "seit": "2026-11-07T10:40:00" },
+      { "status": "geschlossen", "seit": "2026-11-07T11:05:00" }
+    ],
+    "ki": null,
+    "loesungsweg": "Das Passwort des Scan-Benutzers war nach Ablauf geändert worden, im Adressbuch des Multifunktionsgeräts stand noch das alte. Passwort im Adressbuch aktualisiert (Weboberfläche des Geräts, Adressbuch, Ziel \"Scans\"). Scannen in Ordner geht wieder.",
+    "geschlossen_am": "2026-11-07T11:05:00"
+  },
+  {
+    "id": 1020,
+    "kunde": "praxis",
+    "titel": "Keine externen E-Mails mehr",
+    "beschreibung": "Seit gestern Nachmittag kommen bei uns keine E-Mails von außen mehr an, auch keine Laborbefunde. Mails innerhalb der Praxis gehen. Betroffen ist das gemeinsame Praxispostfach.",
+    "status": "geschlossen",
+    "prioritaet": "sehr_hoch",
+    "prioritaet_quelle": "manuell",
+    "zugewiesen_an": "tim",
+    "erstellt_am": "2026-11-11T08:10:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-11T08:10:00" },
+      { "status": "in_bearbeitung", "seit": "2026-11-11T08:15:00" },
+      { "status": "geschlossen", "seit": "2026-11-11T09:20:00" }
+    ],
+    "ki": null,
+    "loesungsweg": "Gemeinsames Postfach in Microsoft 365 hatte die 50-GB-Grenze erreicht, eingehende Mails wurden abgewiesen. Online-Archiv aktiviert und eine Aufbewahrungsrichtlinie gesetzt (Mails älter als 2 Jahre ins Archiv). Nach ca. 30 Minuten kamen die Mails wieder an.",
+    "geschlossen_am": "2026-11-11T09:20:00"
+  },
+  {
+    "id": 1021,
+    "kunde": "praxis",
+    "titel": "Warnung: Postfach fast voll",
+    "beschreibung": "In Outlook erscheint beim gemeinsamen Praxispostfach die Meldung \"Ihr Postfach ist fast voll\". Mails kommen aber noch an. Müssen wir etwas tun?",
+    "status": "neu",
+    "prioritaet": null,
+    "prioritaet_quelle": null,
+    "zugewiesen_an": null,
+    "erstellt_am": "2026-11-19T11:02:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-19T11:02:00" }
+    ],
+    "ki": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1022,
+    "kunde": "bau",
+    "titel": "Outlook schließt sich sofort wieder",
+    "beschreibung": "Bei Frau Muster öffnet sich Outlook kurz und geht sofort wieder zu. Das Bauzeiten-Programm wurde gestern aktualisiert. Ein Neustart hat nicht geholfen.",
+    "status": "neu",
+    "prioritaet": null,
+    "prioritaet_quelle": null,
+    "zugewiesen_an": null,
+    "erstellt_am": "2026-11-19T08:40:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-19T08:40:00" }
+    ],
+    "ki": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1023,
+    "kunde": "bau",
+    "titel": "Wunsch: zweiter Monitor für die Buchhaltung",
+    "beschreibung": "Unsere Buchhaltung hätte gern einen zweiten Monitor, damit sie Belege und Programm nebeneinander sehen kann. Bitte ein Angebot schicken.",
+    "status": "neu",
+    "prioritaet": null,
+    "prioritaet_quelle": null,
+    "zugewiesen_an": null,
+    "erstellt_am": "2026-11-18T16:45:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-18T16:45:00" }
+    ],
+    "ki": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1024,
+    "kunde": "logistik",
+    "titel": "Warenwirtschaft stürzt beim Buchen ab",
+    "beschreibung": "Bei Herrn Beispiel im Einkauf stürzt die Warenwirtschaft ab, sobald er einen Wareneingang bucht. Am Platz seiner Kollegin funktioniert das Buchen mit seinem Konto, er weicht gerade dorthin aus.",
+    "status": "antwort_erhalten",
+    "prioritaet": "mittel",
+    "prioritaet_quelle": "manuell",
+    "zugewiesen_an": "tim",
+    "erstellt_am": "2026-11-18T10:05:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-18T10:05:00" },
+      { "status": "in_bearbeitung", "seit": "2026-11-18T10:30:00" },
+      { "status": "warten_auf_kunde", "seit": "2026-11-18T11:00:00" },
+      { "status": "antwort_erhalten", "seit": "2026-11-19T08:15:00" }
+    ],
+    "ki": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1025,
+    "kunde": "autohaus",
+    "titel": "Verkäufer kann sich nicht mehr anmelden, Konto gesperrt",
+    "beschreibung": "Herr Beispiel aus dem Verkauf bekommt beim Anmelden die Meldung, dass sein Konto gesperrt ist. Er hat am Wochenende sein Passwort geändert. Er kann gerade gar nicht arbeiten.",
+    "status": "neu",
+    "prioritaet": null,
+    "prioritaet_quelle": null,
+    "zugewiesen_an": null,
+    "erstellt_am": "2026-11-19T08:55:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-19T08:55:00" }
+    ],
+    "ki": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1026,
+    "kunde": "bau",
+    "titel": "VPN auf dem Bauleiter-Notebook geht nicht",
+    "beschreibung": "Frau Muster ist auf der Baustelle und kommt nicht ins VPN, seit das Notebook gestern Updates installiert hat. Fehlermeldung \"Verbindung fehlgeschlagen\".",
+    "status": "neu",
+    "prioritaet": null,
+    "prioritaet_quelle": null,
+    "zugewiesen_an": null,
+    "erstellt_am": "2026-11-19T09:30:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-19T09:30:00" }
+    ],
+    "ki": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1027,
+    "kunde": "logistik",
+    "titel": "Etikettendrucker im Versand druckt leere Etiketten",
+    "beschreibung": "Der Etikettendrucker im Versand schiebt nur noch leere Etiketten raus. Ohne Etiketten können wir keine Pakete verschicken, der Versand steht.",
+    "status": "neu",
+    "prioritaet": null,
+    "prioritaet_quelle": null,
+    "zugewiesen_an": null,
+    "erstellt_am": "2026-11-19T10:12:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-19T10:12:00" }
+    ],
+    "ki": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1028,
+    "kunde": "praxis",
+    "titel": "Neues Handy, Anmeldung bei Microsoft 365 geht nicht",
+    "beschreibung": "Frau Muster hat ein neues Diensthandy. Die Authenticator-App ist darauf nicht eingerichtet, deshalb kommt sie nicht mehr in ihr Postfach und in Teams.",
+    "status": "geschlossen",
+    "prioritaet": "hoch",
+    "prioritaet_quelle": "manuell",
+    "zugewiesen_an": "lena",
+    "erstellt_am": "2026-11-09T08:20:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-09T08:20:00" },
+      { "status": "in_bearbeitung", "seit": "2026-11-09T08:30:00" },
+      { "status": "geschlossen", "seit": "2026-11-09T08:50:00" }
+    ],
+    "ki": null,
+    "loesungsweg": "Im Microsoft-365-Admincenter die Authentifizierungsmethoden der Benutzerin zurückgesetzt (\"Erneute Registrierung für MFA anfordern\"). Mit ihr am Telefon die Authenticator-App auf dem neuen Handy eingerichtet. Altes Gerät aus der Liste entfernt.",
+    "geschlossen_am": "2026-11-09T08:50:00"
+  },
+  {
+    "id": 1029,
+    "kunde": "autohaus",
+    "titel": "Notebook geht nicht mehr an",
+    "beschreibung": "Das Notebook der Serviceberaterin lässt sich nicht mehr einschalten, auch nicht am Netzteil. Die Ladeleuchte bleibt aus.",
+    "status": "geschlossen",
+    "prioritaet": "hoch",
+    "prioritaet_quelle": "manuell",
+    "zugewiesen_an": "tim",
+    "erstellt_am": "2026-11-14T08:10:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-14T08:10:00" },
+      { "status": "in_bearbeitung", "seit": "2026-11-14T08:30:00" },
+      { "status": "geschlossen", "seit": "2026-11-14T12:00:00" }
+    ],
+    "ki": null,
+    "loesungsweg": "Netzteil mit einem baugleichen getestet, das Notebook startete sofort. Netzteil defekt, Ersatz aus dem Lager verbaut und das alte entsorgt. Akku und Gerät in Ordnung.",
+    "geschlossen_am": "2026-11-14T12:00:00"
+  },
+  {
+    "id": 1030,
+    "kunde": "steuerbuero",
+    "titel": "Umzug von zwei Arbeitsplätzen im Januar",
+    "beschreibung": "Im Januar ziehen zwei Kolleginnen ins Büro im ersten Stock. Können Sie die beiden Arbeitsplätze dort anschließen? Netzwerkdosen sind vorhanden. Termin können wir flexibel abstimmen.",
+    "status": "neu",
+    "prioritaet": null,
+    "prioritaet_quelle": null,
+    "zugewiesen_an": null,
+    "erstellt_am": "2026-11-18T14:30:00",
+    "statushistorie": [
+      { "status": "neu", "seit": "2026-11-18T14:30:00" }
+    ],
+    "ki": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
   }
 ]

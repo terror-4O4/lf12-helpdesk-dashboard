@@ -12,5 +12,26 @@
     "branche": "Logistik",
     "ort": "Mainz",
     "ansprechpartner": "Frau Muster"
+  },
+  {
+    "kunde": "steuerbuero",
+    "name": "Steuerberatung PartG mbB",
+    "branche": "Steuerberatung",
+    "ort": "Taunusstein",
+    "ansprechpartner": "Frau Muster"
+  },
+  {
+    "kunde": "autohaus",
+    "name": "Autohaus GmbH & Co. KG",
+    "branche": "Kfz-Handel und Werkstatt",
+    "ort": "Hochheim am Main",
+    "ansprechpartner": "Herr Beispiel"
+  },
+  {
+    "kunde": "praxis",
+    "name": "Allgemeinarztpraxis GbR",
+    "branche": "Gesundheitswesen",
+    "ort": "Eltville",
+    "ansprechpartner": "Frau Beispiel"
   }
 ]

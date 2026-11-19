@@ -1,0 +1,212 @@
+[
+  {
+    "id": 1001,
+    "prioritaet": "hoch",
+    "spam": false,
+    "kategorie": "Software",
+    "hinweis": "Outlook-Programmfehler zählt als Software, nicht E-Mail"
+  },
+  {
+    "id": 1002,
+    "prioritaet": "sehr_hoch",
+    "spam": false,
+    "kategorie": "Drucker",
+    "hinweis": "Kundenregel Lagerdrucker"
+  },
+  {
+    "id": 1003,
+    "prioritaet": "niedrig",
+    "spam": true,
+    "kategorie": "Spam",
+    "hinweis": "Phishing"
+  },
+  {
+    "id": 1004,
+    "prioritaet": "hoch",
+    "spam": false,
+    "kategorie": "Netzwerk",
+    "hinweis": "Eine Person kann nicht arbeiten"
+  },
+  {
+    "id": 1005,
+    "prioritaet": "sehr_hoch",
+    "spam": false,
+    "kategorie": "Drucker",
+    "hinweis": "Kundenregel Lagerdrucker, Warenausgang steht"
+  },
+  {
+    "id": 1006,
+    "prioritaet": "niedrig",
+    "spam": false,
+    "kategorie": "Benutzerkonto",
+    "hinweis": "Planbarer Wunsch mit Vorlauf"
+  },
+  {
+    "id": 1007,
+    "prioritaet": "sehr_hoch",
+    "spam": false,
+    "kategorie": "Hardware",
+    "hinweis": "Kundenregel Fahrzeugannahme"
+  },
+  {
+    "id": 1008,
+    "prioritaet": "sehr_hoch",
+    "spam": false,
+    "kategorie": "Hardware",
+    "hinweis": "Kundenregel Patientenaufnahme"
+  },
+  {
+    "id": 1009,
+    "prioritaet": "niedrig",
+    "spam": true,
+    "kategorie": "Spam",
+    "hinweis": "Schadsoftware-Anhang, unbekannter Absender"
+  },
+  {
+    "id": 1010,
+    "prioritaet": "niedrig",
+    "spam": true,
+    "kategorie": "Spam",
+    "hinweis": "Werbung, erwähnt aber Drucker"
+  },
+  {
+    "id": 1011,
+    "prioritaet": "niedrig",
+    "spam": true,
+    "kategorie": "Spam",
+    "hinweis": "Chef-Betrug (CEO-Fraud), ohne Link"
+  },
+  {
+    "id": 1012,
+    "prioritaet": "niedrig",
+    "spam": false,
+    "kategorie": "E-Mail",
+    "hinweis": "Kein Spam: echte Kundin fragt nach, enthält aber Phishing-Merkmale"
+  },
+  {
+    "id": 1013,
+    "prioritaet": "hoch",
+    "spam": false,
+    "kategorie": "Benutzerkonto",
+    "hinweis": "Kein Spam trotz \"gesperrt\" und \"Passwort\""
+  },
+  {
+    "id": 1014,
+    "prioritaet": "sehr_hoch",
+    "spam": false,
+    "kategorie": "Netzwerk",
+    "hinweis": "Ganzer Standort betroffen"
+  },
+  {
+    "id": 1015,
+    "prioritaet": "mittel",
+    "spam": false,
+    "kategorie": "Netzwerk",
+    "hinweis": "Eingeschränkt, Weiterarbeit möglich"
+  },
+  {
+    "id": 1016,
+    "prioritaet": "sehr_hoch",
+    "spam": false,
+    "kategorie": "Software",
+    "hinweis": "Alle Arbeitsplätze, Kundenregel Kanzleisoftware"
+  },
+  {
+    "id": 1017,
+    "prioritaet": "sehr_hoch",
+    "spam": false,
+    "kategorie": "Software",
+    "hinweis": "Gegenstück zu #1016 für RAG"
+  },
+  {
+    "id": 1018,
+    "prioritaet": "mittel",
+    "spam": false,
+    "kategorie": "Hardware",
+    "hinweis": "Eingeschränkt, Ersatzmonitor bestellt"
+  },
+  {
+    "id": 1019,
+    "prioritaet": "mittel",
+    "spam": false,
+    "kategorie": "Drucker",
+    "hinweis": "Multifunktionsgerät zählt als Drucker, Workaround USB"
+  },
+  {
+    "id": 1020,
+    "prioritaet": "sehr_hoch",
+    "spam": false,
+    "kategorie": "E-Mail",
+    "hinweis": "Ganze Praxis, Kundenregel Laborbefunde"
+  },
+  {
+    "id": 1021,
+    "prioritaet": "mittel",
+    "spam": false,
+    "kategorie": "E-Mail",
+    "hinweis": "Kein Spam: echte Warnung, ähnlicher Titel wie Phishing #1003; Gegenstück zu #1020 für RAG"
+  },
+  {
+    "id": 1022,
+    "prioritaet": "hoch",
+    "spam": false,
+    "kategorie": "Software",
+    "hinweis": "Gegenstück zu #1001 für RAG"
+  },
+  {
+    "id": 1023,
+    "prioritaet": "niedrig",
+    "spam": false,
+    "kategorie": "Hardware",
+    "hinweis": "Wunsch"
+  },
+  {
+    "id": 1024,
+    "prioritaet": "mittel",
+    "spam": false,
+    "kategorie": "Software",
+    "hinweis": "Eine Person betroffen, aber Workaround vorhanden"
+  },
+  {
+    "id": 1025,
+    "prioritaet": "hoch",
+    "spam": false,
+    "kategorie": "Benutzerkonto",
+    "hinweis": "Kein Spam trotz \"gesperrt\"; Gegenstück zu #1013 für RAG"
+  },
+  {
+    "id": 1026,
+    "prioritaet": "hoch",
+    "spam": false,
+    "kategorie": "Netzwerk",
+    "hinweis": "Gegenstück zu #1004 für RAG"
+  },
+  {
+    "id": 1027,
+    "prioritaet": "sehr_hoch",
+    "spam": false,
+    "kategorie": "Drucker",
+    "hinweis": "Versand steht, kein Lagerdrucker (Regel nur sinngemäß)"
+  },
+  {
+    "id": 1028,
+    "prioritaet": "hoch",
+    "spam": false,
+    "kategorie": "Benutzerkonto",
+    "hinweis": "Eine Person kann nicht arbeiten"
+  },
+  {
+    "id": 1029,
+    "prioritaet": "hoch",
+    "spam": false,
+    "kategorie": "Hardware",
+    "hinweis": "Eine Person kann nicht arbeiten"
+  },
+  {
+    "id": 1030,
+    "prioritaet": "niedrig",
+    "spam": false,
+    "kategorie": "Sonstiges",
+    "hinweis": "Planbarer Auftrag"
+  }
+]
