@@ -23,7 +23,7 @@ Browser (Dashboard)  ──►  Backend (Python)  ──►  llama-server (llama
                               └──►  Testdaten (fiktive Tickets, Kundendoku)
 ```
 
-- **Entwicklung:** jeder auf dem eigenen Laptop (Windows oder macOS)
+- **Entwicklung:** jeder auf dem eigenen Laptop 
 - **Betrieb:** Mac Pro als Server, Zugriff für die Gruppe nur über Tailscale auf Weboberfläche und API
 - **Deployment:** ausschließlich durch Marlon, nur geprüfter Code aus `main`
 
