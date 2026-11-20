@@ -12,7 +12,7 @@ export function zeigeSpam(ziel) {
     .sort((a, b) => b.id - a.id);
   const bestaetigt = zustand.tickets.filter((t) => t.spam_entscheidung === "spam").length;
   const fehlalarme = zustand.tickets.filter((t) => t.spam_entscheidung === "kein_spam").length;
-  const unbewertet = zustand.tickets.filter((t) => !t.ki && t.status !== "geschlossen").length;
+  const unbewertet = zustand.tickets.filter((t) => !t.ki?.prioritaet && t.status !== "geschlossen").length;
 
   fuege(ziel,
     h("div", { class: "hinweisleiste" },

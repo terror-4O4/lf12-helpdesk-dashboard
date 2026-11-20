@@ -21,6 +21,7 @@
       "loesungsvorschlag": null,
       "aehnliche_tickets": []
     },
+    "ursache": "Outlook-Add-In des Bauzeiten-Programms nach einem Update fehlerhaft",
     "loesungsweg": "Outlook mit outlook.exe /safe gestartet, das funktionierte. Ursache war das Add-In des Bauzeiten-Programms nach einem Update. Add-In unter Datei > Optionen > Add-Ins deaktiviert, Outlook startet wieder normal. Hersteller-Update für das Add-In beim Kunden angefragt.",
     "geschlossen_am": "2026-11-12T08:40:00"
   },
@@ -46,6 +47,7 @@
       "loesungsvorschlag": "Prüfen, ob der Drucker im Netzwerk erreichbar ist (IP laut Kundendoku anpingen). Druckwarteschlange auf dem Druckserver leeren und den Druckspooler neu starten.",
       "aehnliche_tickets": []
     },
+    "ursache": null,
     "loesungsweg": null,
     "geschlossen_am": null
   },
@@ -69,6 +71,7 @@
       "loesungsvorschlag": "Typische Phishing-Mail (Zeitdruck, Aufforderung zur Eingabe von Zugangsdaten, kein bekannter Kunde). Ticket schließen, nicht auf den Link klicken.",
       "aehnliche_tickets": []
     },
+    "ursache": null,
     "loesungsweg": null,
     "geschlossen_am": null
   },
@@ -88,6 +91,7 @@
       { "status": "geschlossen", "seit": "2026-11-04T10:05:00" }
     ],
     "ki": null,
+    "ursache": "VPN-Profil im Sophos-Client nach dem Windows-Update leer",
     "loesungsweg": "Per Fernwartung geprüft: Nach dem Windows-Update war das Verbindungsprofil im VPN-Client der Sophos-Firewall leer. Client in der aktuellen Version neu installiert und das Profil aus dem Benutzerportal der Firewall neu importiert. VPN verbindet wieder.",
     "geschlossen_am": "2026-11-04T10:05:00"
   },
@@ -107,6 +111,7 @@
       { "status": "geschlossen", "seit": "2026-11-05T08:02:00" }
     ],
     "ki": null,
+    "ursache": "Beschädigter Druckauftrag blockiert die Druckwarteschlange auf dem Druckserver",
     "loesungsweg": "Auf LOG-DC01 (Druckserver) den fehlerhaften ersten Auftrag gelöscht, danach den Dienst Druckwarteschlange (Spooler) neu gestartet. Die übrigen Aufträge liefen sofort durch. Drucker war unter 10.20.0.51 erreichbar, Ursache war ein beschädigter Druckauftrag.",
     "geschlossen_am": "2026-11-05T08:02:00"
   },
@@ -125,6 +130,7 @@
       { "status": "in_bearbeitung", "seit": "2026-11-14T09:00:00" }
     ],
     "ki": null,
+    "ursache": null,
     "loesungsweg": null,
     "geschlossen_am": null
   },
@@ -142,6 +148,7 @@
       { "status": "neu", "seit": "2026-11-19T07:35:00" }
     ],
     "ki": null,
+    "ursache": null,
     "loesungsweg": null,
     "geschlossen_am": null
   },
@@ -159,6 +166,7 @@
       { "status": "neu", "seit": "2026-11-19T08:05:00" }
     ],
     "ki": null,
+    "ursache": null,
     "loesungsweg": null,
     "geschlossen_am": null
   },
@@ -176,6 +184,7 @@
       { "status": "neu", "seit": "2026-11-18T22:14:00" }
     ],
     "ki": null,
+    "ursache": null,
     "loesungsweg": null,
     "geschlossen_am": null
   },
@@ -193,6 +202,7 @@
       { "status": "neu", "seit": "2026-11-19T06:02:00" }
     ],
     "ki": null,
+    "ursache": null,
     "loesungsweg": null,
     "geschlossen_am": null
   },
@@ -210,6 +220,7 @@
       { "status": "neu", "seit": "2026-11-19T09:48:00" }
     ],
     "ki": null,
+    "ursache": null,
     "loesungsweg": null,
     "geschlossen_am": null
   },
@@ -227,6 +238,7 @@
       { "status": "neu", "seit": "2026-11-19T10:20:00" }
     ],
     "ki": null,
+    "ursache": null,
     "loesungsweg": null,
     "geschlossen_am": null
   },
@@ -246,6 +258,7 @@
       { "status": "geschlossen", "seit": "2026-11-06T08:03:00" }
     ],
     "ki": null,
+    "ursache": "Konto nach mehreren Fehlversuchen gesperrt, Feststelltaste war aktiv",
     "loesungsweg": "Konto in Active Directory auf BAU-SRV01 entsperrt (Benutzer und Computer, Eigenschaften, Konto, Haken bei \"Konto entsperren\"). Ursache: Feststelltaste aktiv. Kein neues Passwort nötig, Anmeldung danach erfolgreich.",
     "geschlossen_am": "2026-11-06T08:03:00"
   },
@@ -265,6 +278,7 @@
       { "status": "geschlossen", "seit": "2026-11-10T11:15:00" }
     ],
     "ki": null,
+    "ursache": "Störung beim Internetprovider (Ausfall im Ortsnetz)",
     "loesungsweg": "FortiGate erreichbar, aber WAN-Schnittstelle ohne Verbindung. Störung beim Provider bestätigt (Ausfall im Ortsnetz). Nach Behebung durch den Provider um 11:10 Uhr Verbindung wieder da. Empfehlung an den Kunden: zweite Leitung (LTE-Backup) prüfen.",
     "geschlossen_am": "2026-11-10T11:15:00"
   },
@@ -283,6 +297,7 @@
       { "status": "in_bearbeitung", "seit": "2026-11-17T14:00:00" }
     ],
     "ki": null,
+    "ursache": null,
     "loesungsweg": null,
     "geschlossen_am": null
   },
@@ -302,6 +317,7 @@
       { "status": "geschlossen", "seit": "2026-11-03T08:30:00" }
     ],
     "ki": null,
+    "ursache": "SQL-Server-Dienst der Kanzleisoftware nach dem Windows-Update nicht gestartet (Starttyp Manuell)",
     "loesungsweg": "Auf STB-SRV01 war nach dem nächtlichen Windows-Update der SQL-Server-Dienst der Kanzleisoftware nicht gestartet. Dienst gestartet und den Starttyp von \"Manuell\" auf \"Automatisch (verzögerter Start)\" gestellt. Alle Arbeitsplätze können wieder arbeiten.",
     "geschlossen_am": "2026-11-03T08:30:00"
   },
@@ -319,6 +335,7 @@
       { "status": "neu", "seit": "2026-11-17T08:03:00" }
     ],
     "ki": null,
+    "ursache": null,
     "loesungsweg": null,
     "geschlossen_am": null
   },
@@ -338,6 +355,7 @@
       { "status": "geparkt", "seit": "2026-11-13T09:00:00" }
     ],
     "ki": null,
+    "ursache": null,
     "loesungsweg": null,
     "geschlossen_am": null
   },
@@ -357,6 +375,7 @@
       { "status": "geschlossen", "seit": "2026-11-07T11:05:00" }
     ],
     "ki": null,
+    "ursache": "Altes Passwort des Scan-Benutzers im Adressbuch des Multifunktionsgeräts",
     "loesungsweg": "Das Passwort des Scan-Benutzers war nach Ablauf geändert worden, im Adressbuch des Multifunktionsgeräts stand noch das alte. Passwort im Adressbuch aktualisiert (Weboberfläche des Geräts, Adressbuch, Ziel \"Scans\"). Scannen in Ordner geht wieder.",
     "geschlossen_am": "2026-11-07T11:05:00"
   },
@@ -376,6 +395,7 @@
       { "status": "geschlossen", "seit": "2026-11-11T09:20:00" }
     ],
     "ki": null,
+    "ursache": "Gemeinsames Postfach hat die Speichergrenze von 50 GB erreicht",
     "loesungsweg": "Gemeinsames Postfach in Microsoft 365 hatte die 50-GB-Grenze erreicht, eingehende Mails wurden abgewiesen. Online-Archiv aktiviert und eine Aufbewahrungsrichtlinie gesetzt (Mails älter als 2 Jahre ins Archiv). Nach ca. 30 Minuten kamen die Mails wieder an.",
     "geschlossen_am": "2026-11-11T09:20:00"
   },
@@ -393,6 +413,7 @@
       { "status": "neu", "seit": "2026-11-19T11:02:00" }
     ],
     "ki": null,
+    "ursache": null,
     "loesungsweg": null,
     "geschlossen_am": null
   },
@@ -410,6 +431,7 @@
       { "status": "neu", "seit": "2026-11-19T08:40:00" }
     ],
     "ki": null,
+    "ursache": null,
     "loesungsweg": null,
     "geschlossen_am": null
   },
@@ -427,6 +449,7 @@
       { "status": "neu", "seit": "2026-11-18T16:45:00" }
     ],
     "ki": null,
+    "ursache": null,
     "loesungsweg": null,
     "geschlossen_am": null
   },
@@ -447,6 +470,7 @@
       { "status": "antwort_erhalten", "seit": "2026-11-19T08:15:00" }
     ],
     "ki": null,
+    "ursache": null,
     "loesungsweg": null,
     "geschlossen_am": null
   },
@@ -464,6 +488,7 @@
       { "status": "neu", "seit": "2026-11-19T08:55:00" }
     ],
     "ki": null,
+    "ursache": null,
     "loesungsweg": null,
     "geschlossen_am": null
   },
@@ -481,6 +506,7 @@
       { "status": "neu", "seit": "2026-11-19T09:30:00" }
     ],
     "ki": null,
+    "ursache": null,
     "loesungsweg": null,
     "geschlossen_am": null
   },
@@ -498,6 +524,7 @@
       { "status": "neu", "seit": "2026-11-19T10:12:00" }
     ],
     "ki": null,
+    "ursache": null,
     "loesungsweg": null,
     "geschlossen_am": null
   },
@@ -517,6 +544,7 @@
       { "status": "geschlossen", "seit": "2026-11-09T08:50:00" }
     ],
     "ki": null,
+    "ursache": "MFA-Methode nur auf dem alten Handy registriert",
     "loesungsweg": "Im Microsoft-365-Admincenter die Authentifizierungsmethoden der Benutzerin zurückgesetzt (\"Erneute Registrierung für MFA anfordern\"). Mit ihr am Telefon die Authenticator-App auf dem neuen Handy eingerichtet. Altes Gerät aus der Liste entfernt.",
     "geschlossen_am": "2026-11-09T08:50:00"
   },
@@ -536,6 +564,7 @@
       { "status": "geschlossen", "seit": "2026-11-14T12:00:00" }
     ],
     "ki": null,
+    "ursache": "Netzteil defekt",
     "loesungsweg": "Netzteil mit einem baugleichen getestet, das Notebook startete sofort. Netzteil defekt, Ersatz aus dem Lager verbaut und das alte entsorgt. Akku und Gerät in Ordnung.",
     "geschlossen_am": "2026-11-14T12:00:00"
   },
@@ -553,6 +582,7 @@
       { "status": "neu", "seit": "2026-11-18T14:30:00" }
     ],
     "ki": null,
+    "ursache": null,
     "loesungsweg": null,
     "geschlossen_am": null
   }

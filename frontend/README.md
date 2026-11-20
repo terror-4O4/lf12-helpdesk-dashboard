@@ -17,7 +17,7 @@ Zum Entwickeln reicht `KI_MOCK=true` in der `.env`, dann ist kein KI-Server nöt
 |---|---|---|
 | Übersicht | `#/uebersicht` | Kennzahlen, Handlungsbedarf (Neu und Antwort erhalten, dringendste zuerst), eigene Tickets, persönliche To-dos |
 | Tickets | `#/tickets` | Alle Tickets mit Suche und Filtern. Filter stehen in der Adresse, z. B. `#/tickets?status=neu&kunde=bau` |
-| Ticket | `#/ticket/1002` | Links Nachricht, Bearbeiten und Verlauf, rechts KI-Einschätzung und Kundendoku |
+| Ticket | `#/ticket/1002` | Links Nachricht, Bearbeiten (mit Ursache und Lösungsweg) und Verlauf, rechts KI-Einschätzung, ähnliche gelöste Fälle und Kundendoku |
 | Spam-Prüfung | `#/spam` | Spam-Verdacht der KI bestätigen oder verwerfen |
 | Neues Ticket | Knopf oben rechts | Mail einfügen, Ticket anlegen, KI bewertet direkt |
 | KI-Assistent | Knopf links unten | Freie Fragen an die KI, optional mit einem Ticket als Kontext |
@@ -69,7 +69,6 @@ Einstellungen in [`js/config.js`](js/config.js).
 
 ## Noch offen
 
-- Ähnliche Tickets und Lösungsvorschläge (kommt mit RAG im Backend)
 - Fragen zur Kundendoku im KI-Assistenten (Backend schickt die Doku als Kontext mit)
 - Passend/Unpassend-Bewertung der KI-Vorschläge speichern (Messziel 80 %)
 - Mitarbeiter und To-dos aus dem Backend statt aus dem Browser

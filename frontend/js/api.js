@@ -53,6 +53,7 @@ export const api = {
   ticketAnlegen: (daten) => anfrage("POST", "/api/tickets", daten),
   ticketAendern: (id, aenderung) => anfrage("PATCH", `/api/tickets/${id}`, aenderung),
   analysieren: (id) => anfrage("POST", `/api/tickets/${id}/analyse`),
+  loesungsvorschlag: (id) => anfrage("POST", `/api/tickets/${id}/loesungsvorschlag`),
   kunden: () => anfrage("GET", "/api/kunden"),
   kundendoku: (kunde) => anfrage("GET", `/api/kunden/${encodeURIComponent(kunde)}/doku`),
   frage: (text) => anfrage("POST", "/api/ki/frage", { frage: text }),

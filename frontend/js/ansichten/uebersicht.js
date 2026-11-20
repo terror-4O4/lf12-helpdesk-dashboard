@@ -18,7 +18,7 @@ export function zeigeUebersicht(ziel) {
   const handlungsbedarf = offen
     .filter((t) => t.status === "neu" || t.status === "antwort_erhalten")
     .sort(nachDringlichkeit);
-  const unbewertet = alle.filter((t) => istOffen(t) && !t.ki);
+  const unbewertet = alle.filter((t) => istOffen(t) && !t.ki?.prioritaet);
 
   fuege(ziel,
     kennzahlen(alle, offen),

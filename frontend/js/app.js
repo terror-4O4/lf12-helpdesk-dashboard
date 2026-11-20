@@ -104,6 +104,11 @@ async function pruefeKiStatus() {
       el.className = "ki-status ki-mock";
       el.title = "Beispielantworten ohne KI-Server (KI_MOCK=true in der .env)";
       fuss.textContent = "KI im Mock-Modus";
+    } else if (s.ki_erreichbar && s.embedding_erreichbar === false) {
+      el.textContent = "KI online, Fallsuche aus";
+      el.className = "ki-status ki-mock";
+      el.title = "Chat-Modell erreichbar, Embedding-Server (EMBED_URL) nicht: ähnliche Fälle können nicht gesucht werden";
+      fuss.textContent = s.ki_modell ? `Modell: ${s.ki_modell} (llama.cpp)` : "llama.cpp";
     } else if (s.ki_erreichbar) {
       el.textContent = "KI online";
       el.className = "ki-status ki-online";

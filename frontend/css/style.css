@@ -398,3 +398,11 @@ textarea { resize: vertical; width: 100%; }
   .assistent { width: 100%; }
   .kopf-titel { display: none; }
 }
+
+/* --- Ähnliche Fälle (RAG) ------------------------------------------------- */
+.ursachen { margin: 0 0 10px; padding-left: 20px; display: grid; gap: 10px; }
+.ursachen p { margin: 0; }
+.ursachen .ursache { font-weight: 600; }
+.ursachen .loesungsweg { color: var(--text); white-space: pre-wrap; }
+.ursachen .quelle { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+.loesung h4 + p { margin-bottom: 8px; }
