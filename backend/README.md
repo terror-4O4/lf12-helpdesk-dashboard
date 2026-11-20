@@ -35,6 +35,8 @@ Beenden mit `Strg + C`.
 | GET | `/api/status` | Status von Backend und KI |
 | GET | `/api/tickets` | Alle Tickets, Filter: `?status=neu`, `?kunde=bau` |
 | GET | `/api/tickets/{id}` | Ein Ticket, z. B. `/api/tickets/1001` |
+| POST | `/api/tickets` | Legt ein neues Ticket an: `{"kunde": "bau", "titel": "...", "beschreibung": "..."}`, Nummer wird automatisch vergeben |
+| PATCH | `/api/tickets/{id}` | Ändert nur die mitgeschickten Felder: `status`, `prioritaet` (gilt dann als manuell), `zugewiesen_an`, `loesungsweg`, `spam_entscheidung`. Schließen nur mit Lösungsweg oder bestätigtem Spam |
 | GET | `/api/kunden` | Alle Kunden |
 | GET | `/api/kunden/{kunde}/doku` | Kundendoku als Markdown |
 | POST | `/api/ki/frage` | Antwort der KI auf `{"frage": "..."}` |

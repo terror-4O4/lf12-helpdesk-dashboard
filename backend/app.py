@@ -15,7 +15,9 @@ import shutil
 import socket
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
+from typing import Literal
 from urllib.parse import urlparse
 
 import httpx
@@ -78,7 +80,7 @@ pruefe_lokale_adresse(LLAMA_URL)
 app = FastAPIOffline(
     title="LF12 Helpdesk-Dashboard API",
     description="Schnittstelle zwischen Dashboard, Testdaten und lokaler KI.",
-    version="0.2.0",
+    version="0.3.0",
 )
 
 
@@ -221,6 +223,115 @@ def tickets(status: str | None = None, kunde: str | None = None):
 def ticket(ticket_id: int):
     """Ein einzelnes Ticket anhand der Nummer."""
     return finde_ticket(lade_tickets(), ticket_id)
+
+
+Status = Literal["neu", "in_bearbeitung", "warten_auf_kunde",
+                 "antwort_erhalten", "geparkt", "geschlossen"]
+Prioritaet = Literal["niedrig", "mittel", "hoch", "sehr_hoch"]
+
+
+def jetzt() -> str:
+    """Aktuelle Ortszeit im Format aus docs/datenformat.md."""
+    return datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+
+
+class NeuesTicket(BaseModel):
+    kunde: str | None = Field(None, examples=["bau"],
+                              description="Kürzel aus kunden.json, null = unbekannter Absender")
+    titel: str = Field(..., min_length=1, max_length=200, examples=["Drucker im Büro druckt nicht"])
+    beschreibung: str = Field(..., min_length=1, max_length=5000,
+                              examples=["Seit heute früh kommt beim Drucken nur ein leeres Blatt."])
+
+
+@app.post("/api/tickets", tags=["Tickets"], status_code=201)
+def ticket_anlegen(eingabe: NeuesTicket):
+    """Legt ein neues Ticket mit Status "neu" an (Nummer = höchste vorhandene + 1).
+
+    Bewertet wird es danach wie jedes andere Ticket über /api/tickets/{id}/analyse.
+    """
+    if eingabe.kunde is not None and eingabe.kunde not in {k["kunde"] for k in lade_kunden()}:
+        raise HTTPException(422, f"Kunde '{eingabe.kunde}' nicht gefunden")
+
+    liste = lade_tickets()
+    zeit = jetzt()
+    t = {
+        "id": max((x["id"] for x in liste), default=1000) + 1,
+        "kunde": eingabe.kunde,
+        "titel": eingabe.titel.strip(),
+        "beschreibung": eingabe.beschreibung.strip(),
+        "status": "neu",
+        "prioritaet": None,
+        "prioritaet_quelle": None,
+        "zugewiesen_an": None,
+        "erstellt_am": zeit,
+        "statushistorie": [{"status": "neu", "seit": zeit}],
+        "ki": None,
+        "spam_entscheidung": None,
+        "loesungsweg": None,
+        "geschlossen_am": None,
+    }
+    liste.append(t)
+    speichere_tickets(liste)
+    return t
+
+
+class TicketAenderung(BaseModel):
+    """Nur die mitgeschickten Felder werden geändert. null bei zugewiesen_an = niemand."""
+    status: Status | None = None
+    prioritaet: Prioritaet | None = None
+    zugewiesen_an: str | None = Field(None, max_length=30, pattern=r"^[a-z0-9_]+$",
+                                      examples=["lena"])
+    loesungsweg: str | None = Field(None, max_length=4000)
+    spam_entscheidung: Literal["spam", "kein_spam"] | None = None
+
+
+@app.patch("/api/tickets/{ticket_id}", tags=["Tickets"])
+def ticket_aendern(ticket_id: int, aenderung: TicketAenderung):
+    """Ändert Status, Priorität, Bearbeiter, Lösungsweg oder Spam-Entscheidung.
+
+    - Status: neuer Eintrag in der Statushistorie, beim Schließen wird
+      geschlossen_am gesetzt. Schließen geht nur mit Lösungsweg (Grundlage
+      für ähnliche Fälle), außer das Ticket ist als Spam bestätigt.
+    - Priorität: gilt als von Hand gesetzt (prioritaet_quelle "manuell")
+      und wird von späteren KI-Analysen nicht überschrieben.
+    - Der KI-Block wird hier nie verändert.
+    """
+    felder = aenderung.model_fields_set
+    if not felder:
+        raise HTTPException(422, "Keine Änderung mitgeschickt")
+
+    liste = lade_tickets()
+    t = finde_ticket(liste, ticket_id)
+
+    if "prioritaet" in felder:
+        if aenderung.prioritaet is None:
+            raise HTTPException(422, "Priorität kann nicht geleert werden")
+        t["prioritaet"] = aenderung.prioritaet
+        t["prioritaet_quelle"] = "manuell"
+
+    if "zugewiesen_an" in felder:
+        t["zugewiesen_an"] = aenderung.zugewiesen_an
+
+    if "loesungsweg" in felder:
+        t["loesungsweg"] = (aenderung.loesungsweg or "").strip() or None
+
+    if "spam_entscheidung" in felder:
+        t["spam_entscheidung"] = aenderung.spam_entscheidung
+
+    if "status" in felder:
+        if aenderung.status is None:
+            raise HTTPException(422, "Status kann nicht geleert werden")
+        if aenderung.status != t["status"]:
+            if (aenderung.status == "geschlossen" and not t.get("loesungsweg")
+                    and t.get("spam_entscheidung") != "spam"):
+                raise HTTPException(422, "Zum Schließen bitte einen Lösungsweg eintragen")
+            zeit = jetzt()
+            t["status"] = aenderung.status
+            t.setdefault("statushistorie", []).append({"status": aenderung.status, "seit": zeit})
+            t["geschlossen_am"] = zeit if aenderung.status == "geschlossen" else None
+
+    speichere_tickets(liste)
+    return t
 
 
 @app.post("/api/testdaten/zuruecksetzen", tags=["Tickets"])

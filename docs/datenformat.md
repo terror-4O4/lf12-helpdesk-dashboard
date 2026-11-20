@@ -59,6 +59,7 @@ Alle Dateien liegen unter `data/testdaten/` und sind **frei erfunden**.
 | `erstellt_am` | Zeitstempel | Wann das Ticket angelegt wurde |
 | `statushistorie` | Liste | Jeder Statuswechsel mit Zeitpunkt, älteste zuerst. Daraus berechnet das Dashboard Ticketalter, Wartezeiten und SLA |
 | `ki` | Objekt oder `null` | Ergebnis der KI-Auswertung, siehe unten. `null`, solange die KI das Ticket noch nicht bewertet hat |
+| `spam_entscheidung` | Text oder `null` | Entscheidung eines Mitarbeiters zum Spam-Verdacht: `"spam"` (bestätigt) oder `"kein_spam"` (Fehlalarm der KI). `null` = noch nicht entschieden. Fehlt das Feld (ältere Testdaten), gilt `null` |
 | `loesungsweg` | Text oder `null` | Wird beim Schließen eingetragen. Daraus lernt die KI für ähnliche Fälle |
 | `geschlossen_am` | Zeitstempel oder `null` | Wann das Ticket geschlossen wurde |
 
@@ -82,6 +83,8 @@ Alle Dateien liegen unter `data/testdaten/` und sind **frei erfunden**.
 Der KI-Block wird **nur von der KI** geschrieben, Mitarbeiter ändern ihn nie. Ändert ein Mitarbeiter die Priorität, passiert das im Feld `prioritaet` des Tickets (mit `prioritaet_quelle: "manuell"`), der KI-Block bleibt unverändert. So bleibt nachvollziehbar, was die KI vorgeschlagen hat. Das ist die Grundlage für die Tests („Wie oft lag die KI richtig?“).
 
 Wird ein Ticket erneut analysiert, ersetzt das neue Ergebnis den KI-Block. Eine manuell gesetzte Priorität bleibt dabei erhalten.
+
+Genauso beim Spam: Ein Mitarbeiter bestätigt oder verwirft den Verdacht im Feld `spam_entscheidung` des Tickets, `ki.spam` bleibt unverändert. So lassen sich Fehlalarme der KI zählen.
 
 | Feld | Typ | Bedeutung |
 |---|---|---|
@@ -179,4 +182,4 @@ Zurücksetzen auf den Stand der Testdaten: `POST /api/testdaten/zuruecksetzen` o
 ## Offene Punkte
 
 - **Testdaten altern:** Feste Zeitstempel sind bei der Präsentation Tage alt, dann ist jedes Ticket rot. Lösung folgt (z. B. Skript, das die Zeiten relativ zu „jetzt“ verschiebt).
-- **Mitarbeiter:** Format für Mitarbeiter und persönliche To-dos folgt.
+- **Mitarbeiter:** Format für Mitarbeiter und persönliche To-dos folgt. Bis dahin nimmt das Dashboard die Kürzel aus `zugewiesen_an`, die To-dos speichert es nur im Browser.
