@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Nur Dateien von diesem Server laden, keine CDNs, keine externen Adressen -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <title>Helpdesk-Dashboard</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <a class="sprung" href="#inhalt">Zum Inhalt springen</a>
+
+  <div class="rahmen">
+    <nav class="seitenleiste" aria-label="Hauptnavigation">
+      <div class="logo">
+        <span class="logo-zeichen" aria-hidden="true">HD</span>
+        <span>Helpdesk</span>
+      </div>
+      <ul class="nav" id="nav">
+        <li><a href="#/uebersicht" data-ansicht="uebersicht">Übersicht</a></li>
+        <li><a href="#/tickets" data-ansicht="tickets">Tickets</a></li>
+        <li><a href="#/spam" data-ansicht="spam">Spam-Prüfung <span class="zaehler" id="spam-zaehler" hidden></span></a></li>
+      </ul>
+      <div class="seitenleiste-unten">
+        <button type="button" class="knopf knopf-ki voll" id="assistent-oeffnen">✦ KI-Assistent</button>
+      </div>
+    </nav>
+
+    <header class="kopf">
+      <h1 class="kopf-titel" id="seitentitel">Übersicht</h1>
+      <div class="kopf-rechts">
+        <span class="badge demo-zeit" id="demo-zeit" hidden></span>
+        <span class="ki-status" id="ki-status" role="status">KI: …</span>
+        <label class="mitarbeiter">
+          <span class="nur-sr">Angemeldet als</span>
+          <select id="mitarbeiter" title="Wer arbeitet gerade am Dashboard?"></select>
+        </label>
+        <button type="button" class="knopf knopf-haupt" id="neues-ticket">+ Neues Ticket</button>
+      </div>
+    </header>
+
+    <main class="inhalt" id="inhalt" tabindex="-1">
+      <p class="laden">Lade Daten …</p>
+    </main>
+
+    <footer class="fuss">
+      <span>🔒 Alle Daten bleiben lokal. Die KI läuft auf dem eigenen Server, es gehen keine Daten nach extern.</span>
+      <span id="fuss-modell"></span>
+    </footer>
+  </div>
+
+  <aside class="assistent" id="assistent" aria-label="KI-Assistent" hidden></aside>
+  <div class="meldungen" id="meldungen" aria-live="polite"></div>
+</body>
+</html>
