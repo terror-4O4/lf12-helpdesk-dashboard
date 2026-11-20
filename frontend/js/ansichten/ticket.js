@@ -33,7 +33,7 @@ export function zeigeTicket(ziel, { teile }) {
         istSpamVerdacht(t) ? h("span", { class: "badge badge-ki" }, "✦ Spam-Verdacht") : null)),
     h("div", { class: "raster-detail" },
       h("div", { class: "spalte" }, beschreibung(t), bearbeiten(t), verlauf(t)),
-      h("div", { class: "spalte" }, kiBlock(t), kundeKarte(t))),
+      h("div", { class: "spalte" }, kiBlock(t), kiFaelle(t), kundeKarte(t))),
   );
   return `Ticket ${ticketNr(t.id)}`;
 }
@@ -45,7 +45,11 @@ function beschreibung(t) {
       h("h3", {}, "Nachricht"),
       h("span", { class: "hinweis" }, `${kundeName(t.kunde)} · ${formatZeit(t.erstellt_am)} (${alter(t.erstellt_am)})`)),
     h("p", { class: "nachricht" }, t.beschreibung),
-    t.loesungsweg ? h("div", { class: "loesung" }, h("h4", {}, "Lösungsweg"), h("p", {}, t.loesungsweg)) : null);
+    t.ursache || t.loesungsweg
+      ? h("div", { class: "loesung" },
+        t.ursache ? [h("h4", {}, "Ursache"), h("p", {}, t.ursache)] : null,
+        t.loesungsweg ? [h("h4", {}, "Lösungsweg"), h("p", {}, t.loesungsweg)] : null)
+      : null);
 }
 
 function bearbeiten(t) {
@@ -60,9 +64,14 @@ function bearbeiten(t) {
     h("option", { value: "", selected: !t.zugewiesen_an }, "niemand"),
     mitarbeiterListe().map((m) => h("option", { value: m, selected: t.zugewiesen_an === m }, anzeigeName(m))));
 
+  const ursache = h("textarea", {
+    id: "f-ursache", rows: 2, maxlength: 1000,
+    placeholder: "Was war die Ursache? z. B. Add-In nach Update fehlerhaft",
+  });
+  ursache.value = t.ursache || "";
   const loesung = h("textarea", {
     id: "f-loesung", rows: 3, maxlength: 4000,
-    placeholder: "Was war die Ursache, was hat geholfen? Daraus lernt die KI für ähnliche Fälle.",
+    placeholder: "Was hat geholfen? Kurze Schritte, damit Kollegen es nachmachen können.",
   });
   loesung.value = t.loesungsweg || "";
 
@@ -102,7 +111,10 @@ function bearbeiten(t) {
         prio,
         t.prioritaet_quelle === "manuell" ? h("span", { class: "feld-hinweis" }, "von Hand gesetzt") : null),
       h("label", { for: "f-bearbeiter" }, "Bearbeiter", bearbeiter)),
+    h("label", { for: "f-ursache" }, "Ursache", ursache),
     h("label", { for: "f-loesung" }, "Lösungsweg", loesung),
+    h("p", { class: "feld-hinweis" },
+      "🔒 Keine Passwörter oder Zugangsdaten eintragen. Ursache und Lösungsweg landen beim Schließen in der Wissensbasis, aus der die KI ähnliche Fälle vorschlägt."),
     h("div", { class: "knopfreihe" }, speichern, mir));
 
   formular.addEventListener("submit", (ev) => {
@@ -110,6 +122,7 @@ function bearbeiten(t) {
     const aenderung = {};
     if (prio.value && prio.value !== t.prioritaet) aenderung.prioritaet = prio.value;
     if (bearbeiter.value !== (t.zugewiesen_an || "")) aenderung.zugewiesen_an = bearbeiter.value || null;
+    if (ursache.value.trim() !== (t.ursache || "")) aenderung.ursache = ursache.value.trim();
     if (loesung.value.trim() !== (t.loesungsweg || "")) aenderung.loesungsweg = loesung.value.trim();
     if (status.value !== t.status) {
       if (status.value === "geschlossen" && !loesung.value.trim() && t.spam_entscheidung !== "spam") {
@@ -140,7 +153,8 @@ function kiBlock(t) {
   const karte = h("section", { class: "karte karte-ki", "aria-labelledby": "t-ki" },
     h("div", { class: "karte-kopf" }, h("h3", { id: "t-ki" }, kiMarke("KI-Einschätzung"))));
 
-  const knopf = h("button", { class: "knopf knopf-ki" }, t.ki ? "Neu bewerten" : "✦ Jetzt bewerten lassen");
+  const bewertet = Boolean(t.ki?.prioritaet);
+  const knopf = h("button", { class: "knopf knopf-ki" }, bewertet ? "Neu bewerten" : "✦ Jetzt bewerten lassen");
   knopf.addEventListener("click", async () => {
     knopf.disabled = true;
     knopf.textContent = "KI bewertet …";
@@ -156,7 +170,7 @@ function kiBlock(t) {
     }
   });
 
-  if (!t.ki) {
+  if (!bewertet) {
     karte.append(h("p", { class: "leer" }, "Die KI hat dieses Ticket noch nicht bewertet."), knopf);
     return karte;
   }
@@ -174,15 +188,6 @@ function kiBlock(t) {
         `Von Hand auf „${PRIORITAET[t.prioritaet]}“ gesetzt. Das hat Vorrang vor dem KI-Vorschlag.`)
       : null,
     ki.begruendung ? h("p", { class: "begruendung" }, h("strong", {}, "Begründung: "), ki.begruendung) : null,
-    h("div", { class: "vorschlag" },
-      h("h4", {}, "Lösungsvorschlag"),
-      ki.loesungsvorschlag
-        ? h("div", { class: "md" }, markdown(ki.loesungsvorschlag))
-        : h("p", { class: "gedimmt" }, "Vorschläge aus ähnlichen gelösten Tickets folgen (RAG)."),
-      ki.aehnliche_tickets?.length
-        ? h("p", {}, "Ähnliche Fälle: ",
-          ki.aehnliche_tickets.map((n, i) => [i ? ", " : "", h("a", { href: `#/ticket/${n}` }, ticketNr(n))]))
-        : null),
     t.spam_entscheidung
       ? h("p", { class: "feld-hinweis" },
         t.spam_entscheidung === "spam" ? "Spam von einem Mitarbeiter bestätigt." : "Als „kein Spam“ markiert (Fehlalarm der KI).")
@@ -192,6 +197,65 @@ function kiBlock(t) {
       h("button", { class: "knopf", onclick: () => oeffneAssistent(t) }, "KI zu diesem Ticket fragen")),
     h("p", { class: "klein gedimmt" }, "KI-Vorschläge können falsch sein. Entscheidung immer durch einen Mitarbeiter."),
   );
+  return karte;
+}
+
+// --- Rechts: Ähnliche gelöste Fälle (RAG) -----------------------------------
+function kiFaelle(t) {
+  const ki = t.ki || {};
+  const gesucht = Boolean(ki.loesungsvorschlag || ki.treffer?.length || ki.ursachen?.length);
+  const karte = h("section", { class: "karte karte-ki", "aria-labelledby": "t-faelle" },
+    h("div", { class: "karte-kopf" }, h("h3", { id: "t-faelle" }, kiMarke("Ähnliche gelöste Fälle"))));
+
+  const knopf = h("button", { class: "knopf knopf-ki" }, gesucht ? "Neu suchen" : "✦ Ähnliche Fälle suchen");
+  knopf.addEventListener("click", async () => {
+    knopf.disabled = true;
+    knopf.textContent = "Suche und KI laufen …";
+    try {
+      const r = await api.loesungsvorschlag(t.id);
+      ticketErsetzen(await api.ticket(t.id));
+      const anzahl = r.ergebnis.vorschlaege.length;
+      meldung(anzahl
+        ? `${anzahl} ${anzahl === 1 ? "Vorschlag" : "Vorschläge"} in ${(r.dauer_ms / 1000).toFixed(1)} s`
+        : "Kein passender gelöster Fall gefunden", anzahl ? "erfolg" : "info");
+      neuZeichnen();
+    } catch (e) {
+      meldung(e.message, "fehler");
+      knopf.disabled = false;
+      knopf.textContent = "Erneut versuchen";
+    }
+  });
+
+  if (!gesucht) {
+    karte.append(
+      h("p", { class: "leer" }, "Sucht in bereits gelösten Tickets nach demselben Problem, bevorzugt beim selben Kunden."),
+      knopf);
+    return karte;
+  }
+
+  const aehnlichkeit = Object.fromEntries((ki.treffer || []).map((x) => [x.id, x.aehnlichkeit]));
+  const titel = (id) => zustand.tickets.find((x) => x.id === id)?.titel || "";
+  const verweis = (id) => h("a", { href: `#/ticket/${id}`, title: titel(id) },
+    ticketNr(id),
+    aehnlichkeit[id] !== undefined ? ` (${Math.round(aehnlichkeit[id] * 100)} %)` : "");
+
+  if (ki.ursachen?.length) {
+    karte.append(h("ol", { class: "ursachen" }, ki.ursachen.map((u) => h("li", {},
+      h("p", { class: "ursache" }, u.ursache),
+      h("p", { class: "loesungsweg" }, u.loesungsweg),
+      h("p", { class: "quelle" }, "aus ", u.tickets.map((id, i) => [i ? ", " : "", verweis(id)]))))));
+  } else if (ki.loesungsvorschlag) {
+    karte.append(h("div", { class: "md" }, markdown(ki.loesungsvorschlag)));
+  }
+
+  const weitere = (ki.treffer || []).filter((x) => !(ki.aehnliche_tickets || []).includes(x.id));
+  if (weitere.length) {
+    karte.append(h("p", { class: "klein gedimmt" }, "Auch gefunden, aber von der KI nicht verwendet: ",
+      weitere.map((x, i) => [i ? ", " : "", verweis(x.id)])));
+  }
+  karte.append(
+    h("div", { class: "knopfreihe" }, knopf),
+    h("p", { class: "klein gedimmt" }, "Vorschläge stammen nur aus gelösten Tickets. Vor dem Anwenden prüfen."));
   return karte;
 }
 

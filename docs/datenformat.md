@@ -41,6 +41,7 @@ Alle Dateien liegen unter `data/testdaten/` und sind **frei erfunden**.
     "loesungsvorschlag": "...",
     "aehnliche_tickets": [1001]
   },
+  "ursache": null,
   "loesungsweg": null,
   "geschlossen_am": null
 }
@@ -60,7 +61,8 @@ Alle Dateien liegen unter `data/testdaten/` und sind **frei erfunden**.
 | `statushistorie` | Liste | Jeder Statuswechsel mit Zeitpunkt, älteste zuerst. Daraus berechnet das Dashboard Ticketalter, Wartezeiten und SLA |
 | `ki` | Objekt oder `null` | Ergebnis der KI-Auswertung, siehe unten. `null`, solange die KI das Ticket noch nicht bewertet hat |
 | `spam_entscheidung` | Text oder `null` | Entscheidung eines Mitarbeiters zum Spam-Verdacht: `"spam"` (bestätigt) oder `"kein_spam"` (Fehlalarm der KI). `null` = noch nicht entschieden. Fehlt das Feld (ältere Testdaten), gilt `null` |
-| `loesungsweg` | Text oder `null` | Wird beim Schließen eingetragen. Daraus lernt die KI für ähnliche Fälle |
+| `ursache` | Text oder `null` | Ursache des Problems, wird beim Schließen eingetragen (laut Antrag „Ursache und Lösung erfassen“) |
+| `loesungsweg` | Text oder `null` | Wird beim Schließen eingetragen, Pflicht zum Schließen (außer bestätigter Spam). Mit der Ursache die Grundlage für ähnliche Fälle |
 | `geschlossen_am` | Zeitstempel oder `null` | Wann das Ticket geschlossen wurde |
 
 ### Status
@@ -92,8 +94,12 @@ Genauso beim Spam: Ein Mitarbeiter bestätigt oder verwirft den Verdacht im Feld
 | `spam` | true/false | Von der KI als Spam erkannt |
 | `kategorie` | Text | Genau einer dieser Werte: `Software`, `Hardware`, `Netzwerk`, `Drucker`, `Benutzerkonto`, `E-Mail`, `Spam`, `Sonstiges` |
 | `begruendung` | Text | Kurzer Satz, warum die KI so bewertet hat. Für das Dashboard und zum Nachvollziehen bei Tests |
-| `loesungsvorschlag` | Text oder `null` | Vorschlag auf Basis ähnlicher gelöster Tickets und der Kundendoku |
-| `aehnliche_tickets` | Liste von Zahlen | IDs der gelösten Tickets, auf die sich der Vorschlag stützt |
+| `loesungsvorschlag` | Text oder `null` | Vorschlag auf Basis ähnlicher gelöster Tickets als Text, oder „Kein passender gelöster Fall gefunden …“. `null` = noch nicht gesucht |
+| `ursachen` | Liste | Bis zu 3 Vorschläge `{"ursache", "loesungsweg", "tickets": [1001]}`, wahrscheinlichste zuerst. Leer, wenn kein Fall passt |
+| `aehnliche_tickets` | Liste von Zahlen | IDs der gelösten Tickets, auf die sich die Vorschläge stützen |
+| `treffer` | Liste | Ergebnis der Suche vor der KI: `{"id", "aehnlichkeit"}` (0 bis 1), bester zuerst. Zeigt auch Fälle, die die KI verworfen hat |
+
+Bewertung (Priorität, Spam, Kategorie, Begründung) und Fallsuche laufen getrennt. Wurde nur gesucht, aber noch nicht bewertet, sind `prioritaet`, `spam`, `kategorie` und `begruendung` `null`.
 
 ## Kunde
 
@@ -155,6 +161,8 @@ Eine Markdown-Datei pro Kunde unter `doku/<kunde>.md`, z. B. `doku/bau.md`. Fest
 | `id` | Zahl | Ticketnummer aus `tickets.json` |
 | `prioritaet`, `spam`, `kategorie` | wie im KI-Block | Erwarteter Wert |
 | `hinweis` | Text oder `null` | Warum so bewertet bzw. was das Ticket testet |
+| `aehnlich` | Liste von Zahlen oder `null` | Welches gelöste Ticket passt. `[1001]` = muss unter den Top 3 erscheinen, `[]` = kein passender Fall (die KI darf nichts erfinden), `null` = nicht Teil des RAG-Tests (gelöste Tickets und Spam) |
+| `aehnlich_hinweis` | Text oder `null` | Warum dieser Fall passt bzw. warum keiner passt |
 
 Abgrenzung der Kategorien in den Testdaten:
 
@@ -172,6 +180,10 @@ Abgrenzung der Kategorien in den Testdaten:
 Fragt ein echter Kunde, ob eine verdächtige Mail echt ist, ist das **kein Spam**, sondern ein IT-Anliegen (`E-Mail`).
 
 Diese Abgrenzung steht auch im Analyse-Prompt der KI (`KATEGORIE_BESCHREIBUNG` in `backend/app.py`). Wer sie ändert, passt beide Stellen an.
+
+## Wissensbasis (ähnliche Tickets)
+
+In die Wissensbasis kommt jedes Ticket mit Status `geschlossen` und Lösungsweg, das kein Spam ist. Verglichen wird nur das Problem (Titel und Beschreibung), nicht die Lösung. Die Vektoren liegen in `data/laufzeit/wissensbasis.json` (nicht im Repo) und werden beim Suchen automatisch ergänzt, wenn ein Ticket neu geschlossen oder geändert wurde.
 
 ## Testdaten und Arbeitskopie
 

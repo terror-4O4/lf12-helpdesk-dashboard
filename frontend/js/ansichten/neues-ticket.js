@@ -25,7 +25,7 @@ export function oeffneNeuesTicket() {
       h("label", { for: "n-kunde" }, "Kunde", kunde),
       h("label", { for: "n-titel" }, "Betreff", titel),
       h("label", { for: "n-text" }, "Nachricht", text),
-      h("label", { class: "inline" }, bewerten, " Direkt von der KI bewerten lassen (Priorität, Spam, Kategorie)"),
+      h("label", { class: "inline" }, bewerten, " Direkt von der KI bewerten lassen und ähnliche Fälle suchen"),
       h("div", { class: "knopfreihe" },
         anlegen,
         h("button", { class: "knopf", type: "button", onclick: () => dialog.close() }, "Abbrechen"))));
@@ -45,8 +45,10 @@ export function oeffneNeuesTicket() {
         anlegen.textContent = "KI bewertet …";
         try {
           await api.analysieren(t.id);
+          anlegen.textContent = "Suche ähnliche Fälle …";
+          await api.loesungsvorschlag(t.id);
         } catch (e) {
-          meldung(`Angelegt, aber KI-Bewertung fehlgeschlagen: ${e.message}`, "fehler");
+          meldung(`Angelegt, aber KI fehlgeschlagen: ${e.message}`, "fehler");
         }
       }
       dialog.close();

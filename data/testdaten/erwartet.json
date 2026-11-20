@@ -4,209 +4,281 @@
     "prioritaet": "hoch",
     "spam": false,
     "kategorie": "Software",
-    "hinweis": "Outlook-Programmfehler zählt als Software, nicht E-Mail"
+    "hinweis": "Outlook-Programmfehler zählt als Software, nicht E-Mail",
+    "aehnlich": null,
+    "aehnlich_hinweis": null
   },
   {
     "id": 1002,
     "prioritaet": "sehr_hoch",
     "spam": false,
     "kategorie": "Drucker",
-    "hinweis": "Kundenregel Lagerdrucker"
+    "hinweis": "Kundenregel Lagerdrucker",
+    "aehnlich": [
+      1005
+    ],
+    "aehnlich_hinweis": "Gleiches Problem beim selben Kunden: Lieferscheine hängen in der Druckwarteschlange"
   },
   {
     "id": 1003,
     "prioritaet": "niedrig",
     "spam": true,
     "kategorie": "Spam",
-    "hinweis": "Phishing"
+    "hinweis": "Phishing",
+    "aehnlich": null,
+    "aehnlich_hinweis": null
   },
   {
     "id": 1004,
     "prioritaet": "hoch",
     "spam": false,
     "kategorie": "Netzwerk",
-    "hinweis": "Eine Person kann nicht arbeiten"
+    "hinweis": "Eine Person kann nicht arbeiten",
+    "aehnlich": null,
+    "aehnlich_hinweis": null
   },
   {
     "id": 1005,
     "prioritaet": "sehr_hoch",
     "spam": false,
     "kategorie": "Drucker",
-    "hinweis": "Kundenregel Lagerdrucker, Warenausgang steht"
+    "hinweis": "Kundenregel Lagerdrucker, Warenausgang steht",
+    "aehnlich": null,
+    "aehnlich_hinweis": null
   },
   {
     "id": 1006,
     "prioritaet": "niedrig",
     "spam": false,
     "kategorie": "Benutzerkonto",
-    "hinweis": "Planbarer Wunsch mit Vorlauf"
+    "hinweis": "Planbarer Wunsch mit Vorlauf",
+    "aehnlich": [],
+    "aehnlich_hinweis": "Kein passender gelöster Fall"
   },
   {
     "id": 1007,
     "prioritaet": "sehr_hoch",
     "spam": false,
     "kategorie": "Hardware",
-    "hinweis": "Kundenregel Fahrzeugannahme"
+    "hinweis": "Kundenregel Fahrzeugannahme",
+    "aehnlich": [],
+    "aehnlich_hinweis": "Kein passender Fall: 1029 ist ein Notebook ohne Strom, hier läuft der PC, nur das Bild fehlt"
   },
   {
     "id": 1008,
     "prioritaet": "sehr_hoch",
     "spam": false,
     "kategorie": "Hardware",
-    "hinweis": "Kundenregel Patientenaufnahme"
+    "hinweis": "Kundenregel Patientenaufnahme",
+    "aehnlich": [],
+    "aehnlich_hinweis": "Kein passender gelöster Fall"
   },
   {
     "id": 1009,
     "prioritaet": "niedrig",
     "spam": true,
     "kategorie": "Spam",
-    "hinweis": "Schadsoftware-Anhang, unbekannter Absender"
+    "hinweis": "Schadsoftware-Anhang, unbekannter Absender",
+    "aehnlich": null,
+    "aehnlich_hinweis": null
   },
   {
     "id": 1010,
     "prioritaet": "niedrig",
     "spam": true,
     "kategorie": "Spam",
-    "hinweis": "Werbung, erwähnt aber Drucker"
+    "hinweis": "Werbung, erwähnt aber Drucker",
+    "aehnlich": null,
+    "aehnlich_hinweis": null
   },
   {
     "id": 1011,
     "prioritaet": "niedrig",
     "spam": true,
     "kategorie": "Spam",
-    "hinweis": "Chef-Betrug (CEO-Fraud), ohne Link"
+    "hinweis": "Chef-Betrug (CEO-Fraud), ohne Link",
+    "aehnlich": null,
+    "aehnlich_hinweis": null
   },
   {
     "id": 1012,
     "prioritaet": "niedrig",
     "spam": false,
     "kategorie": "E-Mail",
-    "hinweis": "Kein Spam: echte Kundin fragt nach, enthält aber Phishing-Merkmale"
+    "hinweis": "Kein Spam: echte Kundin fragt nach, enthält aber Phishing-Merkmale",
+    "aehnlich": [],
+    "aehnlich_hinweis": "Kein passender gelöster Fall"
   },
   {
     "id": 1013,
     "prioritaet": "hoch",
     "spam": false,
     "kategorie": "Benutzerkonto",
-    "hinweis": "Kein Spam trotz \"gesperrt\" und \"Passwort\""
+    "hinweis": "Kein Spam trotz \"gesperrt\" und \"Passwort\"",
+    "aehnlich": null,
+    "aehnlich_hinweis": null
   },
   {
     "id": 1014,
     "prioritaet": "sehr_hoch",
     "spam": false,
     "kategorie": "Netzwerk",
-    "hinweis": "Ganzer Standort betroffen"
+    "hinweis": "Ganzer Standort betroffen",
+    "aehnlich": null,
+    "aehnlich_hinweis": null
   },
   {
     "id": 1015,
     "prioritaet": "mittel",
     "spam": false,
     "kategorie": "Netzwerk",
-    "hinweis": "Eingeschränkt, Weiterarbeit möglich"
+    "hinweis": "Eingeschränkt, Weiterarbeit möglich",
+    "aehnlich": [],
+    "aehnlich_hinweis": "Kein passender Fall: 1014 war ein kompletter Internetausfall, hier bricht nur das WLAN kurz ab"
   },
   {
     "id": 1016,
     "prioritaet": "sehr_hoch",
     "spam": false,
     "kategorie": "Software",
-    "hinweis": "Alle Arbeitsplätze, Kundenregel Kanzleisoftware"
+    "hinweis": "Alle Arbeitsplätze, Kundenregel Kanzleisoftware",
+    "aehnlich": null,
+    "aehnlich_hinweis": null
   },
   {
     "id": 1017,
     "prioritaet": "sehr_hoch",
     "spam": false,
     "kategorie": "Software",
-    "hinweis": "Gegenstück zu #1016 für RAG"
+    "hinweis": "Gegenstück zu #1016 für RAG",
+    "aehnlich": [
+      1016
+    ],
+    "aehnlich_hinweis": "Gleiche Meldung wie vor zwei Wochen, diesmal nach Server-Neustart"
   },
   {
     "id": 1018,
     "prioritaet": "mittel",
     "spam": false,
     "kategorie": "Hardware",
-    "hinweis": "Eingeschränkt, Ersatzmonitor bestellt"
+    "hinweis": "Eingeschränkt, Ersatzmonitor bestellt",
+    "aehnlich": [],
+    "aehnlich_hinweis": "Kein passender gelöster Fall"
   },
   {
     "id": 1019,
     "prioritaet": "mittel",
     "spam": false,
     "kategorie": "Drucker",
-    "hinweis": "Multifunktionsgerät zählt als Drucker, Workaround USB"
+    "hinweis": "Multifunktionsgerät zählt als Drucker, Workaround USB",
+    "aehnlich": null,
+    "aehnlich_hinweis": null
   },
   {
     "id": 1020,
     "prioritaet": "sehr_hoch",
     "spam": false,
     "kategorie": "E-Mail",
-    "hinweis": "Ganze Praxis, Kundenregel Laborbefunde"
+    "hinweis": "Ganze Praxis, Kundenregel Laborbefunde",
+    "aehnlich": null,
+    "aehnlich_hinweis": null
   },
   {
     "id": 1021,
     "prioritaet": "mittel",
     "spam": false,
     "kategorie": "E-Mail",
-    "hinweis": "Kein Spam: echte Warnung, ähnlicher Titel wie Phishing #1003; Gegenstück zu #1020 für RAG"
+    "hinweis": "Kein Spam: echte Warnung, ähnlicher Titel wie Phishing #1003; Gegenstück zu #1020 für RAG",
+    "aehnlich": [
+      1020
+    ],
+    "aehnlich_hinweis": "Gleiches Postfach, Speichergrenze, diesmal nur Warnung"
   },
   {
     "id": 1022,
     "prioritaet": "hoch",
     "spam": false,
     "kategorie": "Software",
-    "hinweis": "Gegenstück zu #1001 für RAG"
+    "hinweis": "Gegenstück zu #1001 für RAG",
+    "aehnlich": [
+      1001
+    ],
+    "aehnlich_hinweis": "Anders beschrieben (schließt sich sofort), gleiche Ursache möglich (Add-In nach Update)"
   },
   {
     "id": 1023,
     "prioritaet": "niedrig",
     "spam": false,
     "kategorie": "Hardware",
-    "hinweis": "Wunsch"
+    "hinweis": "Wunsch",
+    "aehnlich": [],
+    "aehnlich_hinweis": "Kein passender gelöster Fall"
   },
   {
     "id": 1024,
     "prioritaet": "mittel",
     "spam": false,
     "kategorie": "Software",
-    "hinweis": "Eine Person betroffen, aber Workaround vorhanden"
+    "hinweis": "Eine Person betroffen, aber Workaround vorhanden",
+    "aehnlich": [],
+    "aehnlich_hinweis": "Kein passender gelöster Fall"
   },
   {
     "id": 1025,
     "prioritaet": "hoch",
     "spam": false,
     "kategorie": "Benutzerkonto",
-    "hinweis": "Kein Spam trotz \"gesperrt\"; Gegenstück zu #1013 für RAG"
+    "hinweis": "Kein Spam trotz \"gesperrt\"; Gegenstück zu #1013 für RAG",
+    "aehnlich": [
+      1013
+    ],
+    "aehnlich_hinweis": "Anderer Kunde, gleiches Problem (Konto gesperrt)"
   },
   {
     "id": 1026,
     "prioritaet": "hoch",
     "spam": false,
     "kategorie": "Netzwerk",
-    "hinweis": "Gegenstück zu #1004 für RAG"
+    "hinweis": "Gegenstück zu #1004 für RAG",
+    "aehnlich": [
+      1004
+    ],
+    "aehnlich_hinweis": "Gleiches Problem beim selben Kunden: VPN nach Updates"
   },
   {
     "id": 1027,
     "prioritaet": "sehr_hoch",
     "spam": false,
     "kategorie": "Drucker",
-    "hinweis": "Versand steht, kein Lagerdrucker (Regel nur sinngemäß)"
+    "hinweis": "Versand steht, kein Lagerdrucker (Regel nur sinngemäß)",
+    "aehnlich": [],
+    "aehnlich_hinweis": "Kein passender Fall: 1005 war ein Auftrag in der Warteschlange, hier druckt das Gerät leer"
   },
   {
     "id": 1028,
     "prioritaet": "hoch",
     "spam": false,
     "kategorie": "Benutzerkonto",
-    "hinweis": "Eine Person kann nicht arbeiten"
+    "hinweis": "Eine Person kann nicht arbeiten",
+    "aehnlich": null,
+    "aehnlich_hinweis": null
   },
   {
     "id": 1029,
     "prioritaet": "hoch",
     "spam": false,
     "kategorie": "Hardware",
-    "hinweis": "Eine Person kann nicht arbeiten"
+    "hinweis": "Eine Person kann nicht arbeiten",
+    "aehnlich": null,
+    "aehnlich_hinweis": null
   },
   {
     "id": 1030,
     "prioritaet": "niedrig",
     "spam": false,
     "kategorie": "Sonstiges",
-    "hinweis": "Planbarer Auftrag"
+    "hinweis": "Planbarer Auftrag",
+    "aehnlich": [],
+    "aehnlich_hinweis": "Kein passender gelöster Fall"
   }
 ]

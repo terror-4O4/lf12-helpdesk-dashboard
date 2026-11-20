@@ -27,12 +27,15 @@ from fastapi.staticfiles import StaticFiles
 from fastapi_offline import FastAPIOffline
 from pydantic import BaseModel, Field
 
+from backend import rag
+
 # --- Pfade und Konfiguration ---------------------------------------------
 
 REPO = Path(__file__).resolve().parent.parent
 DATEN = REPO / "data" / "testdaten"          # Ausgangsdaten, liegen im Repo
 LAUFZEIT = REPO / "data" / "laufzeit"        # Arbeitskopie, NICHT im Repo
 LAUFZEIT_TICKETS = LAUFZEIT / "tickets.json"
+LAUFZEIT_WISSENSBASIS = LAUFZEIT / "wissensbasis.json"
 FRONTEND = REPO / "frontend"
 
 load_dotenv(REPO / ".env")
@@ -44,6 +47,19 @@ LLAMA_API_KEY = os.getenv("LLAMA_API_KEY", "")
 LLAMA_MODEL = os.getenv("LLAMA_MODEL", "").strip()
 KI_MOCK = os.getenv("KI_MOCK", "true").lower() == "true"
 KI_TIMEOUT = float(os.getenv("KI_TIMEOUT", "120"))
+
+# Embedding-Server für die Suche nach ähnlichen Tickets (eigener llama-server,
+# auf dem Mac Pro Port 8081). Gleicher API-Key wie LLAMA_API_KEY.
+EMBED_URL = os.getenv("EMBED_URL", "http://127.0.0.1:8081").rstrip("/")
+EMBED_MODEL = os.getenv("EMBED_MODEL", "").strip()
+# Aufgaben-Präfix vor jedem Text, passend zu EmbeddingGemma
+EMBED_PRAEFIX = os.getenv("EMBED_PRAEFIX", rag.STANDARD_PRAEFIX)
+# Ab welcher Ähnlichkeit (0 bis 1) ein gelöstes Ticket als passender Fall gilt.
+# Wert mit scripts/auswertung_rag.py bestimmen. Im Mock gilt ein eigener Wert.
+RAG_SCHWELLE = float(os.getenv("RAG_SCHWELLE", "0.55"))
+RAG_SCHWELLE_MOCK = 0.40
+# Bonus für Fälle beim selben Kunden (laut Antrag "bevorzugt beim selben Kunden")
+RAG_KUNDENBONUS = float(os.getenv("RAG_KUNDENBONUS", "0.05"))
 
 
 def pruefe_lokale_adresse(url: str) -> None:
@@ -75,12 +91,14 @@ def pruefe_lokale_adresse(url: str) -> None:
 
 # Prüfung beim Start, unabhängig von KI_MOCK: Eine falsche Adresse soll
 # sofort auffallen und nicht erst, wenn jemand den Mock abschaltet.
+# Gilt für beide Server: Chat (LLAMA_URL) und Embeddings (EMBED_URL).
 pruefe_lokale_adresse(LLAMA_URL)
+pruefe_lokale_adresse(EMBED_URL)
 
 app = FastAPIOffline(
     title="LF12 Helpdesk-Dashboard API",
     description="Schnittstelle zwischen Dashboard, Testdaten und lokaler KI.",
-    version="0.3.0",
+    version="0.4.0",
 )
 
 
@@ -195,15 +213,17 @@ def frage_llama(nachrichten: list, antwortformat: dict | None = None,
 def status():
     """Zeigt, ob das Backend läuft und ob die KI erreichbar ist."""
     if KI_MOCK:
-        return {"backend": "ok", "ki_modus": "mock", "ki_erreichbar": None}
+        return {"backend": "ok", "ki_modus": "mock", "ki_erreichbar": None,
+                "embedding_erreichbar": None}
 
-    try:
-        antwort = httpx.get(f"{LLAMA_URL}/health", timeout=3, trust_env=False)
-        erreichbar = antwort.status_code == 200
-    except httpx.HTTPError:
-        erreichbar = False
-    return {"backend": "ok", "ki_modus": "llama", "ki_erreichbar": erreichbar,
-            "ki_modell": LLAMA_MODEL or None}
+    def gesund(url: str) -> bool:
+        try:
+            return httpx.get(f"{url}/health", timeout=3, trust_env=False).status_code == 200
+        except httpx.HTTPError:
+            return False
+
+    return {"backend": "ok", "ki_modus": "llama", "ki_erreichbar": gesund(LLAMA_URL),
+            "ki_modell": LLAMA_MODEL or None, "embedding_erreichbar": gesund(EMBED_URL)}
 
 
 # --- Tickets -------------------------------------------------------------
@@ -267,6 +287,7 @@ def ticket_anlegen(eingabe: NeuesTicket):
         "statushistorie": [{"status": "neu", "seit": zeit}],
         "ki": None,
         "spam_entscheidung": None,
+        "ursache": None,
         "loesungsweg": None,
         "geschlossen_am": None,
     }
@@ -281,13 +302,14 @@ class TicketAenderung(BaseModel):
     prioritaet: Prioritaet | None = None
     zugewiesen_an: str | None = Field(None, max_length=30, pattern=r"^[a-z0-9_]+$",
                                       examples=["lena"])
+    ursache: str | None = Field(None, max_length=1000)
     loesungsweg: str | None = Field(None, max_length=4000)
     spam_entscheidung: Literal["spam", "kein_spam"] | None = None
 
 
 @app.patch("/api/tickets/{ticket_id}", tags=["Tickets"])
 def ticket_aendern(ticket_id: int, aenderung: TicketAenderung):
-    """Ändert Status, Priorität, Bearbeiter, Lösungsweg oder Spam-Entscheidung.
+    """Ändert Status, Priorität, Bearbeiter, Ursache, Lösungsweg oder Spam-Entscheidung.
 
     - Status: neuer Eintrag in der Statushistorie, beim Schließen wird
       geschlossen_am gesetzt. Schließen geht nur mit Lösungsweg (Grundlage
@@ -311,6 +333,9 @@ def ticket_aendern(ticket_id: int, aenderung: TicketAenderung):
 
     if "zugewiesen_an" in felder:
         t["zugewiesen_an"] = aenderung.zugewiesen_an
+
+    if "ursache" in felder:
+        t["ursache"] = (aenderung.ursache or "").strip() or None
 
     if "loesungsweg" in felder:
         t["loesungsweg"] = (aenderung.loesungsweg or "").strip() or None
@@ -520,15 +545,13 @@ def ticket_analyse(ticket_id: int, speichern: bool = True):
         (ergebnis, tokens), modus = analysiere_llama(t), "llama"
 
     if speichern:
-        alt = t.get("ki") or {}
+        # Ergebnisse der Fallsuche (Lösungsvorschlag, ähnliche Tickets) bleiben erhalten
         t["ki"] = {
+            **neuer_ki_block(t.get("ki")),
             "prioritaet": ergebnis["prioritaet"],
             "spam": ergebnis["spam"],
             "kategorie": ergebnis["kategorie"],
             "begruendung": ergebnis["begruendung"],
-            # Lösungsvorschlag kommt später per RAG, bis dahin unverändert lassen
-            "loesungsvorschlag": alt.get("loesungsvorschlag"),
-            "aehnliche_tickets": alt.get("aehnliche_tickets", []),
         }
         if t.get("prioritaet_quelle") != "manuell":
             t["prioritaet"] = ergebnis["prioritaet"]
@@ -544,6 +567,235 @@ def ticket_analyse(ticket_id: int, speichern: bool = True):
         "dauer_ms": round((time.perf_counter() - start) * 1000),
         "tokens": tokens,
     }
+
+
+# --- KI: Lösungsvorschläge aus ähnlichen Tickets (RAG) ----------------------
+
+def neuer_ki_block(alt: dict | None) -> dict:
+    """KI-Block mit allen Feldern. Bestehende Werte bleiben erhalten."""
+    return {
+        "prioritaet": None, "spam": None, "kategorie": None, "begruendung": None,
+        "loesungsvorschlag": None, "ursachen": [], "aehnliche_tickets": [], "treffer": [],
+        **(alt or {}),
+    }
+
+
+einbetter = rag.Einbetter(EMBED_URL, LLAMA_API_KEY, EMBED_MODEL, timeout=KI_TIMEOUT,
+                          mock=KI_MOCK, praefix=EMBED_PRAEFIX)
+wissensbasis = rag.Wissensbasis(LAUFZEIT_WISSENSBASIS)
+
+
+def aktuelle_schwelle() -> float:
+    return RAG_SCHWELLE_MOCK if KI_MOCK else RAG_SCHWELLE
+
+
+def finde_aehnliche(t: dict, liste: list, anzahl: int = 3, schwelle: float | None = None,
+                    wb: rag.Wissensbasis | None = None) -> tuple[list[dict], list[dict]]:
+    """Gibt (Treffer, Fälle der Wissensbasis) zurück. Das Ticket selbst zählt nie mit.
+
+    wb: andere Vektor-Datei, z. B. für Tests (Standard: data/laufzeit/wissensbasis.json)
+    """
+    faelle = [x for x in liste if rag.ist_fall(x) and x["id"] != t["id"]]
+    try:
+        vektoren = (wb or wissensbasis).vektoren(faelle, einbetter)
+        anfrage = einbetter.einbetten([rag.ticket_text(t)])[0]
+    except rag.EmbeddingFehler as fehler:
+        raise HTTPException(502, str(fehler))
+    if schwelle is None:
+        schwelle = aktuelle_schwelle()
+    treffer = rag.suche(anfrage, faelle, vektoren, t.get("kunde"), anzahl=anzahl,
+                        kundenbonus=RAG_KUNDENBONUS, schwelle=schwelle)
+    return treffer, faelle
+
+
+@app.get("/api/wissensbasis", tags=["KI"])
+def wissensbasis_status():
+    """Wie viele gelöste Tickets in der Wissensbasis sind und mit welchen Einstellungen gesucht wird."""
+    faelle = [t for t in lade_tickets() if rag.ist_fall(t)]
+    return {
+        "faelle": len(faelle),
+        "ids": [t["id"] for t in faelle],
+        "modus": "mock" if KI_MOCK else "llama",
+        "embedding_modell": einbetter.kennung,
+        "schwelle": aktuelle_schwelle(),
+        "kundenbonus": RAG_KUNDENBONUS,
+    }
+
+
+@app.get("/api/tickets/{ticket_id}/aehnliche", tags=["KI"])
+def aehnliche_tickets(ticket_id: int, anzahl: int = 3, ohne_schwelle: bool = False):
+    """Nur die Suche: die ähnlichsten gelösten Tickets mit Ähnlichkeitswert.
+
+    Mit ohne_schwelle=true werden auch Fälle unter der Schwelle gezeigt
+    (zum Einstellen der Schwelle und für Tests).
+    """
+    start = time.perf_counter()
+    liste = lade_tickets()
+    t = finde_ticket(liste, ticket_id)
+    treffer, faelle = finde_aehnliche(t, liste, max(1, min(anzahl, 50)),
+                                      schwelle=-1.0 if ohne_schwelle else None)
+    titel = {x["id"]: x["titel"] for x in faelle}
+    return {
+        "ticket_id": ticket_id,
+        "treffer": [{**x, "titel": titel[x["id"]]} for x in treffer],
+        "faelle_gesamt": len(faelle),
+        "schwelle": aktuelle_schwelle(),
+        "dauer_ms": round((time.perf_counter() - start) * 1000),
+    }
+
+
+SYSTEMPROMPT_LOESUNG = """Du unterstützt den IT-Support eines Systemhauses.
+Du bekommst ein neues Ticket und bereits gelöste Tickets mit Ursache und Lösungsweg.
+
+Aufgabe: Nenne bis zu drei mögliche Ursachen für das neue Ticket, jeweils mit Lösungsweg, und gib an, aus welchen gelösten Tickets du sie ableitest.
+
+Regeln:
+- Nutze nur, was in den gelösten Tickets steht. Erfinde keine Ursachen und keine Lösungen.
+- Ein gelöstes Ticket passt nur, wenn es um dasselbe Problem geht (gleiches Programm, gleiches Gerät oder gleiche Funktion). Nur ähnliche Wörter reichen nicht.
+- Passt keines, setze passender_fall auf false und lass vorschlaege leer. Erkläre im Hinweis kurz, warum.
+- Wahrscheinlichste Ursache zuerst. Lösungsweg als kurze, konkrete Schritte für einen Techniker.
+- Nenne nie Passwörter oder Zugangsdaten, höchstens den Verweis auf den Passwortmanager.
+- Antworte auf Deutsch und nur mit dem JSON-Objekt."""
+
+
+def loesung_format(ids: list[int]) -> dict:
+    """JSON-Schema für die Antwort. Ticketnummern nur aus den mitgeschickten Fällen."""
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "loesungsvorschlag",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "passender_fall": {"type": "boolean"},
+                    "vorschlaege": {
+                        "type": "array", "maxItems": 3,
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "ursache": {"type": "string", "maxLength": 300},
+                                "loesungsweg": {"type": "string", "maxLength": 800},
+                                "tickets": {"type": "array", "minItems": 1, "maxItems": 3,
+                                            "items": {"type": "integer", "enum": ids}},
+                            },
+                            "required": ["ursache", "loesungsweg", "tickets"],
+                            "additionalProperties": False,
+                        },
+                    },
+                    "hinweis": {"type": "string", "maxLength": 300},
+                },
+                "required": ["passender_fall", "vorschlaege", "hinweis"],
+                "additionalProperties": False,
+            },
+        },
+    }
+
+
+def fall_text(t: dict) -> str:
+    return (f"Ticket #{t['id']} (Kunde: {t.get('kunde') or 'unbekannt'})\n"
+            f"Problem: {t['titel']}. {t['beschreibung']}\n"
+            f"Ursache: {t.get('ursache') or 'nicht erfasst'}\n"
+            f"Lösungsweg: {t['loesungsweg']}")
+
+
+def loesung_mock(faelle: list[dict]) -> dict:
+    """Ohne KI: Ursache und Lösungsweg der gefundenen Fälle direkt übernehmen."""
+    return {
+        "passender_fall": True,
+        "vorschlaege": [{"ursache": f.get("ursache") or f"wie in #{f['id']}",
+                         "loesungsweg": f["loesungsweg"], "tickets": [f["id"]]} for f in faelle],
+        "hinweis": "[Mock] Ursache und Lösung direkt aus den ähnlichsten Tickets übernommen.",
+    }
+
+
+def loesung_llama(t: dict, faelle: list[dict]) -> tuple[dict, int | None]:
+    ids = [f["id"] for f in faelle]
+    nachricht = (
+        f"Neues Ticket (Kunde: {t.get('kunde') or 'unbekannt'})\n"
+        f"Problem: {t['titel']}. {t['beschreibung']}\n\n"
+        "Gelöste Tickets, ähnlichstes zuerst:\n\n" + "\n\n".join(fall_text(f) for f in faelle)
+    )
+    text, tokens = frage_llama(
+        [{"role": "system", "content": SYSTEMPROMPT_LOESUNG},
+         {"role": "user", "content": nachricht}],
+        antwortformat=loesung_format(ids), temperatur=0,
+    )
+    # Auch bei erzwungenem Format nichts ungeprüft übernehmen
+    try:
+        e = json.loads(text)
+        assert isinstance(e["passender_fall"], bool)
+        vorschlaege = []
+        for v in e["vorschlaege"][:3]:
+            bezug = [i for i in v["tickets"] if i in ids]
+            if bezug and str(v["ursache"]).strip():
+                vorschlaege.append({"ursache": str(v["ursache"])[:300],
+                                    "loesungsweg": str(v["loesungsweg"])[:800], "tickets": bezug})
+        ergebnis = {"passender_fall": e["passender_fall"] and bool(vorschlaege),
+                    "vorschlaege": vorschlaege if e["passender_fall"] else [],
+                    "hinweis": str(e.get("hinweis", ""))[:300]}
+    except (json.JSONDecodeError, KeyError, AssertionError, TypeError):
+        raise HTTPException(502, f"KI-Antwort hat ein ungültiges Format: {text[:200]}")
+    return ergebnis, tokens
+
+
+KEIN_FALL = "Kein passender gelöster Fall gefunden."
+
+
+def erzeuge_vorschlag(t: dict, liste: list, wb: rag.Wissensbasis | None = None) -> dict:
+    """Suche plus KI. Wird vom Endpunkt und von scripts/auswertung_rag.py benutzt.
+
+    Gibt es keinen Fall über der Schwelle, wird die KI gar nicht gefragt und
+    das Ergebnis lautet "kein passender Fall". Die KI kann gefundene Fälle
+    außerdem als unpassend verwerfen.
+    """
+    start = time.perf_counter()
+    treffer, faelle = finde_aehnliche(t, liste, wb=wb)
+    dauer_suche = time.perf_counter() - start
+    nach_id = {f["id"]: f for f in faelle}
+    gefunden = [nach_id[x["id"]] for x in treffer]
+
+    tokens = None
+    if not gefunden:
+        ergebnis = {"passender_fall": False, "vorschlaege": [],
+                    "hinweis": "Kein gelöstes Ticket ist ähnlich genug."}
+        modus = "ohne_ki"
+    elif KI_MOCK:
+        ergebnis, modus = loesung_mock(gefunden), "mock"
+    else:
+        ergebnis, tokens = loesung_llama(t, gefunden)
+        modus = "llama"
+
+    return {
+        "ergebnis": ergebnis, "treffer": treffer, "modus": modus, "tokens": tokens,
+        "dauer_suche_ms": round(dauer_suche * 1000),
+        "dauer_ms": round((time.perf_counter() - start) * 1000),
+    }
+
+
+@app.post("/api/tickets/{ticket_id}/loesungsvorschlag", tags=["KI"])
+def loesungsvorschlag(ticket_id: int, speichern: bool = True):
+    """Sucht ähnliche gelöste Tickets und lässt die KI daraus bis zu 3 Ursachen
+    mit Lösungsweg ableiten. Mit speichern=true landet das Ergebnis im KI-Block.
+    """
+    liste = lade_tickets()
+    t = finde_ticket(liste, ticket_id)
+    v = erzeuge_vorschlag(t, liste)
+    ergebnis, treffer = v["ergebnis"], v["treffer"]
+
+    if speichern:
+        ki = neuer_ki_block(t.get("ki"))
+        ki["ursachen"] = ergebnis["vorschlaege"]
+        ki["aehnliche_tickets"] = sorted({i for v in ergebnis["vorschlaege"] for i in v["tickets"]})
+        ki["treffer"] = [{"id": x["id"], "aehnlichkeit": x["aehnlichkeit"]} for x in treffer]
+        ki["loesungsvorschlag"] = (
+            "\n".join(f"{n}. {v['ursache']}: {v['loesungsweg']}"
+                      for n, v in enumerate(ergebnis["vorschlaege"], 1))
+            if ergebnis["passender_fall"] else f"{KEIN_FALL} {ergebnis['hinweis']}".strip()
+        )
+        t["ki"] = ki
+        speichere_tickets(liste)
+
+    return {"ticket_id": ticket_id, "gespeichert": speichern, **v}
 
 
 # --- Frontend ------------------------------------------------------------
