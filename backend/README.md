@@ -39,6 +39,8 @@ Beenden mit `Strg + C`.
 | PATCH | `/api/tickets/{id}` | Ändert nur die mitgeschickten Felder: `status`, `prioritaet` (gilt dann als manuell), `zugewiesen_an`, `loesungsweg`, `spam_entscheidung`. Schließen nur mit Lösungsweg oder bestätigtem Spam |
 | GET | `/api/kunden` | Alle Kunden |
 | GET | `/api/kunden/{kunde}/doku` | Kundendoku als Markdown |
+| GET | `/api/tickets/{id}/doku` | Passende Abschnitte aus der Doku des Ticketkunden |
+| POST | `/api/kunden/{kunde}/doku/suche` | Antwort auf `{"frage": "..."}` mit Belegtext, Fundstelle und hinterlegten Portal-Links |
 | POST | `/api/ki/frage` | Antwort der KI auf `{"frage": "..."}` |
 | POST | `/api/tickets/{id}/analyse` | KI bewertet das Ticket: Priorität, Spam, Kategorie, Begründung. Mit `?speichern=false` nur anzeigen, nicht speichern |
 | GET | `/api/tickets/{id}/aehnliche` | Nur die Suche: ähnlichste gelöste Tickets mit Ähnlichkeit. `?ohne_schwelle=true&anzahl=10` zeigt auch Fälle unter der Schwelle |
@@ -48,7 +50,7 @@ Beenden mit `Strg + C`.
 
 Das Backend arbeitet mit einer Arbeitskopie der Tickets in `data/laufzeit/` (nicht im Repo). Details in [`docs/datenformat.md`](../docs/datenformat.md#testdaten-und-arbeitskopie).
 
-Das Datenformat steht in [`docs/datenformat.md`](../docs/datenformat.md).
+Für die Ticket-Arbeitskopie ist ein Uvicorn-Worker vorgesehen. Manuelle und KI-Änderungen werden beim Speichern zusammengeführt. Hat sich bei der Berechnung die entscheidende Ticket- oder Fallgrundlage geändert, meldet die API einen Konflikt (`409`) und der Vorgang kann erneut ausgeführt werden.
 
 ## KI: Mock oder echt
 
@@ -61,12 +63,22 @@ In der `.env`:
 
 Nach einer Änderung an der `.env` das Backend neu starten.
 
+## Suche in der Kundendoku
+
+Die Ticketansicht sucht nach Begriffen in Titel und Beschreibung. Freie Doku-Fragen
+beziehen sich auf den im Assistenten gewählten Kunden. Das Backend stellt dafür bis
+zu drei Abschnitte aus dessen Datei zusammen. Im echten Modus wählt llama.cpp daraus
+die Fundstelle oder meldet, dass kein Abschnitt die Antwort belegt. Im Mock-Modus
+zeigt die Anwendung den besten Worttreffer. Belegtext und Portal-Links stammen aus
+der Markdown-Datei. Antworten auf Passwortfragen verwenden die hinterlegten
+Passwortmanager-Verweise.
+
 ## Ähnliche Tickets (RAG)
 
 1. **Wissensbasis:** alle geschlossenen Tickets mit Lösungsweg (ohne Spam). Für jedes wird einmal ein Embedding berechnet (Zahlenvektor, der die Bedeutung abbildet) und in `data/laufzeit/wissensbasis.json` gespeichert. Neu geschlossene Tickets kommen beim nächsten Suchen automatisch dazu.
 2. **Suche:** Das neue Ticket bekommt ebenfalls einen Vektor und wird mit allen Fällen verglichen (Kosinus-Ähnlichkeit, 0 bis 1). Fälle beim selben Kunden bekommen `RAG_KUNDENBONUS` dazu. Nur Fälle ab `RAG_SCHWELLE` zählen, höchstens 3.
 3. **Kein Fall über der Schwelle:** Antwort „kein passender Fall“, die Chat-KI wird gar nicht gefragt. So kann sie auch nichts erfinden.
-4. **Sonst:** Die Chat-KI bekommt das neue Ticket und die gefundenen Fälle mit Ursache und Lösungsweg und nennt bis zu 3 Ursachen mit Lösungsweg. Antwortformat per JSON-Schema erzwungen, Ticketnummern nur aus den mitgeschickten Fällen. Die KI darf Fälle als unpassend verwerfen.
+4. **Sonst:** Die Chat-KI wählt bis zu drei passende Fallnummern aus den gefundenen Tickets oder gibt eine leere Liste zurück. Das Backend prüft die Nummern und übernimmt Ursachen und Lösungswege aus den ausgewählten Fällen.
 
 | Einstellung (.env) | Bedeutung |
 |---|---|

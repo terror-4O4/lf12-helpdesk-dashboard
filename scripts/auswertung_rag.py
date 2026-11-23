@@ -99,13 +99,14 @@ def vorschlag_ohne_historie(t: dict) -> dict:
             {"role": "system", "content": (
                 "Du unterstützt den IT-Support eines Systemhauses. "
                 "Nenne bis zu drei mögliche Ursachen mit Lösungsweg für das Ticket. "
+                "Schreibe je Ursache und Lösungsweg höchstens einen kurzen Satz. "
                 "Kennzeichne ungesicherte Vermutungen und fehlende Informationen."
             )},
             {"role": "user", "content": (
                 f"Neues Ticket (Kunde: {t.get('kunde') or 'unbekannt'})\n"
                 f"Problem: {t['titel']}. {t['beschreibung']}"
             )},
-        ], temperatur=0, messung=messung)
+        ], temperatur=0, messung=messung, max_tokens=app.LOESUNG_MAX_TOKENS)
     except HTTPException as fehler:
         return {"fehler": str(fehler.detail)}
     return {"antwort": text, **messung}
@@ -250,6 +251,7 @@ def main():
     lauf = {"zeit": stempel, "datensatz": args.datensatz,
             "modus": "mock" if app.KI_MOCK else "llama", "chat_modell": app.LLAMA_MODEL,
             "embedding": app.einbetter.kennung, "schwelle": app.aktuelle_schwelle(),
+            "ausgabelimit_tokens": app.LOESUNG_MAX_TOKENS,
             "kundenbonus": app.RAG_KUNDENBONUS, "nur_suche": args.nur_suche,
             "aufbau_s": round(aufbau, 2), "zusammenfassung": zusammenfassung,
             "wachstum": wachstum, "tickets": zeilen}
@@ -258,6 +260,7 @@ def main():
     md = [f"# RAG-Auswertung {stempel}", "",
           f"- Modus: {lauf['modus']}, Chat-Modell: {app.LLAMA_MODEL or '-'}, Embeddings: {app.einbetter.kennung}",
           f"- Datensatz: {args.datensatz}",
+          f"- Ausgabelimit für beide Modellvarianten: {app.LOESUNG_MAX_TOKENS} Tokens",
           f"- Wissensbasis: {len(faelle)} gelöste Tickets, Aufbau {aufbau:.1f} s",
           f"- Schwelle {app.aktuelle_schwelle()}, Kundenbonus {app.RAG_KUNDENBONUS}", "",
           *[f"- {s}" for s in zusammenfassung], "",
@@ -280,6 +283,8 @@ def main():
                    f"**Ohne Historie** · {zeit_text(basis.get('antwortzeit_s'))}", "",
                    basis.get("antwort") or basis.get("fehler") or "–", "",
                    f"**Mit Historie** · {zeit_text(z.get('dauer_s'))} inklusive Suche", ""]
+            if basis.get("abschlussgrund") == "length":
+                md[-2:-2] = ["*Die Antwort ohne Historie hat das Ausgabelimit erreicht.*", ""]
             md += [f"{n}. {v['ursache']}: {v['loesungsweg']} (#{', #'.join(map(str, v['tickets']))})"
                    for n, v in enumerate(z.get("vorschlaege", []), 1)] or [z.get("fehler") or "kein Fall"]
             md.append("")

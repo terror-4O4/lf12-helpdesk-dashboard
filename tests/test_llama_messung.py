@@ -37,6 +37,7 @@ class LlamaMessungTest(unittest.TestCase):
             self.assertTrue(daten["stream"])
             self.assertEqual(daten["stream_options"], {"include_usage": True})
             self.assertFalse(daten["cache_prompt"])
+            self.assertEqual(daten["max_tokens"], 256)
             return httpx.Response(200, text=antwort, headers={"Content-Type": "text/event-stream"})
 
         with httpx.Client(transport=httpx.MockTransport(handler)) as client:
@@ -49,10 +50,11 @@ class LlamaMessungTest(unittest.TestCase):
                 app, "time", uhr,
             ):
                 messung = {}
-                self.assertEqual(app.frage_llama(NACHRICHT, messung=messung), ("Ergebnis", 7))
+                self.assertEqual(app.frage_llama(NACHRICHT, messung=messung, max_tokens=256),
+                                 ("Ergebnis", 7))
         self.assertEqual(messung, {
             "zeit_bis_erster_token_s": 0.25, "antwortzeit_s": 1.0,
-            "tokens_pro_s": 21.0, "tokens": 7,
+            "tokens_pro_s": 21.0, "tokens": 7, "abschlussgrund": "stop",
         })
 
     def test_abgebrochener_stream_zaehlt_nicht_als_messwert(self):

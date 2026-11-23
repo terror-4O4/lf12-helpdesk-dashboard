@@ -15,12 +15,12 @@ Zum Entwickeln reicht `KI_MOCK=true` in der `.env`, dann ist kein KI-Server nöt
 
 | Ansicht | Adresse | Inhalt |
 |---|---|---|
-| Übersicht | `#/uebersicht` | Kennzahlen, Handlungsbedarf (Neu und Antwort erhalten, dringendste zuerst), eigene Tickets, persönliche To-dos |
-| Tickets | `#/tickets` | Alle Tickets mit Suche und Filtern. Filter stehen in der Adresse, z. B. `#/tickets?status=neu&kunde=bau` |
-| Ticket | `#/ticket/1002` | Links Nachricht, Bearbeiten (mit Ursache und Lösungsweg) und Verlauf, rechts KI-Einschätzung, ähnliche gelöste Fälle und Kundendoku |
+| Übersicht | `#/uebersicht` | Kennzahlen, Handlungsbedarf (Neu und Antwort erhalten, dringendste zuerst), eigene Tickets, persönliche To-dos. Die Übersicht aktualisiert sich alle 30 Sekunden, wenn keine Eingabe aktiv ist. |
+| Tickets | `#/tickets` | Alle Tickets mit Ticketalter, Wartezeit, Suche und Filtern. Filter stehen in der Adresse, z. B. `#/tickets?status=neu&kunde=bau` |
+| Ticket | `#/ticket/1002` | Nachricht, Bearbeitung, Verlauf, KI-Einschätzung, ähnliche Fälle und automatisch gefundene Abschnitte der Kundendoku |
 | Spam-Prüfung | `#/spam` | Spam-Verdacht der KI bestätigen oder verwerfen |
 | Neues Ticket | Knopf oben rechts | Mail einfügen, Ticket anlegen, KI bewertet direkt |
-| KI-Assistent | Knopf links unten | Freie Fragen an die KI, optional mit einem Ticket als Kontext |
+| KI-Assistent | Knopf links unten | Allgemeine Fragen oder Suche in der Doku eines gewählten Kunden mit Fundstelle |
 
 ## Gestaltung
 
@@ -34,14 +34,15 @@ Einstellungen in [`js/config.js`](js/config.js).
 
 | Priorität | Reaktionszeit |
 |---|---|
-| Sehr hoch | 30 Min. |
+| Sehr dringend | 30 Min. |
 | Hoch | 2 Std. |
-| Mittel | 8 Std. |
+| Normal | 8 Std. |
 | Niedrig | 24 Std. |
 | noch nicht bewertet | 2 Std. |
 
+- Ticketalter wird ab Erstellung angezeigt. Die Wartezeit zeigt, wie lange im aktuellen Status schon eine Reaktion des Kunden oder des Supports aussteht.
 - Die SLA läuft bei **Neu** und **Antwort erhalten**, gemessen ab dem letzten Statuswechsel
-- Grün = weniger als die Hälfte der Zeit verbraucht, gelb = mehr als die Hälfte, rot = überschritten
+- Grün = weniger als die Hälfte der Zeit verbraucht, gelb = ab der Hälfte, rot = Frist erreicht oder überschritten
 - Bei In Bearbeitung, Warten auf Kunde und Geparkt ist sie pausiert (leerer Kreis)
 - **Übernehmen** im Ticket weist es dir zu und setzt neue Tickets auf In Bearbeitung, damit stoppt die SLA
 
@@ -67,8 +68,11 @@ Einstellungen in [`js/config.js`](js/config.js).
 | `js/app.js` | Navigation und Kopfzeile |
 | `js/ansichten/*.js` | Eine Datei pro Ansicht |
 
+## Tests
+
+Aus dem Repo-Hauptordner mit Node.js 24 ausführen: `node --test tests/test_dashboard.mjs`.
+
 ## Noch offen
 
-- Fragen zur Kundendoku im KI-Assistenten (Backend schickt die Doku als Kontext mit)
 - Passend/Unpassend-Bewertung der KI-Vorschläge speichern (Messziel 80 %)
 - Mitarbeiter und To-dos aus dem Backend statt aus dem Browser

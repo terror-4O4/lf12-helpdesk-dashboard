@@ -10,6 +10,9 @@ Alle Dateien liegen unter `data/testdaten/` und sind **frei erfunden**.
 | `kunden.json` | Liste aller Kunden |
 | `doku/<kunde>.md` | Kundendokumentation, eine Datei pro Kunde |
 | `erwartet.json` | Erwartete KI-Bewertung je Ticket, nur für Tests |
+| `fragen_doku.json` | Vorbereitete Doku-Fragen mit Sollfundstelle, Belegtext und Fällen ohne Treffer |
+| `tickets_promptvergleich.json` | 20 neue Prüftickets mit Sollbewertung, fünf Fälle pro Priorität |
+| `rag_abnahme.json` | Neue Prüffälle mit oder ohne bekannte Lösung in der Ticket-Historie |
 
 ## Allgemeine Regeln
 
@@ -78,13 +81,18 @@ Alle Dateien liegen unter `data/testdaten/` und sind **frei erfunden**.
 
 ### Priorität
 
-`niedrig`, `mittel`, `hoch`, `sehr_hoch` (Stufen laut Projektantrag V2.1)
+| Code und Anzeige | Bezeichnung im Projektantrag V2.1 |
+|---|---|
+| `niedrig` / Niedrig | niedrig |
+| `mittel` / Normal | normal |
+| `hoch` / Hoch | hoch |
+| `sehr_hoch` / Sehr dringend | sehr dringend |
 
 ### KI-Block
 
 Der KI-Block wird **nur von der KI** geschrieben, Mitarbeiter ändern ihn nie. Ändert ein Mitarbeiter die Priorität, passiert das im Feld `prioritaet` des Tickets (mit `prioritaet_quelle: "manuell"`), der KI-Block bleibt unverändert. So bleibt nachvollziehbar, was die KI vorgeschlagen hat. Das ist die Grundlage für die Tests („Wie oft lag die KI richtig?“).
 
-Wird ein Ticket erneut analysiert, ersetzt das neue Ergebnis den KI-Block. Eine manuell gesetzte Priorität bleibt dabei erhalten.
+Wird ein Ticket erneut analysiert, werden Priorität, Spam-Verdacht, Kategorie und Begründung im KI-Block aktualisiert. Ergebnisse der Fallsuche und die manuell gesetzte Priorität bleiben erhalten.
 
 Genauso beim Spam: Ein Mitarbeiter bestätigt oder verwirft den Verdacht im Feld `spam_entscheidung` des Tickets, `ki.spam` bleibt unverändert. So lassen sich Fehlalarme der KI zählen.
 
@@ -135,6 +143,8 @@ Eine Markdown-Datei pro Kunde unter `doku/<kunde>.md`, z. B. `doku/bau.md`. Fest
 ## Zugangsdaten
 ## Besonderheiten
 ```
+
+Weitere Überschriften auf Ebene `##` bilden zusätzliche Fundstellen. Die Suche gibt aus Dateiname und Überschrift eine Quellenkennung wie `doku/bau.md#netzwerk-und-firewall` an. Portal-Links als Markdown-Links pflegen. Die Antwort übernimmt die Adresse aus der Kundenakte.
 
 **Zugangsdaten stehen nie im Klartext in der Doku**, nur der Verweis auf den Passwortmanager:
 
@@ -189,9 +199,8 @@ In die Wissensbasis kommt jedes Ticket mit Status `geschlossen` und Lösungsweg,
 
 Das Backend verändert **nie** die Dateien in `data/testdaten/`. Beim ersten Start kopiert es `tickets.json` nach `data/laufzeit/tickets.json` und arbeitet nur noch mit dieser Kopie (z. B. speichert es dort KI-Analysen). `data/laufzeit/` steht in der `.gitignore` und landet nie im Repo.
 
-Zurücksetzen auf den Stand der Testdaten: `POST /api/testdaten/zuruecksetzen` oder den Ordner `data/laufzeit/` löschen.
+Der Endpunkt `POST /api/testdaten/zuruecksetzen` ersetzt die Ticket-Arbeitskopie durch den Testdatenstand. Für eine reproduzierbare Demo lässt sich die Uhrzeit mit `?jetzt=2026-11-19T11:30` an die Testdaten anpassen.
 
 ## Offene Punkte
 
-- **Testdaten altern:** Feste Zeitstempel sind bei der Präsentation Tage alt, dann ist jedes Ticket rot. Lösung folgt (z. B. Skript, das die Zeiten relativ zu „jetzt“ verschiebt).
-- **Mitarbeiter:** Format für Mitarbeiter und persönliche To-dos folgt. Bis dahin nimmt das Dashboard die Kürzel aus `zugewiesen_an`, die To-dos speichert es nur im Browser.
+- **Mitarbeiter:** Das Dashboard nimmt die Kürzel aus `zugewiesen_an`. Persönliche To-dos werden im Browser gespeichert.
