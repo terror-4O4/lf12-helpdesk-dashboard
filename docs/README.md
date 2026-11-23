@@ -5,7 +5,8 @@ Das Projekt untersucht, wie ein lokal betriebenes Sprachmodell die Arbeit im IT-
 ## Umsetzung
 
 - **Ticketübersicht.** Das Dashboard zeigt Status, Ticketalter und Wartezeit. Neue Tickets und Kundenantworten werden als Handlungsbedarf hervorgehoben. Die Anzeige leitet die Wartezeit und die prioritätsabhängige SLA aus der Statushistorie ab.
-- **Priorisierung.** Die KI analysiert den Tickettext und gibt eine der vier Prioritäten mit einer kurzen Begründung zurück. Der Support kann die Priorität ändern. Der ursprüngliche KI-Vorschlag bleibt separat im Ticket nachvollziehbar.
+- **Spam-Prüfung.** Der Eingangsfilter prüft Betreff und Nachricht. Verdachtsfälle wie eine unerwünschte Verkaufsaufforderung erscheinen mit Prüfgrund in der Warteschlange. Der Support kann sie bestätigen oder freigeben.
+- **Priorisierung.** Bei regulären Anfragen bestimmen Ticketregeln und lokales Sprachmodell Kategorie und Priorität. Das Dashboard zeigt die Herkunft je Feld und den Beleg aus der Nachricht. Der Support kann die Priorität ändern.
 - **Ähnliche Fälle.** Gelöste Tickets mit dokumentiertem Lösungsweg bilden eine Wissensbasis. Die semantische Suche priorisiert ähnliche Fälle, bevorzugt beim selben Kunden. Das Sprachmodell wählt daraus bis zu drei passende Tickets. Das Dashboard zeigt deren dokumentierte Ursachen und Lösungswege mit verlinkten Ticketnummern. Bei leerer Auswahl meldet die Anwendung, dass kein passender Fall vorliegt.
 - **Kundendokumentation.** Das Dashboard sucht zum Ticket und im Assistenten in der jeweiligen Kundenakte. Die API liefert Textauszüge, Fundstellen und hinterlegte Portal-Links. Bei einer Anfrage nach Zugangsdaten zeigt die Anwendung die hinterlegten Passwortmanager-Verweise.
 

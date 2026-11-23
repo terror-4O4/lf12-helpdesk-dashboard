@@ -35,7 +35,7 @@ class TicketSpeicherTest(unittest.TestCase):
         stack.enter_context(patch.object(app, "KI_MOCK", True))
         stack.enter_context(patch.object(app, "analysiere_mock", return_value=ANALYSE))
 
-    def anlegen(self, titel="Outlook startet nicht"):
+    def anlegen(self, titel="Rückfrage zum vorhandenen Profil"):
         return app.ticket_anlegen(app.NeuesTicket(titel=titel, beschreibung="Eine Person ist betroffen."))
 
     def fall(self):

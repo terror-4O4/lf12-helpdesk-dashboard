@@ -6,6 +6,7 @@ Skripte für Windows als `.ps1`, für macOS/Linux als `.sh`.
 |---|---|---|
 | `start-backend.sh` / `.ps1` | Backend starten | Entwickler-Rechner |
 | `auswertung.py` | Ticketpriorisierung und Laufzeit messen, Modell- oder Promptvergleich | Rechner mit lokalem Chat-Dienst |
+| `auswertung_eingang.py` | Spam-Warteschlange, Freigabe, Kategorie und Priorität über die laufende Anwendung prüfen | Rechner mit lokalem Dashboard |
 | `auswertung_rag.py` | Ähnliche Tickets mit und ohne Historie prüfen, Suchschwelle bestimmen | Rechner mit lokalem Chat- und Embedding-Dienst oder Mock |
 | `auswertung_doku.py` | Fundstellen, fehlende Treffer und Ticketbezug der Kundendoku-Suche prüfen | Rechner mit laufendem Backend |
 | `macpro/install-llama-dienst.sh` | llama-server als Dienst auf dem Mac Pro einrichten | Mac Pro, nur Marlon |
@@ -22,8 +23,13 @@ python scripts/auswertung.py --vergleich --mock # Auswertungsablauf mit Platzhal
 ```
 
 - Für den echten Lauf `LLAMA_URL`, gegebenenfalls `LLAMA_API_KEY` und im Router-Modus das verwendete Modell konfigurieren.
+- Die Werte stammen aus den Modellantworten im jeweiligen Promptversuch. Der Eingangsfilter und die Ticketregeln im Dashboard werden getrennt geprüft.
 - Für den Modellvergleich lassen sich Modelle mit `-m` auswählen. Der Promptvergleich nutzt standardmäßig `LLAMA_MODEL` oder das Standardmodell des Servers. Je Vergleichspaar bleibt das Modell gleich.
 - Die Promptberichte `data/laufzeit/auswertung/promptvergleich-*.md` und `*.json` enthalten Trefferquoten, Fehlzuordnungen, Prompt-Versionen und Laufzeiten. Bei echtem Modellbetrieb wird die erste Ausgabe im Stream des Chat-Diensts gemessen. Der Mock prüft den Auswertungsablauf mit Platzhaltern.
+
+## auswertung_eingang.py
+
+Bei laufendem Dashboard prüft `python scripts/auswertung_eingang.py` die gesamte Verarbeitung der Demotickets über HTTP. Das Skript testet die Sperre für Verdachtsfälle und ruft für Supporttickets die Bewertung mit `speichern=false` auf. Es meldet Spamtreffer, durchgelassene Supportmeldungen sowie korrekte Kategorien und Prioritäten. Manuell entschiedene, fehlende oder geänderte Beispielfälle werden als ausgelassen ausgewiesen. Der Einzelbericht liegt unter `data/laufzeit/auswertung/eingangspruefung-*.json`.
 
 ## auswertung_rag.py
 

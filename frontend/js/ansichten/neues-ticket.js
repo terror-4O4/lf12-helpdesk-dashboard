@@ -1,7 +1,7 @@
-// Neues Ticket: Mail oder Anruf-Notiz einfügen, die KI bewertet direkt danach.
+// Ticket anlegen, Eingangsprüfung berücksichtigen und auf Wunsch bewerten.
 
 import { api } from "../api.js";
-import { h } from "../hilfen.js";
+import { h, spamOffen } from "../hilfen.js";
 import { meldung, ticketErsetzen, zustand } from "../zustand.js";
 
 export function oeffneNeuesTicket() {
@@ -25,7 +25,7 @@ export function oeffneNeuesTicket() {
       h("label", { for: "n-kunde" }, "Kunde", kunde),
       h("label", { for: "n-titel" }, "Betreff", titel),
       h("label", { for: "n-text" }, "Nachricht", text),
-      h("label", { class: "inline" }, bewerten, " Direkt von der KI bewerten lassen und ähnliche Fälle suchen"),
+      h("label", { class: "inline" }, bewerten, " Nach der Spam-Prüfung KI-Bewertung und Fallsuche starten"),
       h("div", { class: "knopfreihe" },
         anlegen,
         h("button", { class: "knopf", type: "button", onclick: () => dialog.close() }, "Abbrechen"))));
@@ -41,7 +41,7 @@ export function oeffneNeuesTicket() {
         beschreibung: text.value.trim(),
       });
       ticketErsetzen(t);
-      if (bewerten.checked) {
+      if (bewerten.checked && !spamOffen(t)) {
         anlegen.textContent = "KI bewertet …";
         try {
           await api.analysieren(t.id);
@@ -52,7 +52,7 @@ export function oeffneNeuesTicket() {
         }
       }
       dialog.close();
-      meldung(`Ticket #${t.id} angelegt`, "erfolg");
+      meldung(spamOffen(t) ? `Ticket #${t.id} liegt zur Spam-Prüfung vor.` : `Ticket #${t.id} angelegt`, "erfolg");
       location.hash = `#/ticket/${t.id}`;
     } catch (e) {
       meldung(e.message, "fehler");

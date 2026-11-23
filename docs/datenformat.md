@@ -58,12 +58,13 @@ Alle Dateien liegen unter `data/testdaten/` und sind **frei erfunden**.
 | `beschreibung` | Text | Problembeschreibung, wie sie vom Kunden kommt |
 | `status` | Text | Aktueller Status, siehe unten |
 | `prioritaet` | Text oder `null` | Gültige Priorität, siehe unten. Wird zuerst von der KI gesetzt, kann von Hand geändert werden |
-| `prioritaet_quelle` | Text oder `null` | `"ki"` = Wert stammt von der KI, `"manuell"` = von einem Mitarbeiter geändert |
+| `prioritaet_quelle` | Text oder `null` | `"ki"` bezeichnet eine automatisch übernommene Einstufung, `"manuell"` die Entscheidung eines Mitarbeiters. Die genaue Herkunft des Vorschlags steht unter `ki.bewertungsquellen`. |
 | `zugewiesen_an` | Text oder `null` | Kürzel des zuständigen Mitarbeiters |
 | `erstellt_am` | Zeitstempel | Wann das Ticket angelegt wurde |
 | `statushistorie` | Liste | Jeder Statuswechsel mit Zeitpunkt, älteste zuerst. Daraus berechnet das Dashboard Ticketalter, Wartezeiten und SLA |
 | `ki` | Objekt oder `null` | Ergebnis der KI-Auswertung, siehe unten. `null`, solange die KI das Ticket noch nicht bewertet hat |
-| `spam_entscheidung` | Text oder `null` | Entscheidung eines Mitarbeiters zum Spam-Verdacht: `"spam"` (bestätigt) oder `"kein_spam"` (Fehlalarm der KI). `null` = noch nicht entschieden. Fehlt das Feld (ältere Testdaten), gilt `null` |
+| `spampruefung` | Objekt | Automatischer Eingangsbefund mit `verdaechtig` (boolescher Wert) und `begruendung` (Text). Bei einer erkannten Bitte um Prüfung einer E-Mail wird zusätzlich `anliegen: "mail_pruefen"` gesetzt. |
+| `spam_entscheidung` | Text oder `null` | Entscheidung des Supports. `"spam"` bestätigt Spam, `"kein_spam"` gibt das Ticket frei. Der manuelle Entscheid hat Vorrang. |
 | `ursache` | Text oder `null` | Ursache des Problems, wird beim Schließen eingetragen (laut Antrag „Ursache und Lösung erfassen“) |
 | `loesungsweg` | Text oder `null` | Wird beim Schließen eingetragen, Pflicht zum Schließen (außer bestätigter Spam). Mit der Ursache die Grundlage für ähnliche Fälle |
 | `geschlossen_am` | Zeitstempel oder `null` | Wann das Ticket geschlossen wurde |
@@ -90,24 +91,23 @@ Alle Dateien liegen unter `data/testdaten/` und sind **frei erfunden**.
 
 ### KI-Block
 
-Der KI-Block wird **nur von der KI** geschrieben, Mitarbeiter ändern ihn nie. Ändert ein Mitarbeiter die Priorität, passiert das im Feld `prioritaet` des Tickets (mit `prioritaet_quelle: "manuell"`), der KI-Block bleibt unverändert. So bleibt nachvollziehbar, was die KI vorgeschlagen hat. Das ist die Grundlage für die Tests („Wie oft lag die KI richtig?“).
+Der Block enthält die Ergebnisse der automatischen Supportbewertung und der Fallsuche. Eine manuelle Prioritätsänderung steht im Feld `prioritaet` des Tickets und hat Vorrang vor späteren Vorschlägen.
 
-Wird ein Ticket erneut analysiert, werden Priorität, Spam-Verdacht, Kategorie und Begründung im KI-Block aktualisiert. Ergebnisse der Fallsuche und die manuell gesetzte Priorität bleiben erhalten.
-
-Genauso beim Spam: Ein Mitarbeiter bestätigt oder verwirft den Verdacht im Feld `spam_entscheidung` des Tickets, `ki.spam` bleibt unverändert. So lassen sich Fehlalarme der KI zählen.
+Eine erneute Ticketanalyse aktualisiert Priorität, Kategorie und Begründung. Ergebnisse der Fallsuche und die manuell gesetzte Priorität bleiben erhalten. Die Spam-Warteschlange verwendet den Eingangsbefund und die Entscheidung des Supports.
 
 | Feld | Typ | Bedeutung |
 |---|---|---|
-| `prioritaet` | Text | Von der KI vorgeschlagene Priorität |
-| `spam` | true/false | Von der KI als Spam erkannt |
-| `kategorie` | Text | Genau einer dieser Werte: `Software`, `Hardware`, `Netzwerk`, `Drucker`, `Benutzerkonto`, `E-Mail`, `Spam`, `Sonstiges` |
-| `begruendung` | Text | Kurzer Satz, warum die KI so bewertet hat. Für das Dashboard und zum Nachvollziehen bei Tests |
+| `prioritaet` | Text | Automatisch vorgeschlagene Priorität |
+| `bewertungsquellen` | Objekt oder `null` | Herkunft je Feld (`prioritaet`, `kategorie`). Mögliche Werte sind `modell`, `regel` und `mock`. Bei alten Einträgen kann die Herkunft fehlen. |
+| `spam` | boolescher Wert oder `null` | Kompatibilitätsfeld älterer Bewertungen. Für die Spam-Prüfung gilt `spampruefung` auf Ticketebene. |
+| `kategorie` | Text | Fachgebiet des Supportfalls. Ältere Modellvergleiche verwenden zusätzlich die Klasse `Spam`. |
+| `begruendung` | Text | Erläuterung der Einstufung mit einem Beleg aus Betreff oder Beschreibung |
 | `loesungsvorschlag` | Text oder `null` | Vorschlag auf Basis ähnlicher gelöster Tickets als Text, oder „Kein passender gelöster Fall gefunden …“. `null` = noch nicht gesucht |
 | `ursachen` | Liste | Bis zu 3 Vorschläge `{"ursache", "loesungsweg", "tickets": [1001]}`, wahrscheinlichste zuerst. Leer, wenn kein Fall passt |
 | `aehnliche_tickets` | Liste von Zahlen | IDs der gelösten Tickets, auf die sich die Vorschläge stützen |
 | `treffer` | Liste | Ergebnis der Suche vor der KI: `{"id", "aehnlichkeit"}` (0 bis 1), bester zuerst. Zeigt auch Fälle, die die KI verworfen hat |
 
-Bewertung (Priorität, Spam, Kategorie, Begründung) und Fallsuche laufen getrennt. Wurde nur gesucht, aber noch nicht bewertet, sind `prioritaet`, `spam`, `kategorie` und `begruendung` `null`.
+Eingangsprüfung, Bewertung und Fallsuche sind eigenständige Schritte. Wurde nur nach gelösten Fällen gesucht, kann das Ticket bereits Fallvorschläge enthalten, während Priorität, Kategorie und Begründung im KI-Block noch fehlen.
 
 ## Kunde
 

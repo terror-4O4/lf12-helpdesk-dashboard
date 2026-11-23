@@ -95,17 +95,21 @@ export function alter(text, bezugszeit = jetzt()) {
 // --- Ticket-Logik ---------------------------------------------------------
 export const istOffen = (t) => t.status !== "geschlossen";
 
-// Spam-Verdacht: KI sagt Spam und kein Mitarbeiter hat widersprochen
-export const istSpamVerdacht = (t) =>
-  (t.spam_entscheidung === "spam" || (Boolean(t.ki?.spam) && !t.spam_entscheidung)) && istOffen(t);
+export const istImSpamfilter = (t) =>
+  t.spam_entscheidung === "spam" || (!t.spam_entscheidung && t.spampruefung?.verdaechtig === true);
 
-// Noch zu entscheiden auf der Spam-Seite
-export const spamOffen = (t) => istSpamVerdacht(t) && !t.spam_entscheidung;
+export const spamOffen = (t) => istOffen(t) && !t.spam_entscheidung && istImSpamfilter(t);
+
+export function spamBadge(t) {
+  if (t.spam_entscheidung === "spam") return h("span", { class: "badge" }, "Spam bestätigt");
+  if (istImSpamfilter(t)) return h("span", { class: "badge spam-verdacht" }, "Spam-Verdacht");
+  return null;
+}
 
 export const prioRang = (t) => PRIO_RANG[t.prioritaet] || 0;
 
 export const hatHandlungsbedarf = (t) =>
-  SLA_LAEUFT_BEI.includes(t.status) && !istSpamVerdacht(t);
+  SLA_LAEUFT_BEI.includes(t.status) && !istImSpamfilter(t);
 
 // Seit wann ist das Ticket im aktuellen Status?
 function seitStatus(t) {
@@ -116,7 +120,7 @@ function seitStatus(t) {
 
 export function wartezeit(t, bezugszeit = jetzt()) {
   const wartetAufKunde = t.status === "warten_auf_kunde";
-  if ((!wartetAufKunde && !SLA_LAEUFT_BEI.includes(t.status)) || istSpamVerdacht(t)) return null;
+  if ((!wartetAufKunde && !SLA_LAEUFT_BEI.includes(t.status)) || istImSpamfilter(t)) return null;
   const seit = seitStatus(t);
   if (!seit) return null;
   return {
@@ -127,7 +131,7 @@ export function wartezeit(t, bezugszeit = jetzt()) {
 
 // Ergebnis: { zustand: "gruen" | "gelb" | "rot" | "pausiert" | "keine", anteil, text }
 export function sla(t, bezugszeit = jetzt()) {
-  if (!istOffen(t) || istSpamVerdacht(t)) return { zustand: "keine", anteil: -1, text: "" };
+  if (!istOffen(t) || istImSpamfilter(t)) return { zustand: "keine", anteil: -1, text: "" };
   if (!SLA_LAEUFT_BEI.includes(t.status)) {
     return { zustand: "pausiert", anteil: -1, text: "SLA pausiert" };
   }
@@ -160,12 +164,21 @@ export function statusBadge(status) {
   return h("span", { class: `badge status-${status}` }, STATUS[status] || status);
 }
 
+export const BEWERTUNGSQUELLEN = {
+  regel: "Ticketregel", modell: "Sprachmodell", mock: "Demo-Bewertung", manuell: "Von Hand gesetzt",
+};
+
+export function ticketPrioBadge(t) {
+  const quelle = t.prioritaet_quelle === "ki" ? t.ki?.bewertungsquellen?.prioritaet : t.prioritaet_quelle;
+  return prioBadge(t.prioritaet, quelle);
+}
+
 export function prioBadge(prio, quelle) {
   if (!prio) return h("span", { class: "badge prio-leer", title: "Noch nicht bewertet" }, "offen");
-  const ki = quelle === "ki";
+  const ki = quelle === "modell";
   return h(
     "span",
-    { class: `badge prio-${prio}`, title: ki ? "Von der KI gesetzt" : "Von Hand gesetzt" },
+    { class: `badge prio-${prio}`, title: BEWERTUNGSQUELLEN[quelle] || "Bisherige Einschätzung" },
     PRIORITAET[prio] || prio,
     ki ? h("span", { class: "ki-zeichen", "aria-label": "KI" }, " ✦") : null,
   );

@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  alter, formatZeit, hatHandlungsbedarf, istDemoZeit, jetzt, nachDringlichkeit, sla, wartezeit,
+  alter, formatZeit, hatHandlungsbedarf, istDemoZeit, istImSpamfilter, jetzt, nachDringlichkeit, sla, spamOffen, wartezeit,
 } from "../frontend/js/hilfen.js";
 import { ticketTabelle } from "../frontend/js/ansichten/tickets.js";
+import { spamAktionen, zeigeSpam } from "../frontend/js/ansichten/spam.js";
+import { api, ApiFehler } from "../frontend/js/api.js";
 import { ladeDaten, ticketErsetzen, zustand } from "../frontend/js/zustand.js";
 
 const jetztImTest = new Date("2026-11-19T11:30:00Z");
@@ -60,7 +62,7 @@ test("Neu und Antwort erhalten haben Vorrang, bei Gleichstand entscheidet das ta
   const frueherErstellt = ticket({ id: 2, seit: 15, alterInMinuten: 140 });
   const wartend = ticket({ id: 3, status: "warten_auf_kunde", seit: 80 });
   const ueberfaellig = ticket({ id: 4, status: "antwort_erhalten", seit: 45 });
-  const spam = { ...ticket({ id: 5, seit: 75 }), ki: { spam: true } };
+  const spam = { ...ticket({ id: 5, seit: 75 }), spampruefung: { verdaechtig: true } };
   assert.equal(hatHandlungsbedarf(spam), false);
   assert.equal(hatHandlungsbedarf({ ...spam, spam_entscheidung: "kein_spam" }), true);
 
@@ -82,7 +84,7 @@ test("ungültige Zeitstempel und eine Demo-Zeit vor Erstellung bleiben darstellb
   assert.deepEqual(jetzt(), jetztImTest);
 });
 
-test("in der Ticketliste stehen Alter und Wartezeit in getrennten Spalten", (t) => {
+function testDokument(t) {
   class Element {
     constructor(tag, text = "") {
       this.tag = tag;
@@ -90,16 +92,22 @@ test("in der Ticketliste stehen Alter und Wartezeit in getrennten Spalten", (t) 
       this.children = [];
       this.attributes = {};
     }
-    append(child) { this.children.push(child); }
+    append(...children) { this.children.push(...children); }
     setAttribute(name, value) { this.attributes[name] = value; }
-    addEventListener() {}
+    addEventListener(name, handler) { this[name] = handler; }
     get textContent() { return this.text + this.children.map((child) => child.textContent).join(""); }
   }
   browserGlobal(t, "Node", Element);
+  const meldungen = new Element("div");
   browserGlobal(t, "document", {
     createElement: (tag) => new Element(tag),
     createTextNode: (text) => new Element("#text", text),
+    getElementById: (id) => id === "meldungen" ? meldungen : null,
   });
+}
+
+test("in der Ticketliste stehen Alter und Wartezeit in getrennten Spalten", (t) => {
+  testDokument(t);
   const wrapper = ticketTabelle([ticket({ status: "warten_auf_kunde", seit: 35 })], {
     kompakt: true, bezugszeit: jetztImTest,
   });
@@ -109,6 +117,46 @@ test("in der Ticketliste stehen Alter und Wartezeit in getrennten Spalten", (t) 
   assert.equal(alterZelle.textContent, "vor 2 Std.");
   assert.equal(wartezeitZelle.textContent, "35 Min.");
   assert.equal(wartezeitZelle.attributes.title, "Wartezeit auf Kunde");
+});
+
+test("Eingangsfilter sortiert vor der KI-Bewertung, Freigaben und Abschlüsse haben Vorrang", () => {
+  const offen = { ...ticket(), spampruefung: { verdaechtig: true } };
+  const freigegeben = { ...offen, spam_entscheidung: "kein_spam", ki: { spam: true } };
+  const bestaetigt = { ...offen, spam_entscheidung: "spam", status: "geschlossen" };
+  const alt = { ...offen, ki: { spam: true }, spampruefung: { verdaechtig: false } };
+  assert.equal(spamOffen(offen), true);
+  assert.equal(hatHandlungsbedarf(offen), false);
+  assert.equal(sla(offen, jetztImTest).zustand, "keine");
+  for (const frei of [freigegeben, alt]) {
+    assert.equal(spamOffen(frei), false);
+    assert.equal(hatHandlungsbedarf(frei), true);
+    assert.equal(sla(frei, jetztImTest).zustand, "gelb");
+  }
+  assert.equal(spamOffen(bestaetigt), false);
+  const archivierterVerdacht = { ...offen, status: "geschlossen" };
+  assert.equal(istImSpamfilter(archivierterVerdacht), true);
+  assert.equal(spamOffen(archivierterVerdacht), false);
+});
+
+test("Spam-Prüfung zeigt nur offene Eingangsverdachte und den tatsächlichen Prüfgrund", (t) => {
+  testDokument(t);
+  browserGlobal(t, "location", { search: "" });
+  const vorher = zustand.tickets;
+  t.after(() => { zustand.tickets = vorher; });
+  const filter = { verdaechtig: true, begruendung: "Unaufgeforderte Verkaufsnachricht." };
+  zustand.tickets = [
+    { ...ticket({ id: 11 }), titel: "Werbesendung", spampruefung: filter },
+    { ...ticket({ id: 12 }), titel: "Monitor anfordern", ki: { spam: true }, spampruefung: { verdaechtig: false } },
+    { ...ticket({ id: 13 }), titel: "Freigegeben", spam_entscheidung: "kein_spam", spampruefung: filter },
+    { ...ticket({ id: 14, status: "geschlossen" }), titel: "Bestätigte Werbung", spam_entscheidung: "spam", spampruefung: filter },
+    { ...ticket({ id: 15 }), titel: "Manuelle Korrektur", spam_entscheidung: "kein_spam", spampruefung: { verdaechtig: false } },
+  ];
+  const ziel = document.createElement("main");
+  zeigeSpam(ziel);
+  assert.match(ziel.textContent, /Bestätigt: 1 · Fehlalarme: 1/);
+  assert.match(ziel.textContent, /#11 Werbesendung/);
+  assert.match(ziel.textContent, /Unaufgeforderte Verkaufsnachricht/);
+  assert.doesNotMatch(ziel.textContent, /#12|#13|#14|#15|noch nicht bewertet/);
 });
 
 test("eine Hintergrundabfrage darf eine jüngere Ticketänderung nicht überschreiben", async (t) => {
@@ -126,4 +174,25 @@ test("eine Hintergrundabfrage darf eine jüngere Ticketänderung nicht überschr
   stelleTicketsZu(response([vorher]));
   await abfrage;
   assert.equal(zustand.tickets[0].status, "in_bearbeitung");
+});
+
+test("eine überholte Spam-Freigabe lädt die aktuelle Entscheidung, auch wenn das alte Ticket kein Entscheidungsfeld hat", async (t) => {
+  testDokument(t);
+  t.mock.method(globalThis, "setTimeout", () => 0);
+  const vorher = zustand.tickets;
+  t.after(() => { zustand.tickets = vorher; });
+  const alt = { ...ticket(), spampruefung: { verdaechtig: true } };
+  const aktuell = { ...alt, status: "geschlossen", spam_entscheidung: "spam" };
+  zustand.tickets = [alt];
+  const patch = t.mock.method(api, "ticketAendern", async () => { throw new ApiFehler("Überholt", 409); });
+  const abruf = t.mock.method(api, "ticket", async () => aktuell);
+  const freigabe = spamAktionen(alt).children.find((k) => k.textContent === "Kein Spam");
+  await freigabe.click();
+  assert.deepEqual(patch.mock.calls[0].arguments, [alt.id, {
+    spam_entscheidung: "kein_spam", erwartete_spam_entscheidung: null, erwarteter_status: "neu",
+  }]);
+  assert.deepEqual(abruf.mock.calls[0].arguments, [alt.id]);
+  assert.deepEqual(zustand.tickets, [aktuell]);
+  assert.match(document.getElementById("meldungen").textContent, /inzwischen geändert/);
+  assert.equal(spamOffen(zustand.tickets[0]), false);
 });

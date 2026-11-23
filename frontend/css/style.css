@@ -101,7 +101,7 @@ body.assistent-offen .rahmen { margin-right: 380px; }
 .nav a.aktiv { background: var(--flaeche-2); color: var(--text); box-shadow: inset 3px 0 0 var(--akzent); }
 .zaehler {
   min-width: 20px; padding: 0 6px; border-radius: 10px; font-size: 12px; text-align: center;
-  background: var(--ki-hg); color: var(--ki); border: 1px solid var(--ki-rand);
+  color: var(--text); background: var(--flaeche-2); border: 1px solid var(--rand-stark);
 }
 .seitenleiste-unten { margin-top: auto; }
 
@@ -163,8 +163,6 @@ body.assistent-offen .rahmen { margin-right: 380px; }
 .kachel-rot { border-left: 3px solid var(--rot); }
 .kachel-rot .kachel-wert { color: var(--rot); }
 .kachel-warn { border-left: 3px solid var(--orange); }
-.kachel-ki { border-left: 3px solid var(--ki); }
-.kachel-ki .kachel-wert { color: var(--ki); }
 
 .hinweisleiste {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
@@ -243,9 +241,7 @@ body.assistent-offen .rahmen { margin-right: 380px; }
 .ampel-text { font-size: 12px; color: var(--text-2); }
 
 .ki-marke { color: var(--ki); font-weight: 600; white-space: nowrap; }
-.badge-ki { color: var(--ki); background: var(--ki-hg); border-color: var(--ki-rand); }
 .karte-ki { background: linear-gradient(var(--ki-hg), var(--flaeche) 120px); border-color: var(--ki-rand); }
-.ki-hinterlegt { background: var(--ki-hg); border: 1px solid var(--ki-rand); border-radius: 6px; padding: 8px 10px; }
 
 .ki-status {
   font-size: 12px; padding: 3px 10px; border-radius: 12px; border: 1px solid var(--rand);
@@ -334,9 +330,16 @@ textarea { resize: vertical; width: 100%; }
 .md h3.md-titel { font-size: 15px; }
 
 /* --- Spam ------------------------------------------------------------------ */
-.spam-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 14px; }
+.eingangspruefung { background: var(--flaeche); border-color: var(--rand); }
+.spam-pruefkarte { align-self: start; }
+.spam-verdacht { border-color: var(--orange); }
+.nachrichtenaktionen { margin-top: 10px; }
+.nachrichtenaktionen summary { width: fit-content; cursor: pointer; font-size: 13px; color: var(--text-2); }
+.nachrichtenaktionen[open] summary { margin-bottom: 6px; }
+.spam-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); gap: 14px; }
 .spam-karte .karte-kopf { flex-direction: column; gap: 2px; }
-.spam-karte h3 a { color: var(--text-3); text-decoration: none; }
+.spam-karte h3 a { color: var(--text); text-decoration: none; }
+.spam-karte h3 a:hover { text-decoration: underline; }
 
 /* --- KI-Assistent ---------------------------------------------------------- */
 .assistent {

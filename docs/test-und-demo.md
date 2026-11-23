@@ -54,6 +54,23 @@ Das kleine Chat-Modell bleibt bei beiden Priorisierungsvarianten unter dem Ziel 
 
 Bei der ersten Fallauswertung lehnte die KI passende historische Belege ab. Das Backend übernimmt nun die gespeicherten Ursachen und Lösungswege der vom Modell gewählten Tickets. Für den Wiederholungslauf ergab die Kalibrierung auf den Entwicklungsfällen eine Ähnlichkeitsschwelle von 0,76. Die zwölf Abnahmefälle blieben beim Wiederholungslauf gleich. Ein externer Bildschirm ohne Signal wurde fälschlich mit einem früheren Notebook-Ausfall verknüpft. Der Bericht enthält auch die Antworten ohne Ticket-Historie für alle zwölf Fälle.
 
+## Gegenprobe zur Spam-Prüfung und Ticketbewertung
+
+Im ersten Dashboard-Durchlauf landeten die Outlook-Warnung #1021 und der Umzug #1030 in der Spam-Prüfung. Die Werbung #1010 erschien als Software. Für den Monitorwunsch #1023 übernahm die KI Rückrufzeiten aus der Kundenakte als Begründung. Das Dashboard prüft den Eingang jetzt automatisch. Freigegebene Tickets erhalten eine Bewertung mit Ticketbeleg und Herkunft für Kategorie und Priorität.
+
+Die beiden folgenden Läufe nutzten am 23.11.2026 das lokale Windows-Modell Qwen2.5 0.5B und dieselbe Verarbeitungslogik. Die erste Serie umfasst die bekannten Demofälle. Für die zweite Serie durchliefen die 20 unveränderten Tickets aus `tickets_promptvergleich.json` die Produktions-API in einer eigenen temporären Arbeitskopie. Die ausgewiesene Zahl bei Kategorie und Priorität bezieht sich jeweils auf reguläre Supportanfragen.
+
+| Prüfung | 34 Demotickets | 20 separate Prüftickets |
+|---|---|---|
+| Spam erkannt | 4/4 | 0/1 |
+| Reguläre Anfragen durchgelassen | 30/30 | 19/19 |
+| Kategorie richtig | 30/30 | 11/19 |
+| Priorität richtig | 23/30 | 10/19 |
+
+Im zweiten Lauf gelangte ein Angebot für einen kostenpflichtigen Firmeneintrag in den Support. Der Ausfall eines gemeinsamen Portals wurde als Hardwareproblem mit niedriger Priorität eingestuft. Der eine Werbefall der Serie reicht für eine allgemeine Schätzung der Spam-Erkennungsrate nicht aus. Bei #1002 steht im Entwicklungsdatensatz ein fachlicher Widerspruch: Die Kundenakte nennt für den Lagerdrucker die Stufe „hoch“, der Sollwert lautet „sehr_hoch“. Die Auswertung zählt die Abweichung mit.
+
+Der Demo-Lauf lässt sich mit `python scripts/auswertung_eingang.py` wiederholen. Für die Vorführung eignen sich die gegensätzlichen Postfachmeldungen #1003 und #1021 sowie der Monitorwunsch #1023. Die Spam-Prüfung bietet Freigabe und Bestätigung. Am regulären Ticket kann der Support über „Nachrichtenaktionen“ eine übersehene Werbenachricht markieren.
+
 ## Messlauf auf dem Mac Pro
 
 1. Die autorisierte Umgebung mit Chat- und Embedding-Dienst einrichten, `KI_MOCK=false` setzen und das Backend neu starten. `/api/status` zeigt den Betriebsmodus sowie die Erreichbarkeit beider Dienste. Den verwendeten Commit und die Modellnamen mit den Berichten festhalten.

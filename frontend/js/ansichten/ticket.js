@@ -4,13 +4,14 @@
 import { api } from "../api.js";
 import { PRIORITAET, STATUS } from "../config.js";
 import {
-  alter, dauer, dokuQuellen, formatZeit, fuege, h, istSpamVerdacht, jetzt, kiMarke, leeren, markdown, prioBadge, slaAmpel,
-  statusBadge, ticketNr, wartezeit,
+  alter, dauer, dokuQuellen, formatZeit, fuege, h, istImSpamfilter, jetzt, kiMarke, leeren, markdown, prioBadge, slaAmpel,
+  BEWERTUNGSQUELLEN, spamBadge, statusBadge, ticketNr, ticketPrioBadge, wartezeit,
 } from "../hilfen.js";
 import {
   anzeigeName, kundeName, meldung, mitarbeiterListe, neuZeichnen, ticketErsetzen, zustand,
 } from "../zustand.js";
 import { oeffneAssistent } from "./assistent.js";
+import { spamAktionen } from "./spam.js";
 
 export function zeigeTicket(ziel, { teile }) {
   const id = Number(teile[0]);
@@ -24,19 +25,24 @@ export function zeigeTicket(ziel, { teile }) {
 
   const bezugszeit = jetzt();
   const warten = wartezeit(t, bezugszeit);
+  const imFilter = istImSpamfilter(t);
   ziel.append(
     h("a", { href: "#/tickets", class: "zurueck" }, "← Alle Tickets"),
     h("div", { class: "ticket-kopf" },
       h("h2", {}, h("span", { class: "nr" }, ticketNr(t.id)), " ", t.titel),
       h("div", { class: "badges" },
         statusBadge(t.status),
-        prioBadge(t.prioritaet, t.prioritaet_quelle),
+        imFilter ? null : ticketPrioBadge(t),
         slaAmpel(t, true, bezugszeit),
         warten ? h("span", { class: "hinweis" }, `Wartezeit auf ${warten.auf}: ${dauer(warten.minuten)}`) : null,
-        istSpamVerdacht(t) ? h("span", { class: "badge badge-ki" }, "✦ Spam-Verdacht") : null)),
+        spamBadge(t))),
     h("div", { class: "raster-detail" },
-      h("div", { class: "spalte" }, beschreibung(t, bezugszeit), bearbeiten(t), verlauf(t, bezugszeit)),
-      h("div", { class: "spalte" }, kiBlock(t), kiFaelle(t), kundeKarte(t))),
+      h("div", { class: "spalte" }, beschreibung(t, bezugszeit), imFilter ? null : bearbeiten(t), verlauf(t, bezugszeit)),
+      imFilter ? h("section", { class: "karte spam-pruefkarte" },
+        h("div", { class: "karte-kopf" }, h("h3", {}, "Spam-Prüfung")),
+        h("p", { class: "begruendung" }, t.spam_entscheidung === "spam" ? "Vom Support als Spam bestätigt." : t.spampruefung.begruendung),
+        spamAktionen(t))
+        : h("div", { class: "spalte" }, kiBlock(t), kiFaelle(t), kundeKarte(t))),
   );
   return `Ticket ${ticketNr(t.id)}`;
 }
@@ -52,7 +58,10 @@ function beschreibung(t, bezugszeit) {
       ? h("div", { class: "loesung" },
         t.ursache ? [h("h4", {}, "Ursache"), h("p", {}, t.ursache)] : null,
         t.loesungsweg ? [h("h4", {}, "Lösungsweg"), h("p", {}, t.loesungsweg)] : null)
-      : null);
+      : null,
+    t.spam_entscheidung === "kein_spam" ? h("p", { class: "feld-hinweis" }, "Vom Support freigegeben.") : null,
+    t.status !== "geschlossen" && !istImSpamfilter(t) ? h("details", { class: "nachrichtenaktionen" },
+      h("summary", {}, "Nachrichtenaktionen"), spamAktionen(t)) : null);
 }
 
 function bearbeiten(t) {
@@ -154,7 +163,7 @@ function verlauf(t, bezugszeit) {
 // --- Rechts: KI -----------------------------------------------------------
 function kiBlock(t) {
   const karte = h("section", { class: "karte karte-ki", "aria-labelledby": "t-ki" },
-    h("div", { class: "karte-kopf" }, h("h3", { id: "t-ki" }, kiMarke("KI-Einschätzung"))));
+    h("div", { class: "karte-kopf" }, h("h3", { id: "t-ki" }, "Ticketbewertung")));
 
   const bewertet = Boolean(t.ki?.prioritaet);
   const knopf = h("button", { class: "knopf knopf-ki" }, bewertet ? "Neu bewerten" : "✦ Jetzt bewerten lassen");
@@ -179,22 +188,19 @@ function kiBlock(t) {
   }
 
   const ki = t.ki;
+  const quellen = ki.bewertungsquellen || {};
+  const quelle = (feld) => h("small", { class: "gedimmt" }, BEWERTUNGSQUELLEN[quellen[feld]] || "Bisherige Einschätzung");
   const abweichung = t.prioritaet_quelle === "manuell" && t.prioritaet !== ki.prioritaet;
 
   fuege(karte,
     h("dl", { class: "werte" },
-      h("dt", {}, "Priorität"), h("dd", {}, prioBadge(ki.prioritaet, "ki")),
-      h("dt", {}, "Kategorie"), h("dd", {}, ki.kategorie || "–"),
-      h("dt", {}, "Spam"), h("dd", {}, ki.spam ? h("strong", { class: "text-rot" }, "Ja") : "Nein")),
+      h("dt", {}, "Priorität"), h("dd", {}, prioBadge(ki.prioritaet, quellen.prioritaet), " · ", quelle("prioritaet")),
+      h("dt", {}, "Kategorie"), h("dd", {}, ki.kategorie || "–", " · ", quelle("kategorie"))),
     abweichung
       ? h("p", { class: "feld-hinweis" },
         `Von Hand auf „${PRIORITAET[t.prioritaet]}“ gesetzt. Das hat Vorrang vor dem KI-Vorschlag.`)
       : null,
     ki.begruendung ? h("p", { class: "begruendung" }, h("strong", {}, "Begründung: "), ki.begruendung) : null,
-    t.spam_entscheidung
-      ? h("p", { class: "feld-hinweis" },
-        t.spam_entscheidung === "spam" ? "Spam von einem Mitarbeiter bestätigt." : "Als „kein Spam“ markiert (Fehlalarm der KI).")
-      : null,
     h("div", { class: "knopfreihe" },
       knopf,
       h("button", { class: "knopf", onclick: () => oeffneAssistent(t) }, "KI zu diesem Ticket fragen")),

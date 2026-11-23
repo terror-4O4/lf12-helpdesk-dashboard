@@ -28,7 +28,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi_offline import FastAPIOffline
 from pydantic import BaseModel, Field
 
-from backend import doku, rag
+from backend import doku, eingang, klassifikation, rag
 from backend.speicher import schreibe_atomar
 
 # --- Pfade und Konfiguration ---------------------------------------------
@@ -122,11 +122,27 @@ def lade_json(pfad: Path) -> list:
 
 
 def lade_tickets() -> list:
-    """Liest die Arbeitskopie und legt sie bei Bedarf aus den Testdaten an."""
+    """Prüft neue und bereits gespeicherte Tickets vor der ersten Anzeige."""
     with TICKET_LOCK:
-        if not LAUFZEIT_TICKETS.exists():
-            speichere_tickets(lade_json(DATEN / "tickets.json"))
-        return lade_json(LAUFZEIT_TICKETS)
+        neu = not LAUFZEIT_TICKETS.exists()
+        liste = lade_json(DATEN / "tickets.json" if neu else LAUFZEIT_TICKETS)
+        geaendert = neu
+        for t in liste:
+            befund = eingang.pruefe(t)
+            if t.get("spampruefung") == befund:
+                continue
+            if "spampruefung" not in t:
+                # Alte Modellantworten bewerteten Spam und Support zusammen. Nur
+                # die überholte Einschätzung verwerfen, keine Bearbeitungsdaten.
+                ki = t.get("ki") or {}
+                if ki.get("begruendung") or ki.get("spam") is True or ki.get("kategorie") == "Spam":
+                    for feld in ("prioritaet", "kategorie", "spam", "begruendung", "bewertungsquellen"):
+                        ki[feld] = None
+            t["spampruefung"] = befund
+            geaendert = True
+        if geaendert:
+            speichere_tickets(liste)
+        return liste
 
 
 def speichere_tickets(liste: list) -> None:
@@ -157,7 +173,14 @@ def ki_arbeitsstand(ticket_id: int) -> tuple[int, list, dict]:
     """Hält den Datenstand fest, ohne das Lock während des Modellaufrufs zu halten."""
     with TICKET_LOCK:
         liste = lade_tickets()
-        return tickets_generation, liste, finde_ticket(liste, ticket_id)
+        t = finde_ticket(liste, ticket_id)
+        verlange_support_ticket(t)
+        return tickets_generation, liste, t
+
+
+def verlange_support_ticket(t: dict) -> None:
+    if eingang.ist_spam(t):
+        raise HTTPException(409, "Dieses Ticket ist in der Spam-Prüfung oder als Spam bestätigt. Für die Supportanalyse zuerst als „Kein Spam“ freigeben.")
 
 
 def aktuelles_ki_ticket(liste: list, generation: int, alt: dict) -> dict:
@@ -166,6 +189,7 @@ def aktuelles_ki_ticket(liste: list, generation: int, alt: dict) -> dict:
     t = finde_ticket(liste, alt["id"])
     if any(t.get(feld) != alt.get(feld) for feld in ("kunde", "titel", "beschreibung")):
         raise HTTPException(409, "Das Ticket wurde inzwischen geändert. Bitte erneut ausführen.")
+    verlange_support_ticket(t)
     return t
 
 
@@ -337,6 +361,7 @@ def ticket(ticket_id: int):
 Status = Literal["neu", "in_bearbeitung", "warten_auf_kunde",
                  "antwort_erhalten", "geparkt", "geschlossen"]
 Prioritaet = Literal["niedrig", "mittel", "hoch", "sehr_hoch"]
+SpamEntscheidung = Literal["spam", "kein_spam"]
 
 
 def jetzt() -> str:
@@ -356,7 +381,7 @@ class NeuesTicket(BaseModel):
 def ticket_anlegen(eingabe: NeuesTicket):
     """Legt ein neues Ticket mit Status "neu" an (Nummer = höchste vorhandene + 1).
 
-    Bewertet wird es danach wie jedes andere Ticket über /api/tickets/{id}/analyse.
+    Der Spamfilter prüft den Eingang vor der optionalen KI-Analyse.
     """
     if eingabe.kunde is not None and eingabe.kunde not in {k["kunde"] for k in lade_kunden()}:
         raise HTTPException(422, f"Kunde '{eingabe.kunde}' nicht gefunden")
@@ -380,6 +405,7 @@ def ticket_anlegen(eingabe: NeuesTicket):
             "loesungsweg": None,
             "geschlossen_am": None,
         }
+        t["spampruefung"] = eingang.pruefe(t)
         liste.append(t)
     return t
 
@@ -392,7 +418,9 @@ class TicketAenderung(BaseModel):
                                       examples=["lena"])
     ursache: str | None = Field(None, max_length=1000)
     loesungsweg: str | None = Field(None, max_length=4000)
-    spam_entscheidung: Literal["spam", "kein_spam"] | None = None
+    spam_entscheidung: SpamEntscheidung | None = None
+    erwartete_spam_entscheidung: SpamEntscheidung | None = None
+    erwarteter_status: Status | None = None
 
 
 @app.patch("/api/tickets/{ticket_id}", tags=["Tickets"])
@@ -409,9 +437,17 @@ def ticket_aendern(ticket_id: int, aenderung: TicketAenderung):
     felder = aenderung.model_fields_set
     if not felder:
         raise HTTPException(422, "Keine Änderung mitgeschickt")
+    vorbedingungen = {"erwartete_spam_entscheidung", "erwarteter_status"}
+    mit_pruefstand = bool(felder & vorbedingungen)
+    if mit_pruefstand and (not vorbedingungen.issubset(felder) or "spam_entscheidung" not in felder
+                           or aenderung.erwarteter_status is None):
+        raise HTTPException(422, "Zur geprüften Spam-Entscheidung den vorherigen Status und die vorherige Spam-Entscheidung mitsenden.")
 
     with ticket_aktualisierung() as liste:
         t = finde_ticket(liste, ticket_id)
+        if mit_pruefstand and (t.get("spam_entscheidung") != aenderung.erwartete_spam_entscheidung
+                               or t["status"] != aenderung.erwarteter_status):
+            raise HTTPException(409, "Status oder Spam-Entscheidung wurden inzwischen geändert. Bitte den aktuellen Stand prüfen.")
 
         if "prioritaet" in felder:
             if aenderung.prioritaet is None:
@@ -435,13 +471,13 @@ def ticket_aendern(ticket_id: int, aenderung: TicketAenderung):
             if aenderung.status is None:
                 raise HTTPException(422, "Status kann nicht geleert werden")
             if aenderung.status != t["status"]:
-                if (aenderung.status == "geschlossen" and not t.get("loesungsweg")
-                        and t.get("spam_entscheidung") != "spam"):
-                    raise HTTPException(422, "Zum Schließen bitte einen Lösungsweg eintragen")
                 zeit = jetzt()
                 t["status"] = aenderung.status
                 t.setdefault("statushistorie", []).append({"status": aenderung.status, "seit": zeit})
                 t["geschlossen_am"] = zeit if aenderung.status == "geschlossen" else None
+        if (felder & {"status", "spam_entscheidung", "loesungsweg"} and t["status"] == "geschlossen"
+                and not t.get("loesungsweg") and t.get("spam_entscheidung") != "spam"):
+            raise HTTPException(422, "Ein geschlossenes Supportticket braucht einen Lösungsweg. Bitte einen Lösungsweg eintragen oder das Ticket wieder öffnen.")
 
     return t
 
@@ -679,34 +715,52 @@ ANALYSE_FORMAT = {
     },
 }
 
-MOCK_SPAM_WOERTER = ("bestätigen sie", "link", "gesperrt", "gewonnen", "gewinn")
-
-
 def analysiere_mock(t: dict) -> dict:
-    """Einfache Regel statt KI, damit das Frontend ohne KI-Server testen kann."""
-    text = f"{t['titel']} {t['beschreibung']}".lower()
-    if any(w in text for w in MOCK_SPAM_WOERTER):
-        return {"prioritaet": "niedrig", "spam": True, "kategorie": "Spam",
-                "begruendung": "[Mock] Enthält typische Spam-Wörter."}
+    """Neutraler Platzhalter für die Modellantwort im Offlinebetrieb."""
     return {"prioritaet": "mittel", "spam": False, "kategorie": "Sonstiges",
             "begruendung": "[Mock] Platzhalter-Bewertung ohne KI."}
 
 
-def analysiere_llama(t: dict, *, systemprompt: str = SYSTEMPROMPT_ANALYSE,
-                     messung: dict | None = None) -> tuple[dict, int | None]:
-    kunde = next((k for k in lade_kunden() if k["kunde"] == t["kunde"]), None)
-    besonderheiten = doku_abschnitt(t["kunde"], "Besonderheiten")
+SUPPORT_KATEGORIEN = [k for k in KATEGORIEN if k != "Spam"]
+SUPPORT_PROMPT = """Ordne diese bereits freigegebene IT-Supportanfrage ein.
+Der Betreff beschreibt das Anliegen. Zahlen vor Betreff und Sätzen sind Belegnummern.
+Kategorie: Welches Gerät, welcher Dienst oder welche Leistung ist Gegenstand der Anfrage?
+Priorität: Planbare Beschaffung oder Frage = niedrig. Warnung oder Einschränkung bei
+weiter möglicher Arbeit = mittel. Einzelner Arbeitsplatz oder wichtige Funktion
+ausgefallen = hoch. Stillstand für den Betrieb oder eine Abteilung = sehr_hoch.
+Kundenregeln gelten nur bei exakt dem darin beschriebenen Ausfall.
+Beleg: Wähle die Nummer der Ticketangabe, die das Anliegen oder die Auswirkung belegt."""
 
-    ticket_text = (
-        f"Kunde: {kunde['name'] if kunde else 'unbekannt'}\n"
-        f"Besonderheiten des Kunden: {besonderheiten or 'keine'}\n"
-        f"Titel: {t['titel']}\n"
-        f"Beschreibung: {t['beschreibung']}"
-    )
+
+def analysiere_llama(t: dict, *, systemprompt: str = SYSTEMPROMPT_ANALYSE,
+                     messung: dict | None = None, nur_support: bool = False) -> tuple[dict, int | None]:
+    """Support nutzt Belegnummern. Der Promptvergleich erhält die rohen Modellklassen."""
+    stellen = klassifikation.ticketstellen(t)
+    nummeriert = "\n".join(f"[{i}] {satz}" for i, satz in enumerate(stellen))
+    regeln = klassifikation.eskalationsregeln(doku_abschnitt(t.get("kunde"), "Besonderheiten"), t)
+    ticket_text = "Ticket (0 = Betreff):\n" + nummeriert
+    if regeln:
+        ticket_text += "\nKundenregel für den genannten Ausfall:\n" + "\n".join(regeln)
+
+    formatvorgabe = ANALYSE_FORMAT
+    if nur_support:
+        systemprompt = SUPPORT_PROMPT
+        formatvorgabe = {"type": "json_schema", "json_schema": {
+            "name": "support_einstufung", "schema": {
+                "type": "object",
+                "properties": {
+                    "kategorie": {"type": "string", "enum": SUPPORT_KATEGORIEN},
+                    "prioritaet": {"type": "string", "enum": PRIORITAETEN},
+                    "beleg": {"type": "integer", "enum": list(range(len(stellen)))},
+                },
+                "required": ["kategorie", "prioritaet", "beleg"],
+                "additionalProperties": False,
+            },
+        }}
     text, tokens = frage_llama(
         [{"role": "system", "content": systemprompt},
          {"role": "user", "content": ticket_text}],
-        antwortformat=ANALYSE_FORMAT,
+        antwortformat=formatvorgabe,
         temperatur=0,
         **({"messung": messung} if messung is not None else {}),
     )
@@ -714,21 +768,25 @@ def analysiere_llama(t: dict, *, systemprompt: str = SYSTEMPROMPT_ANALYSE,
     # Doppelt prüfen: Auch wenn das Format erzwungen ist, nichts ungeprüft übernehmen
     try:
         ergebnis = json.loads(text)
-        assert ergebnis["prioritaet"] in PRIORITAETEN
-        assert ergebnis["kategorie"] in KATEGORIEN
-        assert isinstance(ergebnis["spam"], bool)
-        ergebnis["begruendung"] = str(ergebnis.get("begruendung", ""))[:300]
-    except (json.JSONDecodeError, KeyError, AssertionError, TypeError):
-        raise HTTPException(502, f"KI-Antwort hat ein ungültiges Format: {text[:200]}")
-
-    if ergebnis["spam"]:
-        ergebnis["prioritaet"], ergebnis["kategorie"] = "niedrig", "Spam"
+        if ergebnis["prioritaet"] not in PRIORITAETEN or ergebnis["kategorie"] not in KATEGORIEN:
+            raise ValueError
+        if nur_support:
+            index = ergebnis["beleg"]
+            if ergebnis["kategorie"] == "Spam" or type(index) is not int or not 0 <= index < len(stellen):
+                raise ValueError
+            ergebnis = {"prioritaet": ergebnis["prioritaet"], "kategorie": ergebnis["kategorie"],
+                        "spam": False, "beleg": stellen[index], "begruendung": "",
+                        "kundenregel": bool(regeln)}
+        elif type(ergebnis["spam"]) is not bool or not isinstance(ergebnis["begruendung"], str):
+            raise ValueError
+    except (ValueError, KeyError, TypeError):
+        raise HTTPException(502, "Die KI hat eine ungültige Ticketbewertung geliefert.")
     return ergebnis, tokens
 
 
 @app.post("/api/tickets/{ticket_id}/analyse", tags=["KI"])
 def ticket_analyse(ticket_id: int, speichern: bool = True):
-    """Lässt die KI ein Ticket bewerten: Priorität, Spam, Kategorie, Begründung.
+    """Bewertet ein freigegebenes Supportticket nach Kategorie und Priorität.
 
     Mit speichern=true wird das Ergebnis in den KI-Block des Tickets geschrieben.
     Die Priorität des Tickets wird nur übernommen, wenn sie nicht von Hand
@@ -740,7 +798,8 @@ def ticket_analyse(ticket_id: int, speichern: bool = True):
     if KI_MOCK:
         ergebnis, tokens, modus = analysiere_mock(t), None, "mock"
     else:
-        (ergebnis, tokens), modus = analysiere_llama(t), "llama"
+        (ergebnis, tokens), modus = analysiere_llama(t, nur_support=True), "llama"
+    ergebnis = klassifikation.supportbewertung(t, ergebnis)
 
     if speichern:
         with ticket_aktualisierung() as liste:
@@ -752,6 +811,7 @@ def ticket_analyse(ticket_id: int, speichern: bool = True):
                 "spam": ergebnis["spam"],
                 "kategorie": ergebnis["kategorie"],
                 "begruendung": ergebnis["begruendung"],
+                "bewertungsquellen": ergebnis["bewertungsquellen"],
             }
             if t.get("prioritaet_quelle") != "manuell":
                 t["prioritaet"] = ergebnis["prioritaet"]
@@ -831,6 +891,7 @@ def aehnliche_tickets(ticket_id: int, anzahl: int = 3, ohne_schwelle: bool = Fal
     start = time.perf_counter()
     liste = lade_tickets()
     t = finde_ticket(liste, ticket_id)
+    verlange_support_ticket(t)
     treffer, faelle = finde_aehnliche(t, liste, max(1, min(anzahl, 50)),
                                       schwelle=-1.0 if ohne_schwelle else None)
     titel = {x["id"]: x["titel"] for x in faelle}

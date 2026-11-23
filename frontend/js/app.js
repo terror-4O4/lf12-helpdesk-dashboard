@@ -31,14 +31,14 @@ function leseAdresse() {
 let zeichnet = false;
 let nochmal = null; // Wunsch zum Neuzeichnen, während gerade gezeichnet wird
 
-function uebersichtDarfAktualisieren() {
-  return !document.hidden && leseAdresse().name === "uebersicht"
-    && !document.activeElement?.closest("#inhalt, #mitarbeiter, #assistent")
+function darfAnsichtAktualisieren() {
+  return ["uebersicht", "spam"].includes(leseAdresse().name)
+    && !document.activeElement?.closest("#inhalt :focus, #mitarbeiter, #assistent")
     && !document.querySelector("dialog[open], #inhalt button:disabled");
 }
 
 async function zeichnen({ neuLaden = true, imHintergrund = false } = {}) {
-  if (imHintergrund && (zeichnet || !uebersichtDarfAktualisieren())) return;
+  if (imHintergrund && (zeichnet || document.hidden)) return;
   if (zeichnet) {
     nochmal = { neuLaden: neuLaden || nochmal?.neuLaden };
     return;
@@ -57,7 +57,8 @@ async function zeichnen({ neuLaden = true, imHintergrund = false } = {}) {
 
   try {
     if (neuLaden) await ladeDaten();
-    if (imHintergrund && !uebersichtDarfAktualisieren()) return;
+    aktualisiereSpamZaehler();
+    if (imHintergrund && (!darfAnsichtAktualisieren() || adresse.name !== leseAdresse().name)) return;
     aktualisiereKopf();
     leeren(ziel);
     const titel = await ansicht.zeige(ziel, adresse);
@@ -86,14 +87,14 @@ function setzeTitel(titel) {
   document.title = `${titel} · Helpdesk-Dashboard`;
 }
 
-function aktualisiereKopf() {
-  // Spam-Zähler in der Seitenleiste
+function aktualisiereSpamZaehler() {
   const anzahl = zustand.tickets.filter(spamOffen).length;
   const zaehler = document.getElementById("spam-zaehler");
   zaehler.textContent = anzahl;
   zaehler.hidden = anzahl === 0;
+}
 
-  // Mitarbeiter-Auswahl
+function aktualisiereKopf() {
   const auswahl = document.getElementById("mitarbeiter");
   leeren(auswahl);
   auswahl.append(h("option", { value: "" }, "Mitarbeiter wählen"));
