@@ -3,6 +3,28 @@
 import re
 
 
+def werbegrund(text: str) -> str | None:
+    """Ein beworbenes Angebot und seine Verkaufsabsicht müssen erkennbar sein."""
+    if re.search(r"\b(?:auf ihre anfrage|wie von ihnen (?:angefragt|bestellt)|ihr angefordertes angebot)\b", text):
+        return None
+    kaufaufruf = re.search(r"\b(?:bestellen|kaufen|buchen|sichern|reservieren) sie\b|"
+                           r"\b(?:jetzt|heute|sofort).{0,35}(?:bestellen|kaufen|zugreifen|sichern|buchen)\b", text)
+    if kaufaufruf and re.search(r"\d+\s*%|rabatt|halben preis|sonderpreis|gratis|sparangebot|sonderangebot", text):
+        return "Die Nachricht bewirbt eine Vergünstigung und fordert direkt zum Kauf oder zur Buchung auf."
+    if kaufaufruf and re.search(r"\bunser(?:em|en|er)?\b.{0,26}\b(?:katalog|newsletter|sortiment|kollektion)\b", text):
+        return "Der Absender bewirbt sein eigenes Sortiment und fordert den Empfänger zum Kauf auf."
+
+    werbeflaeche = (r"(?:firmenverzeichnis|branchen(?:verzeichnis|buch)|werbeplatz|werbefläche|"
+                    r"anzeigenplatz|sponsoring(?:paket)?|firmeneintrag)")
+    angebot = re.search(r"\bwir bieten ihnen\b.{0,65}" + werbeflaeche, text)
+    eigenes_medium = re.search(r"\bunser(?:em|en|er|es)?\b.{0,35}" + werbeflaeche, text)
+    preis = re.search(r"\b\d+(?:[.,]\d{1,2})?\s*(?:€|euro\b|eur\b)|\bkostenpflichtig\w*", text)
+    reservierung = re.search(r"\b(?:antworten|kontaktieren) sie\b.{0,90}\bzu (?:sichern|buchen|reservieren)\b", text)
+    if (angebot and (preis or kaufaufruf)) or (eigenes_medium and (kaufaufruf or (preis and reservierung))):
+        return "Der Anbieter verkauft eine Platzierung im Verzeichnis oder auf einer Werbefläche."
+    return None
+
+
 def pruefe(ticket: dict) -> dict:
     """Vormerken nur bei einem konkreten Muster aus Inhalt, Absicht und Aufforderung."""
     titel = (ticket.get("titel") or "").casefold()
@@ -45,12 +67,10 @@ def pruefe(ticket: dict) -> dict:
           and re.search(r"(?:zip[- ]?(?:anhang|archiv|datei)|\.zip\b)", text)
           and re.search(r"(?:mahngebühr|letzte mahnung|inkasso|innerhalb von \d+ stunden)", text)):
         grund = "Eine Zahlungsaufforderung verbindet ein ZIP-Archiv mit einer kurzen Frist oder angedrohten Mahnfolgen."
-    elif (re.search(r"(?:\d+\s*%|rabatt|halben preis|sonderpreis|gratis|sparangebot|sonderangebot)", text)
-          and re.search(r"(?:jetzt|heute|sofort).{0,35}(?:bestellen|kaufen|zugreifen|sichern|buchen)", text)):
-        grund = "Die Nachricht bewirbt eine Vergünstigung und fordert direkt zum Kauf oder zur Buchung auf."
-    elif (re.search(r"\bunser(?:em|en|er)?\b.{0,26}\b(?:katalog|newsletter|sortiment|kollektion)\b", text)
-          and re.search(r"\b(?:bestellen|kaufen|buchen) sie\b|\bjetzt.{0,20}(?:bestellen|kaufen|buchen)\b", text)):
-        grund = "Der Absender bewirbt sein eigenes Sortiment und fordert den Empfänger zum Kauf auf."
+    else:
+        werbung = werbegrund(text)
+        if werbung:
+            return {"verdaechtig": True, "art": "werbung", "begruendung": werbung}
 
     return {"verdaechtig": grund is not None,
             "begruendung": grund or "Die lokale Eingangsprüfung hat keinen Spamhinweis gefunden."}

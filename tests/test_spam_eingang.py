@@ -64,6 +64,45 @@ class SpamEingangTest(unittest.TestCase):
         self.assertTrue(r.json()["spampruefung"]["verdaechtig"])
         self.assertIn("Sortiment", r.json()["spampruefung"]["begruendung"])
 
+    def test_anzeigenangebot_und_kundenauftrag_im_eingang(self):
+        for titel, text, werbung in [
+            ("Mehr Reichweite", "Wir bieten Ihnen einen Anzeigenplatz für 120 Euro im Monat.", True),
+            ("Stadtportal", "Sichern Sie sich einen Werbeplatz in unserem Branchenbuch.", True),
+            ("Eintrag aktualisieren", "In unserem Branchenverzeichnis fehlt bei Ihrer Firma eine Telefonnummer. "
+             "Können Sie uns den Ansprechpartner nennen?", False),
+            ("Angefordertes Angebot", "Auf Ihre Anfrage senden wir das Angebot zu unserem Firmenverzeichnis. "
+             "Buchen Sie den reservierten Anzeigenplatz für 120 Euro.", False),
+            ("Unser Firmenverzeichnis zeigt den falschen Preis", "Beim Eintrag für die Messe stehen noch 99 Euro. "
+             "Können Sie den Preis im CMS berichtigen?", False),
+        ]:
+            with self.subTest(titel=titel):
+                r = self.client.post("/api/tickets", json={"titel": titel, "beschreibung": text})
+                self.assertEqual(r.status_code, 201)
+                t = r.json()
+                self.assertEqual(t["spampruefung"]["verdaechtig"], werbung)
+                self.assertEqual(t["spampruefung"].get("art"), "werbung" if werbung else None)
+                if werbung:
+                    self.assertEqual(self.client.post(f"/api/tickets/{t['id']}/analyse").status_code, 409)
+
+    def test_neupruefung_hebt_nur_die_ausgewaehlte_freigabe_auf(self):
+        for nr in (1010, 1003):
+            self.assertEqual(self.client.patch(f"/api/tickets/{nr}", json={"spam_entscheidung": "kein_spam"}).status_code, 200)
+        adr = "/api/tickets/1010"
+        with patch.object(app, "KI_MOCK", True):
+            self.assertEqual(self.client.post(adr + "/analyse").status_code, 200)
+        alt = self.client.get(adr).json()
+        self.assertEqual(alt["spam_entscheidung"], "kein_spam")
+        self.assertEqual(alt["spampruefung"]["art"], "werbung")
+        self.assertEqual(self.client.patch(adr, json={"spam_entscheidung": None}).status_code, 422)
+        pruefung = {"spam_entscheidung": None, "erwartete_spam_entscheidung": "kein_spam", "erwarteter_status": alt["status"]}
+        t = self.client.patch(adr, json=pruefung).json()
+        self.assertTrue(eingang.ist_spam(t))
+        self.assertIsNone(t["spam_entscheidung"])
+        self.assertEqual(t["statushistorie"], alt["statushistorie"])
+        self.assertEqual(self.client.patch(adr, json=pruefung).status_code, 409)
+        self.assertEqual(self.client.post(adr + "/analyse").status_code, 409)
+        self.assertEqual(self.client.get("/api/tickets/1003").json()["spam_entscheidung"], "kein_spam")
+
     def test_alter_fehlalarm_wird_entfernt_und_arbeitsstand_erhalten(self):
         alt = next(t for t in app.lade_json(app.DATEN / "tickets.json") if t["id"] == 1021)
         alt.update(prioritaet_quelle="manuell", prioritaet="hoch", zugewiesen_an="technik",

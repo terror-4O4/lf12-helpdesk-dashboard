@@ -1,0 +1,51 @@
+[
+  {
+    "titel": "Speicherkontingent",
+    "artikel": "Disk Quota",
+    "url": "https://de.wikipedia.org/w/index.php?title=Disk_Quota&oldid=248831509",
+    "begriffe": ["Quota", "Disk Quota", "Speicherkontingent", "Postfachkontingent", "Speicherlimit", "Speichergrenze", "Speicherwarnung", "Postfach fast voll"],
+    "text": "Ein Speicherkontingent begrenzt, wie viel Platz ein Benutzer oder eine Gruppe belegen kann. Ein System kann schon beim Erreichen einer Warnschwelle melden, dass der Platz knapp wird. An einer festen Obergrenze verhindert es, dass weitere Daten gespeichert werden."
+  },
+  {
+    "titel": "E-Mail-Postfach",
+    "artikel": "E-Mail-Konto",
+    "url": "https://de.wikipedia.org/w/index.php?title=E-Mail-Konto&oldid=249793118",
+    "begriffe": ["Postfach", "Postfächer", "Mailkonto", "E-Mail-Postfach", "E-Mail-Konto", "Mailbox", "Webmail"],
+    "text": "In einem E-Mail-Postfach werden eingegangene Nachrichten aufbewahrt. Je nach Anbieter lassen sie sich mit einem Mailprogramm, einer App oder über den Browser lesen. Der Zugriff über eine Webseite heißt Webmail."
+  },
+  {
+    "titel": "Virtuelles privates Netzwerk (VPN)",
+    "artikel": "Virtual Private Network",
+    "url": "https://de.wikipedia.org/w/index.php?title=Virtual_Private_Network&oldid=266327940",
+    "begriffe": ["VPN", "Virtual Private Network", "virtuelles privates Netzwerk", "VPN-Tunnel"],
+    "text": "Ein VPN verbindet ein Gerät oder ein ganzes Netz über ein vorhandenes Netzwerk mit einem anderen Netz. So kann ein Notebook im Homeoffice interne Firmendienste erreichen. Ob und wie der Datenverkehr verschlüsselt ist, hängt vom eingesetzten VPN-Verfahren ab."
+  },
+  {
+    "titel": "Namensauflösung (DNS)",
+    "artikel": "Domain Name System",
+    "url": "https://de.wikipedia.org/w/index.php?title=Domain_Name_System&oldid=272262992",
+    "begriffe": ["DNS", "Domain Name System", "Namensauflösung", "DNS-Server", "Nameserver", "MX-Eintrag"],
+    "text": "DNS liefert zu einem Netzwerknamen die passenden Einträge. Ein Browser kann darüber beispielsweise die IP-Adresse eines Webservers finden. Ein MX-Eintrag gibt an, welcher Server E-Mails für eine Domain annimmt."
+  },
+  {
+    "titel": "Mehrfaktor-Authentifizierung (MFA)",
+    "artikel": "Multi-Faktor-Authentisierung",
+    "url": "https://de.wikipedia.org/w/index.php?title=Multi-Faktor-Authentisierung&oldid=263236666",
+    "begriffe": ["MFA", "2FA", "Zwei-Faktor-Authentisierung", "Zwei-Faktor-Authentifizierung", "Mehrfaktor-Authentifizierung", "Multi-Faktor-Authentisierung", "Mehrfaktorauthentifizierung", "zweiter Faktor"],
+    "text": "Bei der Mehrfaktor-Authentifizierung weist eine Person ihre Identität mit mehreren unabhängigen Faktoren nach. Ein Passwort belegt Wissen, ein registrierter Sicherheitsschlüssel Besitz. Kommen zwei unabhängige Faktoren zum Einsatz, spricht man von Zwei-Faktor-Authentifizierung."
+  },
+  {
+    "titel": "Phishing",
+    "artikel": "Phishing",
+    "url": "https://de.wikipedia.org/w/index.php?title=Phishing&oldid=271745498",
+    "begriffe": ["Phishing", "Phishing-Mail", "Phishingnachricht"],
+    "text": "Beim Phishing versuchen Betrüger, sich als vertrauenswürdiger Absender auszugeben und vertrauliche Angaben zu erhalten. Ein Warnzeichen ist eine unerwartete Nachricht, die unter Zeitdruck zur Eingabe von Zugangsdaten auffordert."
+  },
+  {
+    "titel": "Spam",
+    "artikel": "Spam",
+    "url": "https://de.wikipedia.org/w/index.php?title=Spam&oldid=270253438",
+    "begriffe": ["Spam", "Spam-Mail", "Junk-Mail", "Werbemail", "Werbemails"],
+    "text": "Als Spam bezeichnet man unerwünschte elektronische Nachrichten, die oft an viele Empfänger gleichzeitig gehen. Unbestellte Werbemails sind ein typisches Beispiel."
+  }
+]

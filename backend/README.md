@@ -41,16 +41,20 @@ Beenden mit `Strg + C`.
 | GET | `/api/kunden/{kunde}/doku` | Kundendoku als Markdown |
 | GET | `/api/tickets/{id}/doku` | Passende Abschnitte aus der Doku des Ticketkunden |
 | POST | `/api/kunden/{kunde}/doku/suche` | Antwort auf `{"frage": "..."}` mit Belegtext, Fundstelle und hinterlegten Portal-Links |
+| POST | `/api/tickets/{id}/frage` | Beantwortet eine Frage zum Ticket aus der Kundenakte, gelösten Fällen desselben Kunden oder lokalen Fachnotizen |
 | POST | `/api/ki/frage` | Antwort der KI auf `{"frage": "..."}` |
 | POST | `/api/tickets/{id}/analyse` | Bewertet ein freigegebenes oder unauffälliges Ticket nach Priorität und Kategorie. Mit `?speichern=false` nur anzeigen |
 | GET | `/api/tickets/{id}/aehnliche` | Nur die Suche: ähnlichste gelöste Tickets mit Ähnlichkeit. `?ohne_schwelle=true&anzahl=10` zeigt auch Fälle unter der Schwelle |
 | POST | `/api/tickets/{id}/loesungsvorschlag` | Suche plus KI: bis zu 3 Ursachen mit Lösungsweg und Verweis auf die Tickets, oder „kein passender Fall“. `?speichern=false` = nur anzeigen |
 | GET | `/api/wissensbasis` | Anzahl der gelösten Tickets in der Wissensbasis, Schwelle, Modell |
+| POST | `/api/wissen/wikipedia` | Beantwortet allgemeine IT-Begriffsfragen aus lokalen Fachnotizen. Die Quellen verlinken die verwendeten Wikipedia-Artikelfassungen. |
 | POST | `/api/testdaten/zuruecksetzen` | Verwirft alle Änderungen und lädt die Testtickets neu |
 
 Das Backend arbeitet mit einer Arbeitskopie der Tickets in `data/laufzeit/` (nicht im Repo). Details in [`docs/datenformat.md`](../docs/datenformat.md#testdaten-und-arbeitskopie).
 
 Die lokale Eingangsprüfung liefert zu jedem Ticket `spampruefung.verdaechtig` und `spampruefung.begruendung`. Offene Verdachtsfälle gelangen sofort in die Spam-Prüfung. Eine Freigabe durch den Support ermöglicht die reguläre Analyse und Fallsuche. Bei einem offenen Verdacht oder bestätigtem Spam antworten diese Endpunkte mit HTTP 409.
+
+Erkannte Werbung trägt `spampruefung.art = "werbung"`. „Eingang erneut prüfen“ setzt die manuelle Freigabe bei einem offenen Ticket mit den Vorbedingungen des angezeigten Stands zurück. Danach entscheidet der aktuelle Eingangsbefund über die Einsortierung.
 
 Bei Spam-Entscheidungen sendet das Dashboard den angezeigten Stand mit (`erwartete_spam_entscheidung`, `erwarteter_status`). Hat eine zweite Person inzwischen entschieden, liefert PATCH HTTP 409. Das Dashboard lädt dann den aktuellen Stand.
 
@@ -76,6 +80,10 @@ die Fundstelle oder meldet, dass kein Abschnitt die Antwort belegt. Im Mock-Modu
 zeigt die Anwendung den besten Worttreffer. Belegtext und Portal-Links stammen aus
 der Markdown-Datei. Antworten auf Passwortfragen verwenden die hinterlegten
 Passwortmanager-Verweise.
+
+## Wikipedia-Grundwissen
+
+Allgemeines IT-Wissen liegt getrennt von der Fallhistorie in [wikipedia.json](../data/wissen/wikipedia.json). Der Bestand enthält sieben selbst formulierte Fachnotizen. Jede nennt ihren deutschen Wikipedia-Artikel und verlinkt dessen feste Version. Neue Begriffe können mit Titel, Suchbegriffen, Fachtext und Versionslink ergänzt werden. Die Suche liest diese Datei lokal. Nur ein bewusst angeklickter Quellenlink öffnet Wikipedia im Browser.
 
 ## Ähnliche Tickets (RAG)
 

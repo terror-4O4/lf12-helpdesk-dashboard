@@ -1,18 +1,15 @@
-/* Helpdesk-Dashboard
-   Grundsatz: neutral halten. Farbe nur für Status, Priorität, SLA-Ampel
-   und für alles, was von der KI kommt (immer violett mit ✦).
-   Hell- und Dunkelmodus folgen der Systemeinstellung. */
+/* Gemeinsame Flächen für Tickets und Assistent. Signalfarben zeigen den Bearbeitungsstand. */
 
 :root {
-  --hg: #f5f6f8;
+  --hg: #f5f6f7;
   --flaeche: #ffffff;
   --flaeche-2: #f0f2f5;
-  --rand: #e1e4e9;
+  --rand: #dfe3e7;
   --rand-stark: #c9ced6;
   --text: #1c2028;
   --text-2: #5a6270;
-  --text-3: #8a919c;
-  --akzent: #2563eb;
+  --text-3: #626d77;
+  --akzent: #365c82;
   --akzent-text: #ffffff;
 
   --gruen: #16a34a;
@@ -21,12 +18,13 @@
   --orange: #ea6c0a;
   --grau: #9aa1ab;
 
-  --ki: #6d4fd6;
-  --ki-hg: #f3f0ff;
-  --ki-rand: #d9d0fb;
+  --ki: #496477;
+  --ki-hg: #f2f5f6;
+  --ki-rand: #d8e0e4;
+  --assistent-breite: clamp(360px, 27vw, 450px);
 
   --radius: 8px;
-  --schatten: 0 1px 2px rgb(16 24 40 / 6%);
+  --schatten: none;
   --schrift: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   color-scheme: light dark;
@@ -41,12 +39,12 @@
     --rand-stark: #3a414b;
     --text: #e6e8eb;
     --text-2: #a3aab4;
-    --text-3: #7b838e;
-    --akzent: #4f8cff;
-    --ki: #a993ff;
-    --ki-hg: #221d38;
-    --ki-rand: #3d3466;
-    --schatten: none;
+    --text-3: #a0aab2;
+    --akzent: #9ac1e7;
+    --akzent-text: #132333;
+    --ki: #a4c2cd;
+    --ki-hg: #212b30;
+    --ki-rand: #3b494f;
   }
 }
 
@@ -78,7 +76,7 @@ code { font-family: var(--mono); font-size: 0.92em; background: var(--flaeche-2)
   grid-template-areas: "leiste kopf" "leiste inhalt" "leiste fuss";
   height: 100vh;
 }
-body.assistent-offen .rahmen { margin-right: 380px; }
+body.assistent-offen .rahmen { margin-right: var(--assistent-breite); }
 
 .seitenleiste {
   grid-area: leiste;
@@ -115,7 +113,7 @@ body.assistent-offen .rahmen { margin-right: 380px; }
 .kopf-titel { font-size: 17px; font-weight: 600; }
 .kopf-rechts { display: flex; align-items: center; gap: 10px; }
 
-.inhalt { grid-area: inhalt; overflow: auto; padding: 16px 20px 24px; }
+.inhalt { grid-area: inhalt; min-width: 0; overflow: auto; padding: 20px 24px 28px; }
 .inhalt:focus { outline: none; }
 .laden { color: var(--text-3); }
 
@@ -131,10 +129,10 @@ body.assistent-offen .rahmen { margin-right: 380px; }
   background: var(--flaeche);
   border: 1px solid var(--rand);
   border-radius: var(--radius);
-  padding: 14px 16px;
+  padding: 16px 18px;
   box-shadow: var(--schatten);
 }
-.karte-kopf { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.karte-kopf { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 10px; margin-bottom: 12px; }
 .karte-kopf h2 { font-size: 15px; }
 .karte-kopf h3 { font-size: 14px; }
 .spalte { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
@@ -240,8 +238,7 @@ body.assistent-offen .rahmen { margin-right: 380px; }
 .ampel-keine { background: transparent; }
 .ampel-text { font-size: 12px; color: var(--text-2); }
 
-.ki-marke { color: var(--ki); font-weight: 600; white-space: nowrap; }
-.karte-ki { background: linear-gradient(var(--ki-hg), var(--flaeche) 120px); border-color: var(--ki-rand); }
+.ki-marke { color: var(--ki); font-weight: 600; }
 
 .ki-status {
   font-size: 12px; padding: 3px 10px; border-radius: 12px; border: 1px solid var(--rand);
@@ -252,7 +249,7 @@ body.assistent-offen .rahmen { margin-right: 380px; }
 .ki-mock::before { color: var(--gelb); }
 .ki-aus::before { color: var(--rot); }
 .ki-aus { color: var(--rot); }
-.demo-zeit { color: var(--gelb); border-color: color-mix(in srgb, var(--gelb) 45%, transparent); }
+.demo-zeit { color: var(--text-2); border-color: transparent; background: transparent; }
 
 /* --- Formulare und Knöpfe ------------------------------------------------- */
 input, select, textarea {
@@ -290,6 +287,10 @@ textarea { resize: vertical; width: 100%; }
 .knopfreihe { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 
 .formular { display: grid; gap: 12px; }
+.abschluss summary { width: fit-content; cursor: pointer; color: var(--text-2); font-weight: 500; }
+.abschluss[open] { display: grid; gap: 10px; }
+.abschluss[open] label { margin-top: 8px; }
+.abschluss .feld-hinweis { margin-top: 8px; }
 .formular label { display: grid; align-content: start; gap: 4px; font-size: 12px; font-weight: 500; color: var(--text-2); }
 .formular label.inline { display: flex; align-items: center; gap: 6px; font-weight: 400; }
 .formular-reihe { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: start; }
@@ -297,10 +298,10 @@ textarea { resize: vertical; width: 100%; }
 
 /* --- Ticket-Detail -------------------------------------------------------- */
 .zurueck { display: inline-block; margin-bottom: 8px; font-size: 13px; text-decoration: none; }
-.ticket-kopf { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.ticket-kopf { display: grid; justify-items: start; gap: 8px; margin-bottom: 18px; }
 .ticket-kopf h2 { font-size: 19px; }
 .badges { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.nachricht { white-space: pre-wrap; margin: 0; }
+.nachricht { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; margin: 0; }
 .nachricht.vorschau { display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; color: var(--text-2); }
 .loesung { margin-top: 12px; padding: 10px 12px; border-radius: 6px; background: var(--flaeche-2); }
 .loesung h4 { font-size: 12px; color: var(--text-2); margin-bottom: 4px; }
@@ -343,10 +344,9 @@ textarea { resize: vertical; width: 100%; }
 
 /* --- KI-Assistent ---------------------------------------------------------- */
 .assistent {
-  position: fixed; top: 0; right: 0; bottom: 0; width: 380px; z-index: 20;
+  position: fixed; top: 0; right: 0; bottom: 0; width: var(--assistent-breite); z-index: 20;
   display: flex; flex-direction: column;
-  background: var(--flaeche); border-left: 1px solid var(--ki-rand);
-  box-shadow: -4px 0 16px rgb(0 0 0 / 6%);
+  background: var(--flaeche); border-left: 1px solid var(--rand);
 }
 .assistent-kopf { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--rand); }
 .assistent-kopf h2 { font-size: 15px; }
@@ -355,15 +355,17 @@ textarea { resize: vertical; width: 100%; }
   margin: 10px 16px 0; padding: 6px 10px; font-size: 12px; border-radius: 6px;
   background: var(--ki-hg); border: 1px solid var(--ki-rand); color: var(--text-2);
 }
-.chat { flex: 1; overflow: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.chat { flex: 1; overflow: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 16px; }
 .chat-leer { color: var(--text-2); }
 .vorschlaege { display: grid; gap: 6px; }
-.blase { max-width: 92%; padding: 8px 12px; border-radius: 10px; }
+.blase { max-width: 94%; padding: 9px 12px; border-radius: 9px; overflow-wrap: anywhere; line-height: 1.55; }
 .blase p { margin: 0; white-space: pre-wrap; }
 .blase-ich { align-self: flex-end; background: var(--flaeche-2); border: 1px solid var(--rand); }
-.blase-ki { align-self: flex-start; background: var(--ki-hg); border: 1px solid var(--ki-rand); }
+.blase-ki { align-self: stretch; max-width: 100%; padding: 0; }
 .blase-info { display: block; margin-top: 4px; font-size: 11px; color: var(--text-3); }
 .blase-wartet { color: var(--ki); }
+.chat-quellen { margin-top: 8px; }
+.chat-quellen summary { cursor: pointer; color: var(--text-2); width: fit-content; font-size: 13px; }
 .punkte::after { content: "…"; animation: punkte 1.2s steps(4, end) infinite; display: inline-block; width: 1.2em; overflow: hidden; vertical-align: bottom; }
 @keyframes punkte { from { width: 0; } to { width: 1.2em; } }
 .chat-eingabe { display: grid; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--rand); }
@@ -399,14 +401,30 @@ textarea { resize: vertical; width: 100%; }
   body.assistent-offen .rahmen { margin-right: 0; }
 }
 @media (max-width: 900px) {
-  .rahmen { grid-template-columns: 1fr; grid-template-rows: auto 56px minmax(0, 1fr) auto; grid-template-areas: "leiste" "kopf" "inhalt" "fuss"; }
+  .rahmen { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto; grid-template-areas: "leiste" "kopf" "inhalt" "fuss"; }
   .seitenleiste { flex-direction: row; align-items: center; gap: 10px; border-right: none; border-bottom: 1px solid var(--rand); padding: 6px 10px; }
   .logo { padding: 0 8px 0 0; }
   .nav { display: flex; }
   .seitenleiste-unten { margin: 0 0 0 auto; }
   .raster-uebersicht, .raster-detail, .formular-reihe { grid-template-columns: 1fr; }
   .assistent { width: 100%; }
+  .kopf { min-height: 52px; }
   .kopf-titel { display: none; }
+}
+
+@media (max-width: 620px) {
+  .seitenleiste { display: grid; grid-template-columns: 1fr auto; gap: 4px; padding: 6px 12px; }
+  .seitenleiste-unten { grid-column: 2; grid-row: 1; }
+  .nav { grid-column: 1 / -1; flex-wrap: wrap; }
+  .nav a { padding: 5px 10px; }
+  .kopf { padding: 6px 12px; }
+  .kopf-rechts { flex-wrap: wrap; gap: 4px 8px; }
+  .inhalt { padding: 14px 12px 22px; }
+  .fuss { flex-wrap: wrap; padding: 4px 12px; gap: 0 12px; }
+  .karte { padding: 14px; }
+  .kacheln { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .formular-reihe select { min-width: 0; }
+  .meldungen { max-width: calc(100vw - 24px); }
 }
 
 /* --- Ähnliche Fälle (RAG) ------------------------------------------------- */

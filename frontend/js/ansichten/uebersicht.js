@@ -56,7 +56,7 @@ function kennzahlen(alle, offen, bezugszeit) {
     kachel("In Bearbeitung", zaehle((t) => t.status === "in_bearbeitung"), "#/tickets?status=in_bearbeitung"),
     kachel("Sehr dringend", sehrHoch, "#/tickets?prioritaet=sehr_hoch", sehrHoch ? "kachel-warn" : ""),
     kachel("SLA überschritten", slaRot, "#/tickets?sla=rot", slaRot ? "kachel-rot" : ""),
-    kachel("Spam-Verdacht", spam, "#/spam", spam ? "kachel-warn" : ""),
+    kachel("Spam / Werbung", spam, "#/spam", spam ? "kachel-warn" : ""),
   );
 }
 

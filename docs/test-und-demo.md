@@ -71,6 +71,10 @@ Im zweiten Lauf gelangte ein Angebot für einen kostenpflichtigen Firmeneintrag 
 
 Der Demo-Lauf lässt sich mit `python scripts/auswertung_eingang.py` wiederholen. Für die Vorführung eignen sich die gegensätzlichen Postfachmeldungen #1003 und #1021 sowie der Monitorwunsch #1023. Die Spam-Prüfung bietet Freigabe und Bestätigung. Am regulären Ticket kann der Support über „Nachrichtenaktionen“ eine übersehene Werbenachricht markieren.
 
+Beim anschließenden Nutzertest wurde die Tonerwerbung #1010 zunächst von Hand freigegeben. „Neu bewerten“ respektiert diese Entscheidung. „Eingang erneut prüfen“ hebt sie gezielt auf und sortiert das offene Ticket wieder unter „Spam / Werbung“ ein. Für kostenpflichtige Firmeneinträge wurde die Erkennung erweitert. Der bereits bekannte Prüffall wird jetzt erkannt. Für eine neue unabhängige Quote sind weitere unbekannte Werbefälle erforderlich.
+
+Im Browser beantwortete die Ticketberatung „Müssen wir etwas tun?“ bei #1021 mit der Prüfung von Belegung und Limit des Praxispostfachs. Die Antwort belegt das Vorgehen mit der Praxisakte und nennt #1020 als früheren Vergleichsfall. „Was ist ein Speicherkontingent?“ liefert eine lokale Fachnotiz mit Wikipedia-Versionslink. Beide Antworten funktionieren ohne Zugriff auf ein echtes Postfach.
+
 ## Messlauf auf dem Mac Pro
 
 1. Die autorisierte Umgebung mit Chat- und Embedding-Dienst einrichten, `KI_MOCK=false` setzen und das Backend neu starten. `/api/status` zeigt den Betriebsmodus sowie die Erreichbarkeit beider Dienste. Den verwendeten Commit und die Modellnamen mit den Berichten festhalten.

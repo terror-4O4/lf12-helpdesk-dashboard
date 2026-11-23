@@ -52,7 +52,7 @@ export function oeffneNeuesTicket() {
         }
       }
       dialog.close();
-      meldung(spamOffen(t) ? `Ticket #${t.id} liegt zur Spam-Prüfung vor.` : `Ticket #${t.id} angelegt`, "erfolg");
+      meldung(spamOffen(t) ? `Ticket #${t.id} liegt unter Spam / Werbung.` : `Ticket #${t.id} angelegt`, "erfolg");
       location.hash = `#/ticket/${t.id}`;
     } catch (e) {
       meldung(e.message, "fehler");

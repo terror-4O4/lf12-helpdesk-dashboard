@@ -153,10 +153,14 @@ test("Spam-Prüfung zeigt nur offene Eingangsverdachte und den tatsächlichen Pr
   ];
   const ziel = document.createElement("main");
   zeigeSpam(ziel);
-  assert.match(ziel.textContent, /Bestätigt: 1 · Fehlalarme: 1/);
-  assert.match(ziel.textContent, /#11 Werbesendung/);
-  assert.match(ziel.textContent, /Unaufgeforderte Verkaufsnachricht/);
-  assert.doesNotMatch(ziel.textContent, /#12|#13|#14|#15|noch nicht bewertet/);
+  const [kopf, queue, freigegeben] = ziel.children;
+  assert.match(kopf.textContent, /Bestätigt: 1/);
+  assert.match(queue.textContent, /#11 Werbesendung/);
+  assert.match(queue.textContent, /Unaufgeforderte Verkaufsnachricht/);
+  assert.doesNotMatch(queue.textContent, /#12|#13|#14|#15/);
+  assert.equal(freigegeben.tag, "details");
+  assert.match(freigegeben.textContent, /Vom Support freigegeben \(1\)/);
+  assert.match(freigegeben.textContent, /#13 Freigegeben/);
 });
 
 test("eine Hintergrundabfrage darf eine jüngere Ticketänderung nicht überschreiben", async (t) => {
@@ -195,4 +199,22 @@ test("eine überholte Spam-Freigabe lädt die aktuelle Entscheidung, auch wenn d
   assert.deepEqual(zustand.tickets, [aktuell]);
   assert.match(document.getElementById("meldungen").textContent, /inzwischen geändert/);
   assert.equal(spamOffen(zustand.tickets[0]), false);
+});
+
+test("Eingang erneut prüfen gibt die manuelle Entscheidung gezielt an den Filter zurück", async (t) => {
+  testDokument(t);
+  t.mock.method(globalThis, "setTimeout", () => 0);
+  const vorher = zustand.tickets;
+  t.after(() => { zustand.tickets = vorher; });
+  const frei = { ...ticket(), spam_entscheidung: "kein_spam", spampruefung: { verdaechtig: true, art: "werbung" } };
+  const erneut = { ...frei, spam_entscheidung: null };
+  zustand.tickets = [frei];
+  const patch = t.mock.method(api, "ticketAendern", async () => erneut);
+  const aktion = spamAktionen(frei).children.find((k) => k.textContent === "Eingang erneut prüfen");
+  await aktion.click();
+  assert.deepEqual(patch.mock.calls[0].arguments, [frei.id, {
+    spam_entscheidung: null, erwartete_spam_entscheidung: "kein_spam", erwarteter_status: "neu",
+  }]);
+  assert.equal(spamOffen(zustand.tickets[0]), true);
+  assert.match(document.getElementById("meldungen").textContent, /nach Spam \/ Werbung verschoben/);
 });

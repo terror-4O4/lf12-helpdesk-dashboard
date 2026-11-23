@@ -12,9 +12,10 @@ const VORSCHLAEGE = [
   "Woran erkenne ich eine Phishing-Mail?",
 ];
 
-const verlauf = []; // { rolle: "ich" | "ki", text, info, quellen }
+const verlaeufe = new Map();
+const entwuerfe = new Map();
 let kontext = null; // Ticket oder null
-let wartet = false;
+const wartend = new Set();
 
 let panel, liste, eingabe, kontextZeile, kundenAuswahl, senden;
 
@@ -22,12 +23,13 @@ export function initAssistent() {
   panel = document.getElementById("assistent");
   liste = h("div", { class: "chat", role: "log", "aria-live": "polite" });
   kontextZeile = h("div", { class: "kontext" });
-  kundenAuswahl = h("select", { id: "assistent-kunde", onchange: zeichne },
+  kundenAuswahl = h("select", { id: "assistent-kunde", onchange: bereichAnzeigen },
     h("option", { value: "" }, "Allgemeine KI-Frage"));
   eingabe = h("textarea", {
     rows: 3, maxlength: MAX_FRAGE,
     "aria-label": "Frage an die KI",
   });
+  eingabe.addEventListener("input", () => entwuerfe.set(kundenAuswahl.value, eingabe.value));
   senden = h("button", { class: "knopf knopf-ki", type: "submit" }, "Senden");
 
   const formular = h("form", { class: "chat-eingabe" },
@@ -54,19 +56,29 @@ export function initAssistent() {
   document.addEventListener("keydown", (ev) => {
     if (ev.key === "Escape" && !panel.hidden && !document.querySelector("dialog[open]")) schliessen();
   });
+  window.addEventListener("hashchange", () => {
+    if (!panel.hidden && kontext && location.hash.split("?")[0] !== `#/ticket/${kontext.id}`) schliessen();
+  });
   zeichne();
 }
 
-export function oeffneAssistent(ticket = null) {
+export function oeffneAssistent(ticket = null, bereich = "ticket") {
   kontext = ticket;
   kundenAuswahl.replaceChildren(
+    ...(ticket ? [h("option", { value: `ticket:${ticket.id}` }, `Hilfe zu Ticket ${ticketNr(ticket.id)}`)] : []),
     h("option", { value: "" }, "Allgemeine KI-Frage"),
-    ...zustand.kunden.map((kunde) => h("option", { value: kunde.kunde }, `Kundendoku · ${kunde.name}`)));
-  kundenAuswahl.value = zustand.kunden.some((kunde) => kunde.kunde === ticket?.kunde) ? ticket.kunde : "";
+    h("option", { value: "wiki" }, "Wikipedia · IT-Grundwissen"),
+    ...zustand.kunden.map((kunde) => h("option", { value: `doku:${kunde.kunde}` }, `Kundendoku · ${kunde.name}`)));
+  kundenAuswahl.value = ticket ? (bereich === "doku" && ticket.kunde ? `doku:${ticket.kunde}` : `ticket:${ticket.id}`) : "";
   panel.hidden = false;
   document.body.classList.add("assistent-offen");
-  zeichne();
+  bereichAnzeigen();
   eingabe.focus();
+}
+
+function bereichAnzeigen() {
+  eingabe.value = entwuerfe.get(kundenAuswahl.value) || "";
+  zeichne();
 }
 
 function schliessen() {
@@ -76,82 +88,81 @@ function schliessen() {
 }
 
 function zeichne() {
-  const dokuKunde = kundenAuswahl.value;
-  eingabe.placeholder = dokuKunde
+  const bereich = kundenAuswahl.value;
+  const istTicket = bereich.startsWith("ticket:");
+  const istWiki = bereich === "wiki";
+  const dokuKunde = bereich.startsWith("doku:") ? bereich.slice(5) : "";
+  const verlauf = verlaeufe.get(bereich) || [];
+  senden.disabled = wartend.has(bereich);
+  eingabe.placeholder = istTicket ? "Frage zu diesem Ticket …" : istWiki ? "IT-Begriff eingeben …" : dokuKunde
     ? "Frage zur ausgewählten Kundendoku …"
     : "Frage an die KI … (Enter = senden, Umschalt+Enter = neue Zeile)";
   leeren(kontextZeile);
-  if (kontext && !dokuKunde) {
-    kontextZeile.append(
-      h("span", {}, `Kontext: ${ticketNr(kontext.id)} ${kontext.titel}`),
-      h("button", {
-        class: "knopf-klein", "aria-label": "Kontext entfernen",
-        onclick: () => { kontext = null; zeichne(); },
-      }, "×"));
+  if (istTicket && kontext) {
+    kontextZeile.append(h("span", {}, `${ticketNr(kontext.id)} ${kontext.titel}`));
   }
-  kontextZeile.hidden = !kontext || Boolean(dokuKunde);
+  kontextZeile.hidden = !istTicket;
 
   leeren(liste);
   if (!verlauf.length) {
     const einstieg = dokuKunde ? `Frag etwas zur Kundendoku von ${kundeName(dokuKunde)}.`
-      : kontext ? "Frag etwas zu diesem Ticket, z. B. nach möglichen Ursachen."
+      : istTicket ? "Wobei brauchst du Hilfe?"
+        : istWiki ? "Welchen IT-Begriff möchtest du nachschlagen?"
         : "Frag nach Lösungswegen. Zum Beispiel:";
     liste.append(h("div", { class: "chat-leer" },
       h("p", {}, einstieg),
-      kontext || dokuKunde ? null : h("div", { class: "vorschlaege" },
-        VORSCHLAEGE.map((v) => h("button", { class: "knopf-chip", type: "button", onclick: () => fragen(v) }, v)))));
+      dokuKunde || istWiki ? null : h("div", { class: "vorschlaege" },
+        (istTicket ? ["Was ist der nächste Schritt?", "Gibt es einen ähnlichen gelösten Fall?"] : VORSCHLAEGE)
+          .map((v) => h("button", { class: "knopf-chip", type: "button", onclick: () => fragen(v) }, v)))));
   }
   for (const n of verlauf) {
     liste.append(h("div", { class: `blase blase-${n.rolle}` },
       n.rolle === "ki" ? h("div", { class: "md" }, markdown(n.text)) : h("p", {}, n.text),
-      dokuQuellen(n.quellen, n.text),
+      n.quellen?.length ? h("details", { class: "chat-quellen" },
+        h("summary", {}, n.quellen.length === 1 ? "1 Quelle" : `${n.quellen.length} Quellen`),
+        dokuQuellen(n.quellen, n.text)) : null,
       n.info ? h("span", { class: "blase-info" }, n.info) : null));
   }
-  if (wartet) {
+  if (wartend.has(bereich)) {
     liste.append(h("div", { class: "blase blase-ki blase-wartet" }, h("span", { class: "punkte" }, "KI denkt nach"), h("span", { class: "sekunden" })));
   }
-  liste.scrollTop = liste.scrollHeight;
-}
-
-// Ticket als Kontext vor die Frage setzen, Gesamtlänge begrenzen (Backend: 2000 Zeichen)
-function mitKontext(frage) {
-  if (!kontext) return frage;
-  const kopf = `Zum Ticket ${ticketNr(kontext.id)} (Kunde: ${kundeName(kontext.kunde)})\nBetreff: ${kontext.titel}\nBeschreibung: `;
-  const rest = `\n\nFrage: ${frage}`;
-  const platz = MAX_FRAGE - kopf.length - rest.length;
-  const beschreibung = kontext.beschreibung.length > platz
-    ? `${kontext.beschreibung.slice(0, Math.max(0, platz - 1))}…`
-    : kontext.beschreibung;
-  return (kopf + beschreibung + rest).slice(0, MAX_FRAGE);
+  const letzte = liste.lastElementChild;
+  if (letzte) liste.scrollTop += letzte.getBoundingClientRect().top - liste.getBoundingClientRect().top - 8;
 }
 
 async function fragen(text) {
   const frage = text.trim();
-  if (!frage || wartet) return;
-  const dokuKunde = kundenAuswahl.value;
+  const bereich = kundenAuswahl.value;
+  if (!frage || wartend.has(bereich)) return;
+  if (!verlaeufe.has(bereich)) verlaeufe.set(bereich, []);
+  const verlauf = verlaeufe.get(bereich);
+  const vorherige = verlauf.findLast(n => n.rolle === "ich")?.text;
   eingabe.value = "";
-  verlauf.push({ rolle: "ich", text: frage, info: dokuKunde ? `Kundendoku · ${kundeName(dokuKunde)}` : "" });
-  wartet = true;
-  senden.disabled = true;
+  entwuerfe.delete(bereich);
+  verlauf.push({ rolle: "ich", text: frage });
+  wartend.add(bereich);
   zeichne();
 
   const start = Date.now();
   const uhr = setInterval(() => {
     const el = liste.querySelector(".sekunden");
-    if (el) el.textContent = ` ${Math.round((Date.now() - start) / 1000)} s`;
+    if (el && kundenAuswahl.value === bereich) el.textContent = ` ${Math.round((Date.now() - start) / 1000)} s`;
   }, 500);
 
   try {
-    const r = await (dokuKunde ? api.frageKundendoku(dokuKunde, frage) : api.frage(mitKontext(frage)));
-    const info = `${(r.dauer_ms / 1000).toFixed(1)} s${r.tokens ? ` · ${r.tokens} Tokens` : ""}${r.modus === "mock" ? " · Mock" : ""}`;
+    let r;
+    if (bereich.startsWith("ticket:")) r = await api.frageTicket(Number(bereich.slice(7)), frage, vorherige);
+    else if (bereich.startsWith("doku:")) r = await api.frageKundendoku(bereich.slice(5), frage);
+    else if (bereich === "wiki") r = await api.frageWikipedia(frage);
+    else r = await api.frage(frage);
+    const info = r.modus === "mock" ? "Demo-Modus" : "";
     verlauf.push({ rolle: "ki", text: r.antwort, info, quellen: r.quellen });
   } catch (e) {
     verlauf.push({ rolle: "ki", text: `Fehler: ${e.message}`, info: "" });
   } finally {
     clearInterval(uhr);
-    wartet = false;
-    senden.disabled = false;
+    wartend.delete(bereich);
     zeichne();
-    eingabe.focus();
+    if (!panel.hidden && kundenAuswahl.value === bereich) eingabe.focus();
   }
 }

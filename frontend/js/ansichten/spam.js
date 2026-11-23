@@ -10,17 +10,24 @@ export function zeigeSpam(ziel) {
     .filter(spamOffen)
     .sort((a, b) => b.id - a.id);
   const bestaetigt = zustand.tickets.filter((t) => t.spam_entscheidung === "spam").length;
-  const fehlalarme = zustand.tickets.filter((t) =>
-    t.spampruefung?.verdaechtig && t.spam_entscheidung === "kein_spam").length;
+  const freigegeben = zustand.tickets.filter((t) =>
+    t.status !== "geschlossen" && t.spampruefung?.verdaechtig && t.spam_entscheidung === "kein_spam");
 
   ziel.append(
     h("div", { class: "hinweisleiste eingangspruefung" },
-      h("span", {}, "Der Eingangsfilter prüft neue Nachrichten automatisch. Der Support entscheidet über Verdachtsfälle."),
-      h("span", { class: "hinweisleiste-rechts" }, `Bestätigt: ${bestaetigt} · Fehlalarme: ${fehlalarme}`)),
+      h("span", {}, "Der Eingangsfilter sortiert verdächtige Nachrichten und Werbung hier ein."),
+      h("span", { class: "hinweisleiste-rechts" }, `Bestätigt: ${bestaetigt}`)),
     offen.length
       ? h("div", { class: "spam-liste" }, offen.map(spamKarte))
       : h("div", { class: "karte leer-zustand" }, h("p", {}, "Keine offenen Spam-Verdachtsfälle.")),
   );
+  if (freigegeben.length) {
+    ziel.append(h("details", { class: "karte nachrichtenaktionen" },
+      h("summary", {}, `Vom Support freigegeben (${freigegeben.length})`),
+      h("p", { class: "hinweis" }, "Öffne ein freigegebenes Ticket, um den Eingang erneut zu prüfen."),
+      h("ul", {}, freigegeben.map((t) => h("li", {},
+        h("a", { href: `#/ticket/${t.id}` }, ticketNr(t.id), " ", t.titel))))));
+  }
 }
 
 function spamKarte(t) {
@@ -29,7 +36,7 @@ function spamKarte(t) {
       h("h3", {}, h("a", { href: `#/ticket/${t.id}` }, ticketNr(t.id), " ", t.titel)),
       h("span", { class: "hinweis" }, `${kundeName(t.kunde)} · ${alter(t.erstellt_am)}`)),
     h("p", { class: "nachricht vorschau" }, t.beschreibung),
-    h("p", { class: "begruendung" }, h("strong", {}, "Prüfgrund: "), t.spampruefung.begruendung),
+    h("p", { class: "begruendung" }, h("strong", {}, t.spampruefung.art === "werbung" ? "Werbung: " : "Prüfgrund: "), t.spampruefung.begruendung),
     spamAktionen(t));
 }
 
@@ -38,12 +45,13 @@ export function spamAktionen(t) {
   const entscheiden = async (aenderung, text, link) => {
     knoepfe.forEach((k) => { k.disabled = true; });
     try {
-      ticketErsetzen(await api.ticketAendern(t.id, {
+      const aktuell = await api.ticketAendern(t.id, {
         ...aenderung,
         erwartete_spam_entscheidung: t.spam_entscheidung ?? null,
         erwarteter_status: t.status,
-      }));
-      meldung(text, "erfolg", link);
+      });
+      ticketErsetzen(aktuell);
+      meldung(typeof text === "function" ? text(aktuell) : text, "erfolg", link);
       neuZeichnen();
     } catch (e) {
       if (e.code === 409) {
@@ -63,12 +71,20 @@ export function spamAktionen(t) {
     }
   };
 
+  if (t.spam_entscheidung === "kein_spam" && t.status !== "geschlossen") {
+    const pruefen = h("button", { type: "button", class: "knopf" }, "Eingang erneut prüfen");
+    pruefen.addEventListener("click", () => entscheiden({ spam_entscheidung: null },
+      (aktuell) => spamOffen(aktuell) ? `${ticketNr(t.id)} wurde nach Spam / Werbung verschoben.` :
+        `${ticketNr(t.id)} wurde geprüft und bleibt im Support.`));
+    knoepfe.push(pruefen);
+  }
   if (t.spam_entscheidung !== "spam") {
-    const text = t.status === "geschlossen" ? "Spam bestätigen" :
-      spamOffen(t) ? "Spam bestätigen und schließen" : "Als Spam markieren und schließen";
+    const art = t.spampruefung?.art === "werbung" ? "Werbung" : "Spam";
+    const text = t.status === "geschlossen" ? `${art} bestätigen` :
+      spamOffen(t) ? `${art} bestätigen und schließen` : "Als Spam markieren und schließen";
     const ja = h("button", { type: "button", class: "knopf knopf-gefahr" }, text);
     ja.addEventListener("click", () => entscheiden(
-      { spam_entscheidung: "spam", status: "geschlossen" }, `${ticketNr(t.id)} als Spam geschlossen.`));
+      { spam_entscheidung: "spam", status: "geschlossen" }, `${ticketNr(t.id)} als ${art} geschlossen.`));
     knoepfe.push(ja);
   }
   if (istImSpamfilter(t)) {

@@ -3,7 +3,7 @@
 
 import { api } from "./api.js";
 import { STATUS_ABFRAGE_MS } from "./config.js";
-import { h, istDemoZeit, jetzt, formatZeit, leeren, spamOffen } from "./hilfen.js";
+import { h, istDemoZeit, istImSpamfilter, jetzt, formatZeit, leeren, spamOffen } from "./hilfen.js";
 import {
   anzeigeName, ladeDaten, meldung, mitarbeiterListe, mitarbeiterSetzen, setzeZeichner, zustand,
 } from "./zustand.js";
@@ -18,7 +18,7 @@ const ANSICHTEN = {
   uebersicht: { titel: "Übersicht", zeige: zeigeUebersicht },
   tickets: { titel: "Tickets", zeige: zeigeTickets },
   ticket: { titel: "Ticket", zeige: zeigeTicket, nav: "tickets" },
-  spam: { titel: "Spam-Prüfung", zeige: zeigeSpam },
+  spam: { titel: "Spam / Werbung", zeige: zeigeSpam },
 };
 
 // "#/tickets?status=neu" -> { name: "tickets", teile: [], abfrage: URLSearchParams }
@@ -109,6 +109,7 @@ async function pruefeKiStatus() {
   try {
     const s = await api.status();
     zustand.kiStatus = s;
+    const chatname = s.chat_datei || s.ki_modell;
     if (s.ki_modus === "mock") {
       el.textContent = "KI: Mock";
       el.className = "ki-status ki-mock";
@@ -118,12 +119,13 @@ async function pruefeKiStatus() {
       el.textContent = "KI online, Fallsuche aus";
       el.className = "ki-status ki-mock";
       el.title = "Chat-Modell erreichbar, Embedding-Server (EMBED_URL) nicht: ähnliche Fälle können nicht gesucht werden";
-      fuss.textContent = s.ki_modell ? `Modell: ${s.ki_modell} (llama.cpp)` : "llama.cpp";
+      fuss.textContent = chatname || "llama.cpp";
     } else if (s.ki_erreichbar) {
       el.textContent = "KI online";
       el.className = "ki-status ki-online";
-      el.title = s.ki_modell ? `Modell: ${s.ki_modell}` : "Lokaler llama-server erreichbar";
-      fuss.textContent = s.ki_modell ? `Modell: ${s.ki_modell} (llama.cpp)` : "llama.cpp";
+      el.title = [chatname && `Chat: ${chatname}`, s.embedding_datei && `Fallsuche: ${s.embedding_datei}`]
+        .filter(Boolean).join("\n") || "Lokaler llama-server erreichbar";
+      fuss.textContent = chatname || "llama.cpp";
     } else {
       el.textContent = "KI nicht erreichbar";
       el.className = "ki-status ki-aus";
@@ -143,7 +145,11 @@ function start() {
   setzeZeichner(() => zeichnen({ neuLaden: false }));
 
   document.getElementById("neues-ticket").addEventListener("click", oeffneNeuesTicket);
-  document.getElementById("assistent-oeffnen").addEventListener("click", () => oeffneAssistent());
+  document.getElementById("assistent-oeffnen").addEventListener("click", () => {
+    const adresse = leseAdresse();
+    const ticket = adresse.name === "ticket" && zustand.tickets.find(t => t.id === Number(adresse.teile[0]));
+    oeffneAssistent(ticket && !istImSpamfilter(ticket) ? ticket : null);
+  });
   document.getElementById("mitarbeiter").addEventListener("change", (e) => {
     mitarbeiterSetzen(e.target.value);
     meldung(e.target.value ? `Angemeldet als ${anzeigeName(e.target.value)}` : "Kein Mitarbeiter gewählt");

@@ -18,9 +18,9 @@ Zum Entwickeln reicht `KI_MOCK=true` in der `.env`, dann ist kein KI-Server nöt
 | Übersicht | `#/uebersicht` | Kennzahlen, Handlungsbedarf (Neu und Antwort erhalten, dringendste zuerst), eigene Tickets, persönliche To-dos. Die Übersicht aktualisiert sich alle 30 Sekunden, wenn keine Eingabe aktiv ist. |
 | Tickets | `#/tickets` | Alle Tickets mit Ticketalter, Wartezeit, Suche und Filtern. Filter stehen in der Adresse, z. B. `#/tickets?status=neu&kunde=bau` |
 | Ticket | `#/ticket/1002` | Nachricht, Bearbeitung, Verlauf, KI-Einschätzung, ähnliche Fälle und automatisch gefundene Abschnitte der Kundendoku |
-| Spam-Prüfung | `#/spam` | Verdachtsfälle des automatischen Eingangsfilters mit Prüfgrund anzeigen, als Spam bestätigen und schließen oder für den Support freigeben |
+| Spam / Werbung | `#/spam` | Zeigt aktuelle Verdachtsfälle und ihren Prüfgrund. Manuell freigegebene Nachrichten stehen separat unter „Vom Support freigegeben“. Im offenen Ticket setzt „Eingang erneut prüfen“ die Freigabe zurück und wendet den Filter erneut an. |
 | Neues Ticket | Knopf oben rechts | Nachricht eingeben und automatisch auf Spam prüfen. Freie Supporttickets lassen sich beim Anlegen auf Wunsch von der KI bewerten. |
-| KI-Assistent | Knopf links unten | Allgemeine Fragen oder Suche in der Doku eines gewählten Kunden mit Fundstelle |
+| KI-Assistent | Seitenleiste oder „KI zu diesem Ticket fragen“ | Öffnet am Supportticket die Ticketberatung. Im Auswahlfeld stehen auch Kundendoku, Wikipedia-Grundwissen und freie Modellfragen bereit. Quellen lassen sich unter der Antwort aufklappen. |
 
 Der Spam-Zähler und die Warteschlange berücksichtigen offene Verdachtsfälle bereits vor einer KI-Bewertung. Ein offenes Supportticket lässt sich in der Ticketansicht unter **Nachrichtenaktionen** auch manuell als Spam markieren und schließen. Ein als Spam bestätigtes Ticket kann der Support dort als neues Supportticket wieder öffnen. In der Ticketliste zeigt **Alle inkl. geschlossen** auch die ausgesonderten Nachrichten.
 

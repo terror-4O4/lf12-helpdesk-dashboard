@@ -110,6 +110,15 @@ def ist_zugangsfrage(text: str) -> bool:
     return bool(_ZUGANG.search(text))
 
 
+def kurzbeleg(frage: str, text: str) -> str:
+    """Zeigt die zur Faktenfrage passende Zeile aus der gewählten Fundstelle."""
+    zeilen = [z.strip().removeprefix("- ") for z in text.splitlines() if z.strip()]
+    if not zeilen:
+        return KEINE_QUELLE
+    begriffe = _begriffe(frage)
+    return max(zeilen, key=lambda z: len(_treffer(begriffe, z)))
+
+
 def fremder_kunde(frage: str, kunde: str, kunden: list[dict]) -> bool:
     """Erkennt ausdrücklich genannte andere Kunden in einer freien Doku-Frage."""
     for eintrag in kunden:

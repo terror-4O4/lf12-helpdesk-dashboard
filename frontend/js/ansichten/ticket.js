@@ -39,7 +39,7 @@ export function zeigeTicket(ziel, { teile }) {
     h("div", { class: "raster-detail" },
       h("div", { class: "spalte" }, beschreibung(t, bezugszeit), imFilter ? null : bearbeiten(t), verlauf(t, bezugszeit)),
       imFilter ? h("section", { class: "karte spam-pruefkarte" },
-        h("div", { class: "karte-kopf" }, h("h3", {}, "Spam-Prüfung")),
+        h("div", { class: "karte-kopf" }, h("h3", {}, "Spam / Werbung")),
         h("p", { class: "begruendung" }, t.spam_entscheidung === "spam" ? "Vom Support als Spam bestätigt." : t.spampruefung.begruendung),
         spamAktionen(t))
         : h("div", { class: "spalte" }, kiBlock(t), kiFaelle(t), kundeKarte(t))),
@@ -59,9 +59,12 @@ function beschreibung(t, bezugszeit) {
         t.ursache ? [h("h4", {}, "Ursache"), h("p", {}, t.ursache)] : null,
         t.loesungsweg ? [h("h4", {}, "Lösungsweg"), h("p", {}, t.loesungsweg)] : null)
       : null,
-    t.spam_entscheidung === "kein_spam" ? h("p", { class: "feld-hinweis" }, "Vom Support freigegeben.") : null,
-    t.status !== "geschlossen" && !istImSpamfilter(t) ? h("details", { class: "nachrichtenaktionen" },
-      h("summary", {}, "Nachrichtenaktionen"), spamAktionen(t)) : null);
+    t.spam_entscheidung === "kein_spam" ? h("p", { class: "feld-hinweis" },
+      t.status === "geschlossen" ? "Vom Support freigegeben." :
+        "Als Supportticket freigegeben. „Eingang erneut prüfen“ hebt die Freigabe auf und wendet den Filter wieder an.") : null,
+    t.status !== "geschlossen" && !istImSpamfilter(t)
+      ? h("details", { class: "nachrichtenaktionen", open: t.spam_entscheidung === "kein_spam" },
+        h("summary", {}, "Nachrichtenaktionen"), spamAktionen(t)) : null);
 }
 
 function bearbeiten(t) {
@@ -115,6 +118,16 @@ function bearbeiten(t) {
     senden(aenderung, `Ticket ${ticketNr(t.id)} übernommen`);
   });
 
+  const abschluss = h("details", { class: "abschluss" },
+    h("summary", {}, "Ursache und Lösungsweg"),
+    h("label", { for: "f-ursache" }, "Ursache", ursache),
+    h("label", { for: "f-loesung" }, "Lösungsweg", loesung),
+    h("p", { class: "feld-hinweis" },
+      "Beim Schließen wird der Lösungsweg in die Wissensbasis übernommen. Bitte Zugangsdaten weglassen."));
+  status.addEventListener("change", () => {
+    if (status.value === "geschlossen") abschluss.open = true;
+  });
+
   const formular = h("form", { class: "formular" },
     h("div", { class: "formular-reihe" },
       h("label", { for: "f-status" }, "Status", status),
@@ -123,10 +136,7 @@ function bearbeiten(t) {
         prio,
         t.prioritaet_quelle === "manuell" ? h("span", { class: "feld-hinweis" }, "von Hand gesetzt") : null),
       h("label", { for: "f-bearbeiter" }, "Bearbeiter", bearbeiter)),
-    h("label", { for: "f-ursache" }, "Ursache", ursache),
-    h("label", { for: "f-loesung" }, "Lösungsweg", loesung),
-    h("p", { class: "feld-hinweis" },
-      "🔒 Keine Passwörter oder Zugangsdaten eintragen. Ursache und Lösungsweg landen beim Schließen in der Wissensbasis, aus der die KI ähnliche Fälle vorschlägt."),
+    abschluss,
     h("div", { class: "knopfreihe" }, speichern, mir));
 
   formular.addEventListener("submit", (ev) => {
@@ -139,6 +149,7 @@ function bearbeiten(t) {
     if (status.value !== t.status) {
       if (status.value === "geschlossen" && !loesung.value.trim() && t.spam_entscheidung !== "spam") {
         meldung("Zum Schließen bitte einen Lösungsweg eintragen.", "fehler");
+        abschluss.open = true;
         loesung.focus();
         return;
       }
@@ -183,7 +194,9 @@ function kiBlock(t) {
   });
 
   if (!bewertet) {
-    karte.append(h("p", { class: "leer" }, "Die KI hat dieses Ticket noch nicht bewertet."), knopf);
+    karte.append(h("p", { class: "leer" }, "Die KI hat dieses Ticket noch nicht bewertet."),
+      h("div", { class: "knopfreihe" }, knopf,
+        h("button", { class: "knopf", onclick: () => oeffneAssistent(t) }, "KI zu diesem Ticket fragen")));
     return karte;
   }
 
@@ -326,7 +339,7 @@ function kundeKarte(t) {
       h("dt", {}, "Ansprechpartner"), h("dd", {}, kunde.ansprechpartner)),
     h("p", { class: "klein gedimmt" }, "🔒 Zugangsdaten stehen nie in der Doku, nur der Verweis auf den Passwortmanager."),
     h("div", { class: "knopfreihe" }, knopf,
-      h("button", { class: "knopf", type: "button", onclick: () => oeffneAssistent(t) }, "Kundendoku fragen")),
+      h("button", { class: "knopf", type: "button", onclick: () => oeffneAssistent(t, "doku") }, "Kundendoku fragen")),
     doku,
     h("div", { class: "doku-fundstellen" }, h("h4", {}, "Fundstellen zum Ticket"), fundstellen));
   ladeFundstellen();

@@ -28,7 +28,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi_offline import FastAPIOffline
 from pydantic import BaseModel, Field
 
-from backend import doku, eingang, klassifikation, rag
+from backend import doku, eingang, klassifikation, rag, ticketfragen, wiki
 from backend.speicher import schreibe_atomar
 
 # --- Pfade und Konfiguration ---------------------------------------------
@@ -323,7 +323,7 @@ def frage_llama(nachrichten: list, antwortformat: dict | None = None,
 # --- Status --------------------------------------------------------------
 
 @app.get("/api/status", tags=["Status"])
-def status():
+def status(modelldetails: bool = False):
     """Zeigt, ob das Backend läuft und ob die KI erreichbar ist."""
     if KI_MOCK:
         return {"backend": "ok", "ki_modus": "mock", "ki_erreichbar": None,
@@ -335,8 +335,26 @@ def status():
         except httpx.HTTPError:
             return False
 
-    return {"backend": "ok", "ki_modus": "llama", "ki_erreichbar": gesund(LLAMA_URL),
-            "ki_modell": LLAMA_MODEL or None, "embedding_erreichbar": gesund(EMBED_URL)}
+    ergebnis = {"backend": "ok", "ki_modus": "llama", "ki_erreichbar": gesund(LLAMA_URL),
+                "ki_modell": LLAMA_MODEL or None, "embedding_erreichbar": gesund(EMBED_URL)}
+    if modelldetails:
+        for feld, url, alias, erreichbar in (
+            ("chat_datei", LLAMA_URL, LLAMA_MODEL, ergebnis["ki_erreichbar"]),
+            ("embedding_datei", EMBED_URL, EMBED_MODEL, ergebnis["embedding_erreichbar"]),
+        ):
+            if not erreichbar:
+                continue
+            try:
+                headers = {"Authorization": f"Bearer {LLAMA_API_KEY}"} if LLAMA_API_KEY else {}
+                props = httpx.get(f"{url}/props", headers=headers, timeout=1, trust_env=False).raise_for_status().json()
+                if not isinstance(props, dict) or (alias and props.get("model_alias") != alias):
+                    continue
+                pfad = props.get("model_path")
+                if isinstance(pfad, str) and pfad.lower().endswith(".gguf"):
+                    ergebnis[feld] = pfad.replace("\\", "/").rsplit("/", 1)[-1]
+            except (httpx.HTTPError, ValueError):
+                continue
+    return ergebnis
 
 
 # --- Tickets -------------------------------------------------------------
@@ -418,7 +436,8 @@ class TicketAenderung(BaseModel):
                                       examples=["lena"])
     ursache: str | None = Field(None, max_length=1000)
     loesungsweg: str | None = Field(None, max_length=4000)
-    spam_entscheidung: SpamEntscheidung | None = None
+    spam_entscheidung: SpamEntscheidung | None = Field(
+        None, description="Manuelle Entscheidung. Explizites null hebt sie auf und lässt den Eingangsfilter entscheiden.")
     erwartete_spam_entscheidung: SpamEntscheidung | None = None
     erwarteter_status: Status | None = None
 
@@ -439,8 +458,9 @@ def ticket_aendern(ticket_id: int, aenderung: TicketAenderung):
         raise HTTPException(422, "Keine Änderung mitgeschickt")
     vorbedingungen = {"erwartete_spam_entscheidung", "erwarteter_status"}
     mit_pruefstand = bool(felder & vorbedingungen)
-    if mit_pruefstand and (not vorbedingungen.issubset(felder) or "spam_entscheidung" not in felder
-                           or aenderung.erwarteter_status is None):
+    erneut_pruefen = "spam_entscheidung" in felder and aenderung.spam_entscheidung is None
+    if (mit_pruefstand or erneut_pruefen) and (not vorbedingungen.issubset(felder)
+            or "spam_entscheidung" not in felder or aenderung.erwarteter_status is None):
         raise HTTPException(422, "Zur geprüften Spam-Entscheidung den vorherigen Status und die vorherige Spam-Entscheidung mitsenden.")
 
     with ticket_aktualisierung() as liste:
@@ -547,6 +567,10 @@ class Frage(BaseModel):
                        examples=["Ein Kunde meldet: Outlook startet nicht. Was kann ich tun?"])
 
 
+class Ticketfrage(Frage):
+    vorherige_frage: str | None = Field(default=None, max_length=2000)
+
+
 def waehle_doku_fundstelle(frage: str, treffer: list[doku.Abschnitt],
                           kundenname: str) -> tuple[int, int | None]:
     """Das Modell wählt eine Fundstelle, deren Text die Anwendung selbst ausgibt."""
@@ -603,6 +627,12 @@ def kundendoku_suche(kunde: str, eingabe: Frage):
         if doku.ist_zugangsfrage(frage):
             antwort = doku.PASSWORT_HINWEIS
             quellen = [abschnitt.als_quelle() for abschnitt in doku.passwortverweise(dokument, frage)]
+        elif ticketfragen.handlungsfrage(frage):
+            anleitung = ticketfragen.anleitung(dokument, frage)
+            if anleitung:
+                return {"antwort": ticketfragen.arbeitsschritte(anleitung), "quellen": [anleitung.als_quelle()],
+                        "modus": "doku", "tokens": None, "dauer_ms": round((time.perf_counter() - start) * 1000)}
+            antwort = "Für diese Handlungsfrage ist in der Kundenakte kein Vorgehen dokumentiert. Öffne die Hilfe zum Ticket, um auch frühere Fälle zu prüfen."
         else:
             treffer = doku.suche(dokument, frage)
             if treffer:
@@ -616,6 +646,18 @@ def kundendoku_suche(kunde: str, eingabe: Frage):
     if quellen:
         antwort = quellen[0]["text"]
     return {"antwort": antwort, "quellen": quellen, "modus": modus, "tokens": tokens,
+            "dauer_ms": round((time.perf_counter() - start) * 1000)}
+
+
+@app.post("/api/wissen/wikipedia", tags=["Wissen"])
+def wikipedia_frage(eingabe: Frage):
+    """Beantwortet Begriffsfragen aus der lokalen Auswahl von Wikipedia-Fachnotizen."""
+    start = time.perf_counter()
+    frage = eingabe.frage.strip()
+    if not frage:
+        raise HTTPException(422, "Bitte eine Frage eingeben")
+    antwort, quellen = wiki.antwort(frage)
+    return {"antwort": antwort, "quellen": quellen, "modus": "wikipedia", "tokens": None,
             "dauer_ms": round((time.perf_counter() - start) * 1000)}
 
 
@@ -849,7 +891,7 @@ def aktuelle_schwelle() -> float:
 
 
 def finde_aehnliche(t: dict, liste: list, anzahl: int = 3, schwelle: float | None = None,
-                    wb: rag.Wissensbasis | None = None) -> tuple[list[dict], list[dict]]:
+                    wb: rag.Wissensbasis | None = None, *, nur_ticketkunde: bool = False) -> tuple[list[dict], list[dict]]:
     """Gibt (Treffer, Fälle der Wissensbasis) zurück. Das Ticket selbst zählt nie mit.
 
     wb: andere Vektor-Datei, z. B. für Tests (Standard: data/laufzeit/wissensbasis.json)
@@ -862,6 +904,8 @@ def finde_aehnliche(t: dict, liste: list, anzahl: int = 3, schwelle: float | Non
         raise HTTPException(502, str(fehler))
     if schwelle is None:
         schwelle = aktuelle_schwelle()
+    if nur_ticketkunde:
+        faelle = [fall for fall in faelle if t.get("kunde") and fall.get("kunde") == t["kunde"]]
     treffer = rag.suche(anfrage, faelle, vektoren, t.get("kunde"), anzahl=anzahl,
                         kundenbonus=RAG_KUNDENBONUS, schwelle=schwelle)
     return treffer, faelle
@@ -984,7 +1028,7 @@ KEIN_FALL = "Kein passender gelöster Fall gefunden."
 
 
 def erzeuge_vorschlag(t: dict, liste: list, wb: rag.Wissensbasis | None = None,
-                       *, messung: dict | None = None) -> dict:
+                       *, messung: dict | None = None, nur_ticketkunde: bool = False) -> dict:
     """Suche plus KI. Wird vom Endpunkt und von scripts/auswertung_rag.py benutzt.
 
     Gibt es keinen Fall über der Schwelle, wird die KI gar nicht gefragt und
@@ -992,7 +1036,7 @@ def erzeuge_vorschlag(t: dict, liste: list, wb: rag.Wissensbasis | None = None,
     außerdem als unpassend verwerfen.
     """
     start = time.perf_counter()
-    treffer, faelle = finde_aehnliche(t, liste, wb=wb)
+    treffer, faelle = finde_aehnliche(t, liste, wb=wb, nur_ticketkunde=nur_ticketkunde)
     dauer_suche = time.perf_counter() - start
     nach_id = {f["id"]: f for f in faelle}
     gefunden = [nach_id[x["id"]] for x in treffer]
@@ -1014,6 +1058,66 @@ def erzeuge_vorschlag(t: dict, liste: list, wb: rag.Wissensbasis | None = None,
         "dauer_suche_ms": round(dauer_suche * 1000),
         "dauer_ms": round((time.perf_counter() - start) * 1000),
     }
+
+
+@app.post("/api/tickets/{ticket_id}/frage", tags=["Tickets", "KI"])
+def ticket_frage(ticket_id: int, eingabe: Ticketfrage):
+    """Beantwortet die Frage zum aktuellen Ticket anhand der Quellen dieses Kunden."""
+    start = time.perf_counter()
+    frage = eingabe.frage.strip()
+    if not frage:
+        raise HTTPException(422, "Bitte eine Frage eingeben")
+    if eingabe.vorherige_frage and ticketfragen.anschlussfrage(frage):
+        frage = eingabe.vorherige_frage.strip()
+    _, bestand, ticket = ki_arbeitsstand(ticket_id)
+    kunde = ticket.get("kunde")
+    dokument = doku.abschnitte(kundendoku_pfad(kunde)) if kunde else []
+    modus, tokens = "ticket", None
+    quellen = []
+
+    if kunde and doku.fremder_kunde(frage, kunde, lade_kunden()):
+        antwort = "Für diese Frage ist die Akte eines anderen Kunden nötig. Öffne bitte das zugehörige Ticket."
+    elif doku.ist_zugangsfrage(frage):
+        antwort = doku.PASSWORT_HINWEIS
+        quellen = [q.als_quelle() for q in doku.passwortverweise(dokument, frage)]
+    elif ticketfragen.ist_begriffsfrage(frage) and (wissen := wiki.antwort(frage))[1]:
+        antwort, quellen = wissen
+        modus = "wikipedia"
+    elif (ticketfragen.handlungsfrage(frage) or ticketfragen.fragt_nach_messwert(frage)
+          or ticketfragen.fragt_nach_historie(frage)):
+        anleitung = ticketfragen.anleitung(dokument, rag.ticket_text(ticket))
+        if anleitung and (ticketfragen.fragt_nach_historie(frage) or ticketfragen.passt_zur_frage(anleitung, frage)):
+            antwort, quellen = ticketfragen.aus_anleitung(anleitung, ticket, bestand, frage)
+        elif ticketfragen.fragt_nach_messwert(frage):
+            antwort = "Zu diesem Ticket kann ich keine aktuellen Betriebswerte abrufen. Erfasse den Messwert am betroffenen System und ergänze ihn im Ticket."
+        elif anleitung:
+            antwort = "Die Arbeitsanleitung im Ticket belegt für diese Frage keinen nächsten Schritt. Welche Funktion oder Meldung möchtest du genauer prüfen?"
+        elif kunde:
+            suche = erzeuge_vorschlag(ticket, bestand, nur_ticketkunde=True)
+            modus, tokens = suche["modus"], suche["tokens"]
+            vorschlaege = suche["ergebnis"]["vorschlaege"]
+            if vorschlaege:
+                v = vorschlaege[0]
+                fall = finde_ticket(bestand, v["tickets"][0])
+                antwort = (f"Prüfe zuerst, ob beim aktuellen Ticket dieselbe Ursache vorliegt wie im gelösten "
+                           f"Ticket #{fall['id']}: {v['ursache'].rstrip('.')}.\n\n"
+                           f"Damals wurde folgender Lösungsweg dokumentiert: {v['loesungsweg']}")
+                quellen = [ticketfragen.fallquelle(fall)]
+            else:
+                antwort = ("Für dieses Anliegen gibt es bei diesem Kunden bisher keinen belegten Lösungsweg. "
+                           "Erfrage beim Melder, welche Funktion betroffen ist, was bereits versucht wurde "
+                           "und ob eine Ausweichmöglichkeit besteht.")
+        else:
+            antwort = "Ordne den Absender zunächst einem Kunden zu, damit der Support die passende Kundenakte und frühere Fälle prüfen kann."
+    elif kunde:
+        ergebnis = kundendoku_suche(kunde, Frage(frage=frage))
+        antwort, quellen, modus, tokens = (ergebnis[k] for k in ("antwort", "quellen", "modus", "tokens"))
+        if quellen:
+            antwort = doku.kurzbeleg(frage, quellen[0]["text"])
+    else:
+        antwort = "Zu diesem Ticket ist keine Kundenakte zugeordnet. Für eine belegte Antwort fehlt der Kundenbezug."
+    return {"antwort": antwort, "quellen": quellen, "modus": modus, "tokens": tokens,
+            "dauer_ms": round((time.perf_counter() - start) * 1000)}
 
 
 def fallquellen(liste: list, ids: set[int]) -> dict:

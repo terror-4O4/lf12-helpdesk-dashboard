@@ -47,7 +47,7 @@ function fehlertext(inhalt) {
 }
 
 export const api = {
-  status: () => anfrage("GET", "/api/status"),
+  status: () => anfrage("GET", "/api/status?modelldetails=true"),
   tickets: () => anfrage("GET", "/api/tickets"),
   ticket: (id) => anfrage("GET", `/api/tickets/${id}`),
   ticketAnlegen: (daten) => anfrage("POST", "/api/tickets", daten),
@@ -57,6 +57,9 @@ export const api = {
   kunden: () => anfrage("GET", "/api/kunden"),
   kundendoku: (kunde) => anfrage("GET", `/api/kunden/${encodeURIComponent(kunde)}/doku`),
   ticketDoku: (id) => anfrage("GET", `/api/tickets/${id}/doku`),
+  frageTicket: (id, frage, vorherige_frage) =>
+    anfrage("POST", `/api/tickets/${id}/frage`, { frage, vorherige_frage }),
+  frageWikipedia: (frage) => anfrage("POST", "/api/wissen/wikipedia", { frage }),
   frageKundendoku: (kunde, frage) =>
     anfrage("POST", `/api/kunden/${encodeURIComponent(kunde)}/doku/suche`, { frage }),
   frage: (text) => anfrage("POST", "/api/ki/frage", { frage: text }),
