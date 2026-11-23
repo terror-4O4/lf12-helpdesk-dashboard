@@ -6,6 +6,7 @@ import {
 } from "../frontend/js/hilfen.js";
 import { ticketTabelle } from "../frontend/js/ansichten/tickets.js";
 import { spamAktionen, zeigeSpam } from "../frontend/js/ansichten/spam.js";
+import { aktualisiereAssistent, initAssistent, oeffneAssistent } from "../frontend/js/ansichten/assistent.js";
 import { api, ApiFehler } from "../frontend/js/api.js";
 import { ladeDaten, ticketErsetzen, zustand } from "../frontend/js/zustand.js";
 
@@ -93,18 +94,79 @@ function testDokument(t) {
       this.attributes = {};
     }
     append(...children) { this.children.push(...children); }
+    replaceChildren(...children) { this.text = ""; this.children = children; }
+    focus() {}
     setAttribute(name, value) { this.attributes[name] = value; }
     addEventListener(name, handler) { this[name] = handler; }
     get textContent() { return this.text + this.children.map((child) => child.textContent).join(""); }
+    set textContent(text) { this.text = text; this.children = []; }
   }
   browserGlobal(t, "Node", Element);
   const meldungen = new Element("div");
   browserGlobal(t, "document", {
     createElement: (tag) => new Element(tag),
+    createDocumentFragment: () => new Element("#fragment"),
     createTextNode: (text) => new Element("#text", text),
     getElementById: (id) => id === "meldungen" ? meldungen : null,
   });
 }
+
+test("der Assistent trennt offene Anfragen, Entwürfe und Folgefragen beim Ticketwechsel", async t => {
+  testDokument(t);
+  const panel = document.createElement("aside");
+  document.getElementById = () => panel;
+  document.addEventListener = () => {};
+  document.body = { classList: { add() {}, remove() {} } };
+  let antwortePraxis;
+  const aufrufe = [];
+  t.mock.method(api, "frageTicket", async (id, frage, vorherige) => {
+    aufrufe.push([id, frage, vorherige]);
+    if (id === 1021) return new Promise(resolve => { antwortePraxis = resolve; });
+    return { antwort: "Datenbankdienst prüfen." };
+  });
+  t.mock.method(api, "frage", async frage => ({ antwort: `Allgemeine Antwort auf ${frage}` }));
+  initAssistent();
+  const [, kontext, chat, formular] = panel.children;
+  const [eingabe, senden] = formular.children;
+  const abschicken = frage => {
+    eingabe.value = frage;
+    formular.submit({ preventDefault() {} });
+  };
+  const fertig = () => new Promise(resolve => setImmediate(resolve));
+  const praxis = { id: 1021, titel: "Postfach fast voll" };
+  const kanzlei = { id: 1017, titel: "Datenbankfehler" };
+  oeffneAssistent(praxis);
+  abschicken("Postfach prüfen?");
+  assert.equal(senden.disabled, true);
+  eingabe.value = "Entwurf der Praxis";
+  eingabe.input();
+  aktualisiereAssistent(kanzlei);
+  assert.match(kontext.textContent, /#1017/);
+  assert.equal(eingabe.value, "");
+  assert.equal(senden.disabled, false);
+  abschicken("Alle Arbeitsplätze betroffen.");
+  await fertig();
+  antwortePraxis({ antwort: "Postfachbelegung prüfen." });
+  await fertig();
+  assert.match(chat.textContent, /Datenbankdienst/);
+  assert.doesNotMatch(chat.textContent, /Postfach/);
+  abschicken("Und danach?");
+  await fertig();
+  assert.deepEqual(aufrufe, [
+    [1021, "Postfach prüfen?", undefined],
+    [1017, "Alle Arbeitsplätze betroffen.", undefined],
+    [1017, "Und danach?", "Alle Arbeitsplätze betroffen."],
+  ]);
+  aktualisiereAssistent(praxis);
+  assert.match(chat.textContent, /Postfachbelegung/);
+  assert.equal(eingabe.value, "Entwurf der Praxis");
+  aktualisiereAssistent(null);
+  assert.equal(eingabe.value, "");
+  abschicken("Was ist eine Datenbank?");
+  await fertig();
+  assert.match(chat.textContent, /Allgemeine Antwort/);
+  assert.doesNotMatch(chat.textContent, /Postfachbelegung|Datenbankdienst/);
+});
 
 test("in der Ticketliste stehen Alter und Wartezeit in getrennten Spalten", (t) => {
   testDokument(t);

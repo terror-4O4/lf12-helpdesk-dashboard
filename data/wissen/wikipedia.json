@@ -4,6 +4,15 @@
     "artikel": "Disk Quota",
     "url": "https://de.wikipedia.org/w/index.php?title=Disk_Quota&oldid=248831509",
     "begriffe": ["Quota", "Disk Quota", "Speicherkontingent", "Postfachkontingent", "Speicherlimit", "Speichergrenze", "Speicherwarnung", "Postfach fast voll"],
+    "symptome": [["Postfach", "Postfächer", "Mailbox"], ["voll", "ausgeschöpft", "Speicherplatz", "Belegung"]],
+    "pruefung": {
+      "wenn": [["Postfach", "Postfächer", "Mailbox", "Postfachkontingent"]],
+      "schritte": [
+        "Vergleiche beim betroffenen Postfach den belegten Speicher mit der Warnschwelle und der Grenze für den Empfang.",
+        "Bei Microsoft 365 zeigt der Exchange-Postfachnutzungsbericht diese Werte auch für freigegebene Postfächer. Prüfe das Berichtsdatum, da die Werte zeitverzögert sein können."
+      ],
+      "quellen": [{"titel": "Microsoft Learn · Postfachnutzung und Kontingente", "url": "https://learn.microsoft.com/de-de/microsoft-365/admin/activity-reports/mailbox-usage?view=o365-worldwide"}]
+    },
     "text": "Ein Speicherkontingent begrenzt, wie viel Platz ein Benutzer oder eine Gruppe belegen kann. Ein System kann schon beim Erreichen einer Warnschwelle melden, dass der Platz knapp wird. An einer festen Obergrenze verhindert es, dass weitere Daten gespeichert werden."
   },
   {
@@ -18,6 +27,12 @@
     "artikel": "Virtual Private Network",
     "url": "https://de.wikipedia.org/w/index.php?title=Virtual_Private_Network&oldid=266327940",
     "begriffe": ["VPN", "Virtual Private Network", "virtuelles privates Netzwerk", "VPN-Tunnel"],
+    "pruefung": {
+      "schritte": [
+        "Prüfe am betroffenen Gerät, ob das vorgesehene Firmenprofil ausgewählt ist und welchen Verbindungsstatus der VPN-Client meldet."
+      ],
+      "quellen": [{"titel": "Microsoft Support · VPN-Profil und Verbindungsstatus", "url": "https://support.microsoft.com/de-de/windows/experience/connectivity-networking/connect-to-a-vpn-in-windows"}]
+    },
     "text": "Ein VPN verbindet ein Gerät oder ein ganzes Netz über ein vorhandenes Netzwerk mit einem anderen Netz. So kann ein Notebook im Homeoffice interne Firmendienste erreichen. Ob und wie der Datenverkehr verschlüsselt ist, hängt vom eingesetzten VPN-Verfahren ab."
   },
   {
@@ -25,13 +40,34 @@
     "artikel": "Domain Name System",
     "url": "https://de.wikipedia.org/w/index.php?title=Domain_Name_System&oldid=272262992",
     "begriffe": ["DNS", "Domain Name System", "Namensauflösung", "DNS-Server", "Nameserver", "MX-Eintrag"],
+    "symptome": [["Name", "Namen", "Hostname", "Hostnamen", "Servername", "Servernamen"], ["per IP", "über die IP", "IP-Adresse erreichbar"]],
+    "pruefung": {
+      "wenn": [["DNS", "DNS-Server", "Nameserver", "Namensauflösung", "Hostname", "Hostnamen", "Servername", "Servernamen", "per IP", "über die IP", "IP-Adresse erreichbar"]],
+      "schritte": [
+        "Frage den vollständigen betroffenen Rechnernamen am betroffenen Gerät mit nslookup ab und notiere die Antwort sowie den verwendeten DNS-Server.",
+        "Vergleiche das Ergebnis mit einem funktionierenden Gerät im selben Netz. Wenn der konfigurierte DNS-Server gar nicht antwortet, prüfe dessen Erreichbarkeit vom betroffenen Gerät."
+      ],
+      "quellen": [{"titel": "Microsoft Learn · Namensauflösung am DNS-Client prüfen", "url": "https://learn.microsoft.com/de-de/windows-server/networking/dns/troubleshoot/troubleshoot-dns-client"}]
+    },
     "text": "DNS liefert zu einem Netzwerknamen die passenden Einträge. Ein Browser kann darüber beispielsweise die IP-Adresse eines Webservers finden. Ein MX-Eintrag gibt an, welcher Server E-Mails für eine Domain annimmt."
   },
   {
     "titel": "Mehrfaktor-Authentifizierung (MFA)",
     "artikel": "Multi-Faktor-Authentisierung",
     "url": "https://de.wikipedia.org/w/index.php?title=Multi-Faktor-Authentisierung&oldid=263236666",
-    "begriffe": ["MFA", "2FA", "Zwei-Faktor-Authentisierung", "Zwei-Faktor-Authentifizierung", "Mehrfaktor-Authentifizierung", "Multi-Faktor-Authentisierung", "Mehrfaktorauthentifizierung", "zweiter Faktor"],
+    "begriffe": ["MFA", "2FA", "Zwei-Faktor-Authentisierung", "Zwei-Faktor-Authentifizierung", "Mehrfaktor-Authentifizierung", "Multi-Faktor-Authentisierung", "Mehrfaktorauthentifizierung", "zweiter Faktor", "Authenticator", "Authenticator-App"],
+    "symptome": [["Anmeldung", "anmelden", "einloggen"], ["Bestätigungscode", "Anmeldebestätigung", "zweiten Faktor"]],
+    "pruefung": {
+      "wenn": [["Gerät", "Gerätewechsel", "Handy", "Diensthandy", "Smartphone", "Anmeldung", "anmelden", "einloggen", "Bestätigung", "Benachrichtigung", "Benachrichtigungen", "Zugriff", "geht nicht", "funktioniert nicht"]],
+      "schritte": [
+        "Prüfe mit der betroffenen Person, auf welchem Gerät die Anmeldemethode für das Arbeitskonto registriert ist. Bei einem Gerätewechsel kann die Bestätigung noch am alten Gerät ankommen.",
+        "Falls das registrierte Gerät fehlt, prüfe, ob die Anmeldung eine bereits eingerichtete alternative Methode anbietet. Ist keine verfügbar, wende dich an die zuständige Kontoverwaltung."
+      ],
+      "quellen": [
+        {"titel": "Microsoft Support · Authenticator nach Gerätewechsel", "url": "https://support.microsoft.com/de-de/authenticator/microsoft-authenticator-faqs"},
+        {"titel": "Microsoft Support · Probleme mit Authenticator behandeln", "url": "https://support.microsoft.com/de-de/authenticator/troubleshoot-problems-with-microsoft-authenticator"}
+      ]
+    },
     "text": "Bei der Mehrfaktor-Authentifizierung weist eine Person ihre Identität mit mehreren unabhängigen Faktoren nach. Ein Passwort belegt Wissen, ein registrierter Sicherheitsschlüssel Besitz. Kommen zwei unabhängige Faktoren zum Einsatz, spricht man von Zwei-Faktor-Authentifizierung."
   },
   {
@@ -47,5 +83,36 @@
     "url": "https://de.wikipedia.org/w/index.php?title=Spam&oldid=270253438",
     "begriffe": ["Spam", "Spam-Mail", "Junk-Mail", "Werbemail", "Werbemails"],
     "text": "Als Spam bezeichnet man unerwünschte elektronische Nachrichten, die oft an viele Empfänger gleichzeitig gehen. Unbestellte Werbemails sind ein typisches Beispiel."
+  },
+  {
+    "titel": "Datenbankserver und Datenbankdienst",
+    "artikel": "Datenbankserver",
+    "url": "https://de.wikipedia.org/w/index.php?title=Datenbankserver&oldid=267691666",
+    "begriffe": ["Datenbank", "Datenbanken", "Datenbankserver", "Datenbankdienst", "Datenbankverbindung", "SQL-Dienst", "SQL-Server", "SQL-Datenbank"],
+    "text": "Ein Datenbankdienst bearbeitet Anfragen der Anwendungen, die mit ihm verbunden sind. Nutzen mehrere Arbeitsplätze denselben Datenbankserver, kann eine Störung an diesem gemeinsamen Dienst mehrere Clients gleichzeitig betreffen.",
+    "pruefung": {
+      "schritte": [
+        "Prüfe auf dem Datenbankserver den Status und den konfigurierten Starttyp der zur Anwendung gehörenden Dienstinstanz.",
+        "Vergleiche den Zeitpunkt der Störung mit den Start- und Fehlermeldungen im Datenbankprotokoll. Bei Microsoft SQL Server unter Windows ist auch das Anwendungsereignisprotokoll relevant."
+      ],
+      "quellen": [
+        {"titel": "Microsoft Learn · SQL-Dienst und Ereignisprotokoll prüfen", "url": "https://learn.microsoft.com/de-de/troubleshoot/sql/database-engine/connect/consistent-sql-network-connectivity-issue"},
+        {"titel": "Microsoft Learn · Startmodus des SQL-Diensts", "url": "https://learn.microsoft.com/de-de/sql/tools/configuration-manager/sql-server-properties-service-tab?view=sql-server-ver17"}
+      ]
+    }
+  },
+  {
+    "titel": "Druckwarteschlange",
+    "artikel": "Spooling",
+    "url": "https://de.wikipedia.org/w/index.php?title=Spooling&oldid=243684708",
+    "begriffe": ["Druckwarteschlange", "Druckerwarteschlange", "Druckspooler", "Spooler", "Spooling", "Druckauftrag", "Druckaufträge"],
+    "symptome": [["Drucker", "Drucken", "Druckserver"], ["Warteschlange", "Aufträge", "druckt nicht"]],
+    "text": "Ein Spooler speichert Druckaufträge vorübergehend und gibt sie an den Drucker weiter. In der Warteschlange ist sichtbar, welche Dokumente noch auf die Ausgabe warten.",
+    "pruefung": {
+      "schritte": [
+        "Öffne die Warteschlange des betroffenen Druckers und kontrolliere den ausgewählten Drucker. Prüfe, ob der gemeldete Auftrag dort steht und ob weitere Aufträge dahinter warten."
+      ],
+      "quellen": [{"titel": "Microsoft Support · Druckwarteschlange anzeigen", "url": "https://support.microsoft.com/de-de/windows/hardware/printer/view-a-printer-s-print-queue-in-windows"}]
+    }
   }
 ]

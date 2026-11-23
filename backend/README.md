@@ -41,8 +41,8 @@ Beenden mit `Strg + C`.
 | GET | `/api/kunden/{kunde}/doku` | Kundendoku als Markdown |
 | GET | `/api/tickets/{id}/doku` | Passende Abschnitte aus der Doku des Ticketkunden |
 | POST | `/api/kunden/{kunde}/doku/suche` | Antwort auf `{"frage": "..."}` mit Belegtext, Fundstelle und hinterlegten Portal-Links |
-| POST | `/api/tickets/{id}/frage` | Beantwortet eine Frage zum Ticket aus der Kundenakte, gelösten Fällen desselben Kunden oder lokalen Fachnotizen |
-| POST | `/api/ki/frage` | Antwort der KI auf `{"frage": "..."}` |
+| POST | `/api/tickets/{id}/frage` | Ordnet eine Störungsmeldung oder Rückfrage anhand der Meldung, der Kundenakte, gelöster Fälle desselben Kunden und lokaler Fachnotizen ein. Liefert Antwort und Belege. |
+| POST | `/api/ki/frage` | Beantwortet allgemeine IT-Fragen mit lokalem Fachwissen. Kundenakten und frühere Kundentickets sind nur im Ticketkontext verfügbar. |
 | POST | `/api/tickets/{id}/analyse` | Bewertet ein freigegebenes oder unauffälliges Ticket nach Priorität und Kategorie. Mit `?speichern=false` nur anzeigen |
 | GET | `/api/tickets/{id}/aehnliche` | Nur die Suche: ähnlichste gelöste Tickets mit Ähnlichkeit. `?ohne_schwelle=true&anzahl=10` zeigt auch Fälle unter der Schwelle |
 | POST | `/api/tickets/{id}/loesungsvorschlag` | Suche plus KI: bis zu 3 Ursachen mit Lösungsweg und Verweis auf die Tickets, oder „kein passender Fall“. `?speichern=false` = nur anzeigen |
@@ -81,9 +81,11 @@ zeigt die Anwendung den besten Worttreffer. Belegtext und Portal-Links stammen a
 der Markdown-Datei. Antworten auf Passwortfragen verwenden die hinterlegten
 Passwortmanager-Verweise.
 
-## Wikipedia-Grundwissen
+## Fachwissen in der Ticketberatung
 
-Allgemeines IT-Wissen liegt getrennt von der Fallhistorie in [wikipedia.json](../data/wissen/wikipedia.json). Der Bestand enthält sieben selbst formulierte Fachnotizen. Jede nennt ihren deutschen Wikipedia-Artikel und verlinkt dessen feste Version. Neue Begriffe können mit Titel, Suchbegriffen, Fachtext und Versionslink ergänzt werden. Die Suche liest diese Datei lokal. Nur ein bewusst angeklickter Quellenlink öffnet Wikipedia im Browser.
+Die Anwendung sucht automatisch nach passenden [lokalen Fachnotizen](../data/wissen/wikipedia.json). Wikipedia liefert die Grundlagen, Herstellerdokumentation belegt praktische Prüfungen. Die Ticketberatung verbindet diese Hinweise mit dem betroffenen System und früheren Fällen des Kunden. Die Quellen lassen sich nach der Antwort aufklappen. Für die Suche ist keine Internetverbindung nötig.
+
+Standardmäßig beantwortet der unter `LLAMA_URL` konfigurierte Dienst auch die Beratungsfragen. Wer für die Formulierung ein zweites lokales Chatmodell betreibt, kann dessen Adresse in `BERATUNG_URL` und bei Bedarf den Modellnamen in `BERATUNG_MODEL` eintragen. `/api/status?modelldetails=true` zeigt die erreichbaren Dienste und die vom Server gemeldeten Modelldateien.
 
 ## Ähnliche Tickets (RAG)
 

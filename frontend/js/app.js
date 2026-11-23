@@ -12,7 +12,7 @@ import { zeigeTickets } from "./ansichten/tickets.js";
 import { zeigeTicket } from "./ansichten/ticket.js";
 import { zeigeSpam } from "./ansichten/spam.js";
 import { oeffneNeuesTicket } from "./ansichten/neues-ticket.js";
-import { initAssistent, oeffneAssistent } from "./ansichten/assistent.js";
+import { aktualisiereAssistent, initAssistent, oeffneAssistent } from "./ansichten/assistent.js";
 
 const ANSICHTEN = {
   uebersicht: { titel: "Übersicht", zeige: zeigeUebersicht },
@@ -26,6 +26,19 @@ function leseAdresse() {
   const [pfad, abfrage = ""] = location.hash.replace(/^#\/?/, "").split("?");
   const [name, ...teile] = pfad.split("/").filter(Boolean);
   return { name: ANSICHTEN[name] ? name : "uebersicht", teile, abfrage: new URLSearchParams(abfrage) };
+}
+
+function ticketFuerAssistent() {
+  const { name, teile } = leseAdresse();
+  if (name !== "ticket") return null;
+  const ticket = zustand.tickets.find(t => t.id === Number(teile[0]));
+  return ticket && istImSpamfilter(ticket) ? null : ticket;
+}
+
+function synchronisiereAssistent() {
+  const ticket = ticketFuerAssistent();
+  document.getElementById("assistent-oeffnen").disabled = ticket === undefined;
+  aktualisiereAssistent(ticket);
 }
 
 let zeichnet = false;
@@ -57,6 +70,7 @@ async function zeichnen({ neuLaden = true, imHintergrund = false } = {}) {
 
   try {
     if (neuLaden) await ladeDaten();
+    synchronisiereAssistent();
     aktualisiereSpamZaehler();
     if (imHintergrund && (!darfAnsichtAktualisieren() || adresse.name !== leseAdresse().name)) return;
     aktualisiereKopf();
@@ -110,22 +124,25 @@ async function pruefeKiStatus() {
     const s = await api.status();
     zustand.kiStatus = s;
     const chatname = s.chat_datei || s.ki_modell;
+    const beratung = s.beratung_datei || s.beratung_modell;
     if (s.ki_modus === "mock") {
       el.textContent = "KI: Mock";
       el.className = "ki-status ki-mock";
       el.title = "Beispielantworten ohne KI-Server (KI_MOCK=true in der .env)";
       fuss.textContent = "KI im Mock-Modus";
-    } else if (s.ki_erreichbar && s.embedding_erreichbar === false) {
-      el.textContent = "KI online, Fallsuche aus";
+    } else if (s.ki_erreichbar && (s.embedding_erreichbar === false || s.beratung_erreichbar === false)) {
+      const aus = [s.embedding_erreichbar === false && "Fallsuche", s.beratung_erreichbar === false && "Beratungsmodell"].filter(Boolean);
+      el.textContent = "KI eingeschränkt";
       el.className = "ki-status ki-mock";
-      el.title = "Chat-Modell erreichbar, Embedding-Server (EMBED_URL) nicht: ähnliche Fälle können nicht gesucht werden";
+      el.title = `Zurzeit nicht erreichbar: ${aus.join(", ")}`;
       fuss.textContent = chatname || "llama.cpp";
     } else if (s.ki_erreichbar) {
       el.textContent = "KI online";
       el.className = "ki-status ki-online";
-      el.title = [chatname && `Chat: ${chatname}`, s.embedding_datei && `Fallsuche: ${s.embedding_datei}`]
+      el.title = [chatname && `Ticketbewertung: ${chatname}`, beratung && `Beratung: ${beratung}`,
+        s.embedding_datei && `Fallsuche: ${s.embedding_datei}`]
         .filter(Boolean).join("\n") || "Lokaler llama-server erreichbar";
-      fuss.textContent = chatname || "llama.cpp";
+      fuss.textContent = beratung ? `Beratung · ${beratung}` : chatname || "llama.cpp";
     } else {
       el.textContent = "KI nicht erreichbar";
       el.className = "ki-status ki-aus";
@@ -145,11 +162,7 @@ function start() {
   setzeZeichner(() => zeichnen({ neuLaden: false }));
 
   document.getElementById("neues-ticket").addEventListener("click", oeffneNeuesTicket);
-  document.getElementById("assistent-oeffnen").addEventListener("click", () => {
-    const adresse = leseAdresse();
-    const ticket = adresse.name === "ticket" && zustand.tickets.find(t => t.id === Number(adresse.teile[0]));
-    oeffneAssistent(ticket && !istImSpamfilter(ticket) ? ticket : null);
-  });
+  document.getElementById("assistent-oeffnen").addEventListener("click", () => oeffneAssistent(ticketFuerAssistent()));
   document.getElementById("mitarbeiter").addEventListener("change", (e) => {
     mitarbeiterSetzen(e.target.value);
     meldung(e.target.value ? `Angemeldet als ${anzeigeName(e.target.value)}` : "Kein Mitarbeiter gewählt");
@@ -164,7 +177,9 @@ function start() {
   }
 
   initAssistent();
+  synchronisiereAssistent();
   window.addEventListener("hashchange", () => {
+    synchronisiereAssistent();
     zeichnen();
     document.getElementById("inhalt").focus({ preventScroll: true });
   });

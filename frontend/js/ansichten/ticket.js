@@ -2,7 +2,7 @@
 // rechts was die KI beiträgt (Bewertung, Lösungsvorschlag) und die Kundendoku.
 
 import { api } from "../api.js";
-import { PRIORITAET, STATUS } from "../config.js";
+import { MAX_FRAGE, PRIORITAET, STATUS } from "../config.js";
 import {
   alter, dauer, dokuQuellen, formatZeit, fuege, h, istImSpamfilter, jetzt, kiMarke, leeren, markdown, prioBadge, slaAmpel,
   BEWERTUNGSQUELLEN, spamBadge, statusBadge, ticketNr, ticketPrioBadge, wartezeit,
@@ -305,7 +305,7 @@ function kundeKarte(t) {
       try {
         const d = await api.kundendoku(kunde.kunde);
         leeren(doku);
-        doku.append(markdown(d.markdown));
+        doku.append(aktensuche(kunde), markdown(d.markdown));
       } catch (e) {
         meldung(e.message, "fehler");
         knopf.disabled = false;
@@ -339,9 +339,36 @@ function kundeKarte(t) {
       h("dt", {}, "Ansprechpartner"), h("dd", {}, kunde.ansprechpartner)),
     h("p", { class: "klein gedimmt" }, "🔒 Zugangsdaten stehen nie in der Doku, nur der Verweis auf den Passwortmanager."),
     h("div", { class: "knopfreihe" }, knopf,
-      h("button", { class: "knopf", type: "button", onclick: () => oeffneAssistent(t, "doku") }, "Kundendoku fragen")),
+      h("button", { class: "knopf", type: "button",
+        onclick: () => oeffneAssistent(t, "Welche Angaben zur Kundenumgebung helfen mir bei diesem Ticket? Was prüfe ich zuerst?"),
+      }, "KI zur Kundenumgebung fragen")),
     doku,
     h("div", { class: "doku-fundstellen" }, h("h4", {}, "Fundstellen zum Ticket"), fundstellen));
   ladeFundstellen();
   return karte;
+}
+
+function aktensuche(kunde) {
+  const feld = h("input", { type: "search", maxlength: MAX_FRAGE, required: true,
+    "aria-label": `Suche in der Kundenakte von ${kunde.name}`, placeholder: "Begriff oder Frage zur Kundenakte" });
+  const suchen = h("button", { type: "submit", class: "knopf" }, "Kundenakte durchsuchen");
+  const ergebnis = h("div", { "aria-live": "polite" });
+  const formular = h("form", { class: "aktensuche" }, feld, suchen, ergebnis);
+  formular.addEventListener("submit", async ev => {
+    ev.preventDefault();
+    const frage = feld.value.trim();
+    if (!frage || suchen.disabled) return;
+    suchen.disabled = true;
+    ergebnis.textContent = "Suche in der Kundenakte …";
+    try {
+      const antwort = await api.frageKundendoku(kunde.kunde, frage);
+      ergebnis.replaceChildren(markdown(antwort.antwort));
+      if (antwort.quellen?.length) ergebnis.append(dokuQuellen(antwort.quellen, antwort.antwort));
+    } catch (e) {
+      ergebnis.textContent = e.message;
+    } finally {
+      suchen.disabled = false;
+    }
+  });
+  return formular;
 }

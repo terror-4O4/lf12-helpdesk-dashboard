@@ -75,6 +75,12 @@ Beim anschließenden Nutzertest wurde die Tonerwerbung #1010 zunächst von Hand 
 
 Im Browser beantwortete die Ticketberatung „Müssen wir etwas tun?“ bei #1021 mit der Prüfung von Belegung und Limit des Praxispostfachs. Die Antwort belegt das Vorgehen mit der Praxisakte und nennt #1020 als früheren Vergleichsfall. „Was ist ein Speicherkontingent?“ liefert eine lokale Fachnotiz mit Wikipedia-Versionslink. Beide Antworten funktionieren ohne Zugriff auf ein echtes Postfach.
 
+### Ticketberatung im Browser und Modellvergleich
+
+Vor der Überarbeitung gab der Assistent auf den Originaltext von #1017 nur den Inventarsatz zur Datenbank auf `STB-SRV01` aus. Im anschließenden Browsertest verband die Antwort den Ausfall aller Arbeitsplätze mit der Prüfung von Dienststatus, Starttyp und Protokoll auf diesem Server. Sie ordnete die frühere Änderung des Starttyps dem gelösten Fall #1016 zu. Auf „Der SQL-Dienst läuft bereits auf STB-SRV01. Was prüfe ich jetzt?“ folgten der Protokollvergleich und die Frage nach dem genauen Verbindungsfehler. Beim Wechsel zu #1021 öffnete sich der Verlauf der Praxis. Die Antwort behandelte die Belegung ihres Postfachs und den früheren Fall #1020.
+
+Für den Modellvergleich erhielten Qwen2.5 0.5B und 3B die gleichen Meldungen und Belege zu #1017 und #1021. Jeweils ein freier Antwortversuch pro Ticket, Temperatur 0, höchstens 250 Ausgabetokens. Bei #1017 erfand das kleinere Modell einen laufenden SQL-Dienst und fehlerfreie Protokolle (2,65 s). Das größere schlug die passenden Prüfungen vor, empfahl aber bereits Änderungen am Dienst (22,20 s). Bei #1021 nannte nur das größere Modell die Belegungsprüfung, vermutete jedoch unbegründet einen veralteten Bericht als Ursache (4,61 s bzw. 14,58 s). Das sind Einzelbeobachtungen. Die lokale Demo verwendet deshalb 3B für die Formulierung anhand ausgewählter Belege, 0.5B für die bisherige Ticketbewertung und EmbeddingGemma für die Fallsuche. [Modell für die Beratung](https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF)
+
 ## Messlauf auf dem Mac Pro
 
 1. Die autorisierte Umgebung mit Chat- und Embedding-Dienst einrichten, `KI_MOCK=false` setzen und das Backend neu starten. `/api/status` zeigt den Betriebsmodus sowie die Erreichbarkeit beider Dienste. Den verwendeten Commit und die Modellnamen mit den Berichten festhalten.

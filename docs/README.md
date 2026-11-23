@@ -9,7 +9,7 @@ Das Projekt untersucht, wie ein lokal betriebenes Sprachmodell die Arbeit im IT-
 - **Priorisierung.** Bei regulären Anfragen bestimmen Ticketregeln und lokales Sprachmodell Kategorie und Priorität. Das Dashboard zeigt die Herkunft je Feld und den Beleg aus der Nachricht. Der Support kann die Priorität ändern.
 - **Ähnliche Fälle.** Gelöste Tickets mit dokumentiertem Lösungsweg bilden eine Wissensbasis. Die semantische Suche priorisiert ähnliche Fälle, bevorzugt beim selben Kunden. Das Sprachmodell wählt daraus bis zu drei passende Tickets. Das Dashboard zeigt deren dokumentierte Ursachen und Lösungswege mit verlinkten Ticketnummern. Bei leerer Auswahl meldet die Anwendung, dass kein passender Fall vorliegt.
 - **Kundendokumentation.** Das Dashboard sucht zum Ticket und im Assistenten in der jeweiligen Kundenakte. Die API liefert Textauszüge, Fundstellen und hinterlegte Portal-Links. Bei einer Anfrage nach Zugangsdaten zeigt die Anwendung die hinterlegten Passwortmanager-Verweise.
-- **Ticketberatung.** Der Assistent öffnet auf dem aktuellen Supportticket. Bei einer Handlungsfrage sucht er nach einer passenden Arbeitsanweisung in der Kundenakte oder einem belegten Lösungsweg in der Historie desselben Kunden. Für IT-Begriffe stehen sieben lokal gespeicherte Fachnotizen mit Links auf die verwendeten Wikipedia-Artikelfassungen bereit.
+- **Ticketberatung.** Schon die Beschreibung einer Störung reicht aus. Der Assistent führt passende Angaben aus der Kundenakte, gelösten Fällen desselben Kunden und lokalem IT-Wissen zusammen. Frühere Ursachen werden als Vergleich kenntlich gemacht. Der Support kann Prüfergebnisse im selben Ticket zurückmelden und die Quellen bei Bedarf öffnen.
 
 ## Betrieb und Daten
 

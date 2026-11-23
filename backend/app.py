@@ -47,6 +47,8 @@ LLAMA_API_KEY = os.getenv("LLAMA_API_KEY", "")
 # Modellname für den llama-server im Router-Modus (Dateiname ohne .gguf).
 # Leer lassen, wenn der llama-server mit genau einem Modell (-m) läuft.
 LLAMA_MODEL = os.getenv("LLAMA_MODEL", "").strip()
+BERATUNG_URL = os.getenv("BERATUNG_URL", "").strip().rstrip("/")
+BERATUNG_MODEL = os.getenv("BERATUNG_MODEL", "").strip()
 KI_MOCK = os.getenv("KI_MOCK", "true").lower() == "true"
 KI_TIMEOUT = float(os.getenv("KI_TIMEOUT", "120"))
 
@@ -93,9 +95,10 @@ def pruefe_lokale_adresse(url: str) -> None:
 
 # Prüfung beim Start, unabhängig von KI_MOCK: Eine falsche Adresse soll
 # sofort auffallen und nicht erst, wenn jemand den Mock abschaltet.
-# Gilt für beide Server: Chat (LLAMA_URL) und Embeddings (EMBED_URL).
 pruefe_lokale_adresse(LLAMA_URL)
 pruefe_lokale_adresse(EMBED_URL)
+if BERATUNG_URL:
+    pruefe_lokale_adresse(BERATUNG_URL)
 
 app = FastAPIOffline(
     title="LF12 Helpdesk-Dashboard API",
@@ -268,19 +271,21 @@ def llama_stream_lesen(r: httpx.Response, start: float, messung: dict) -> tuple[
 
 def frage_llama(nachrichten: list, antwortformat: dict | None = None,
                 temperatur: float = 0.3, *, messung: dict | None = None,
-                max_tokens: int | None = None) -> tuple[str, int | None]:
+                max_tokens: int | None = None, beratung: bool = False) -> tuple[str, int | None]:
     """Schickt Nachrichten an den llama-server. Gibt (Text, Anzahl Tokens) zurück."""
     kopfzeilen = {"Authorization": f"Bearer {LLAMA_API_KEY}"} if LLAMA_API_KEY else {}
     anfrage = {"messages": nachrichten, "temperature": temperatur}
-    if LLAMA_MODEL:
+    modell = BERATUNG_MODEL if beratung and BERATUNG_URL else LLAMA_MODEL
+    if modell:
         # Im Router-Modus wählt der llama-server anhand dieses Feldes das Modell
-        anfrage["model"] = LLAMA_MODEL
+        anfrage["model"] = modell
     if antwortformat:
         anfrage["response_format"] = antwortformat
     if max_tokens is not None:
         anfrage["max_tokens"] = max_tokens
 
-    url = f"{LLAMA_URL}/v1/chat/completions"
+    basis_url = BERATUNG_URL if beratung and BERATUNG_URL else LLAMA_URL
+    url = f"{basis_url}/v1/chat/completions"
     try:
         # trust_env=False: keine Proxy-Einstellungen des Systems verwenden,
         # die Anfrage geht immer direkt an den lokalen llama-server.
@@ -312,10 +317,11 @@ def frage_llama(nachrichten: list, antwortformat: dict | None = None,
         if code == 401:
             hinweis = " (LLAMA_API_KEY in der .env prüfen)"
         elif code == 400 and "model" in text:
-            hinweis = " (LLAMA_MODEL in der .env setzen, Router-Modus)"
+            variable = "BERATUNG_MODEL" if beratung and BERATUNG_URL else "LLAMA_MODEL"
+            hinweis = f" ({variable} in der .env prüfen, Router-Modus)"
         raise HTTPException(502, f"KI-Server lehnt ab ({code}){hinweis}: {text}")
     except httpx.HTTPError as fehler:
-        raise HTTPException(502, f"KI nicht erreichbar unter {LLAMA_URL}: {fehler}")
+        raise HTTPException(502, f"KI nicht erreichbar unter {basis_url}: {fehler}")
     except (json.JSONDecodeError, IndexError, KeyError, TypeError, AttributeError):
         raise HTTPException(502, "Der KI-Server hat eine ungültige Antwort geliefert")
 
@@ -337,10 +343,13 @@ def status(modelldetails: bool = False):
 
     ergebnis = {"backend": "ok", "ki_modus": "llama", "ki_erreichbar": gesund(LLAMA_URL),
                 "ki_modell": LLAMA_MODEL or None, "embedding_erreichbar": gesund(EMBED_URL)}
+    if BERATUNG_URL:
+        ergebnis.update(beratung_erreichbar=gesund(BERATUNG_URL), beratung_modell=BERATUNG_MODEL or None)
     if modelldetails:
         for feld, url, alias, erreichbar in (
             ("chat_datei", LLAMA_URL, LLAMA_MODEL, ergebnis["ki_erreichbar"]),
             ("embedding_datei", EMBED_URL, EMBED_MODEL, ergebnis["embedding_erreichbar"]),
+            ("beratung_datei", BERATUNG_URL, BERATUNG_MODEL, ergebnis.get("beratung_erreichbar")),
         ):
             if not erreichbar:
                 continue
@@ -562,6 +571,12 @@ SYSTEMPROMPT_FRAGE = (
 )
 
 
+def frage_beratungsmodell(nachrichten: list, **optionen) -> tuple[str, int | None]:
+    if BERATUNG_URL:
+        optionen["beratung"] = True
+    return frage_llama(nachrichten, **optionen)
+
+
 class Frage(BaseModel):
     frage: str = Field(..., min_length=1, max_length=2000,
                        examples=["Ein Kunde meldet: Outlook startet nicht. Was kann ich tun?"])
@@ -663,31 +678,38 @@ def wikipedia_frage(eingabe: Frage):
 
 @app.post("/api/ki/frage", tags=["KI"])
 def ki_frage(eingabe: Frage):
-    """Stellt der KI eine freie Frage.
-
-    Mit KI_MOCK=true kommt eine Beispielantwort (zum Entwickeln ohne KI-Server),
-    mit KI_MOCK=false antwortet der llama-server aus LLAMA_URL.
-    """
+    """Beantwortet allgemeine IT-Fragen mit den lokal verfügbaren Fachinformationen."""
     start = time.perf_counter()
+    frage = eingabe.frage.strip()
+    if not frage:
+        raise HTTPException(422, "Bitte eine Frage eingeben")
 
-    if doku.ist_zugangsfrage(eingabe.frage):
-        return {"antwort": doku.PASSWORT_HINWEIS, "modus": "suche",
-                "dauer_ms": round((time.perf_counter() - start) * 1000)}
-
-    if KI_MOCK:
-        antwort = (
-            "[Mock-Antwort] Das ist eine Beispielantwort. Sobald KI_MOCK=false "
-            f"gesetzt ist, antwortet hier die lokale KI auf: \"{eingabe.frage}\""
+    quellen, tokens, modus = [], None, "suche"
+    if doku.ist_zugangsfrage(frage):
+        antwort = doku.PASSWORT_HINWEIS
+    elif (begriff := wiki.antwort(frage))[1]:
+        antwort, quellen = begriff
+        modus = "wissen"
+    elif ticketfragen.fragt_nach_messwert(frage):
+        antwort = "Für eine aktuelle Messung brauchst du Zugriff auf das betroffene System. Welchen Wert möchtest du dort prüfen?"
+    elif (not ticketfragen.faktenfrage(frage) and (wissen := wiki.hintergrund(frage))
+          and any(q.get("pruefschritte") for q in wissen)):
+        antwort, quellen, tokens = ticketfragen.beratung(
+            {"titel": "", "beschreibung": frage}, frage, [], None, wissen,
+            modell=None if KI_MOCK else frage_beratungsmodell,
         )
-        return {"antwort": antwort, "modus": "mock",
-                "dauer_ms": round((time.perf_counter() - start) * 1000)}
-
-    text, tokens = frage_llama([
-        {"role": "system", "content": SYSTEMPROMPT_FRAGE},
-        {"role": "user", "content": eingabe.frage},
-    ])
-    return {"antwort": text, "modus": "llama",
-            "dauer_ms": round((time.perf_counter() - start) * 1000), "tokens": tokens}
+        modus = "wissen"
+    elif KI_MOCK:
+        antwort = "Für diese Frage fehlt eine passende lokale Fachnotiz. Im Demomodus ist die freie Modellantwort deaktiviert."
+        modus = "mock"
+    else:
+        antwort, tokens = frage_beratungsmodell([
+            {"role": "system", "content": SYSTEMPROMPT_FRAGE + " Du hast in dieser Ansicht keinen Zugriff auf Kundendaten oder Live-Systeme."},
+            {"role": "user", "content": frage},
+        ], max_tokens=420)
+        modus = "llama"
+    return {"antwort": antwort, "quellen": quellen, "modus": modus, "tokens": tokens,
+            "dauer_ms": round((time.perf_counter() - start) * 1000)}
 
 
 # --- KI: Ticket-Analyse --------------------------------------------------
@@ -1060,6 +1082,53 @@ def erzeuge_vorschlag(t: dict, liste: list, wb: rag.Wissensbasis | None = None,
     }
 
 
+def berate_zum_ticket(ticket: dict, bestand: list[dict], dokument: list[doku.Abschnitt],
+                      frage: str) -> tuple[str, list, str, int | None]:
+    meldung = rag.ticket_text(ticket)
+    anleitung = ticketfragen.anleitung(dokument, meldung)
+    historie = ticketfragen.fragt_nach_historie(frage)
+    if ticketfragen.fragt_nach_messwert(frage):
+        if anleitung and ticketfragen.passt_zur_frage(anleitung, frage):
+            antwort, quellen = ticketfragen.aus_anleitung(anleitung, ticket, bestand, frage)
+            return antwort, quellen, "ticket", None
+        return ("Zu diesem Ticket kann ich keine aktuellen Betriebswerte abrufen. "
+                "Erfasse den Messwert am betroffenen System und ergänze ihn im Ticket.", [], "ticket", None)
+
+    wissen = wiki.hintergrund(meldung, frage)
+    if anleitung:
+        if historie or ticketfragen.passt_zur_frage(anleitung, frage):
+            grund = next((q for q in wissen if q.get("pruefschritte")), None) if not historie else None
+            antwort, quellen = ticketfragen.aus_anleitung(anleitung, ticket, bestand, frage, grund)
+            return antwort, quellen, "ticket", None
+        return ("Die Arbeitsanleitung im Ticket belegt für diese Frage keinen nächsten Schritt. "
+                "Welche Funktion oder Meldung möchtest du genauer prüfen?", [], "ticket", None)
+
+    fakten = ticketfragen.aktenfakten(dokument, meldung, ticket["titel"])
+    fall = ticketfragen.dokumentierter_fall(ticket, bestand, fakten)
+    tokens = None
+    if fall is None and ticket.get("kunde"):
+        try:
+            suche = erzeuge_vorschlag(ticket, bestand, nur_ticketkunde=True)
+            tokens = suche["tokens"]
+            vorschlaege = suche["ergebnis"]["vorschlaege"]
+            if vorschlaege:
+                kandidat = finde_ticket(bestand, vorschlaege[0]["tickets"][0])
+                if kandidat.get("kunde") == ticket["kunde"] and kandidat["id"] != ticket["id"] and rag.ist_fall(kandidat):
+                    fall = kandidat
+        except HTTPException as fehler:
+            if fehler.status_code not in (502, 504):
+                raise
+            # Lokale Fachnotizen und Kundenakte bleiben auch ohne Modellserver nutzbar.
+    if historie:
+        if fall:
+            return ticketfragen.historischer_fall(fall), [ticketfragen.fallquelle(fall)], "ticket", tokens
+        return "Für dieses Ticket konnte ich keinen passenden gelösten Fall desselben Kunden belegen.", [], "ticket", tokens
+    antwort, quellen, plantokens = ticketfragen.beratung(
+        ticket, frage, fakten, fall, wissen, modell=None if KI_MOCK else frage_beratungsmodell)
+    modus = "llama" if plantokens is not None else "ticket"
+    return antwort, quellen, modus, (tokens or 0) + (plantokens or 0) or None
+
+
 @app.post("/api/tickets/{ticket_id}/frage", tags=["Tickets", "KI"])
 def ticket_frage(ticket_id: int, eingabe: Ticketfrage):
     """Beantwortet die Frage zum aktuellen Ticket anhand der Quellen dieses Kunden."""
@@ -1083,39 +1152,15 @@ def ticket_frage(ticket_id: int, eingabe: Ticketfrage):
     elif ticketfragen.ist_begriffsfrage(frage) and (wissen := wiki.antwort(frage))[1]:
         antwort, quellen = wissen
         modus = "wikipedia"
-    elif (ticketfragen.handlungsfrage(frage) or ticketfragen.fragt_nach_messwert(frage)
-          or ticketfragen.fragt_nach_historie(frage)):
-        anleitung = ticketfragen.anleitung(dokument, rag.ticket_text(ticket))
-        if anleitung and (ticketfragen.fragt_nach_historie(frage) or ticketfragen.passt_zur_frage(anleitung, frage)):
-            antwort, quellen = ticketfragen.aus_anleitung(anleitung, ticket, bestand, frage)
-        elif ticketfragen.fragt_nach_messwert(frage):
-            antwort = "Zu diesem Ticket kann ich keine aktuellen Betriebswerte abrufen. Erfasse den Messwert am betroffenen System und ergänze ihn im Ticket."
-        elif anleitung:
-            antwort = "Die Arbeitsanleitung im Ticket belegt für diese Frage keinen nächsten Schritt. Welche Funktion oder Meldung möchtest du genauer prüfen?"
-        elif kunde:
-            suche = erzeuge_vorschlag(ticket, bestand, nur_ticketkunde=True)
-            modus, tokens = suche["modus"], suche["tokens"]
-            vorschlaege = suche["ergebnis"]["vorschlaege"]
-            if vorschlaege:
-                v = vorschlaege[0]
-                fall = finde_ticket(bestand, v["tickets"][0])
-                antwort = (f"Prüfe zuerst, ob beim aktuellen Ticket dieselbe Ursache vorliegt wie im gelösten "
-                           f"Ticket #{fall['id']}: {v['ursache'].rstrip('.')}.\n\n"
-                           f"Damals wurde folgender Lösungsweg dokumentiert: {v['loesungsweg']}")
-                quellen = [ticketfragen.fallquelle(fall)]
-            else:
-                antwort = ("Für dieses Anliegen gibt es bei diesem Kunden bisher keinen belegten Lösungsweg. "
-                           "Erfrage beim Melder, welche Funktion betroffen ist, was bereits versucht wurde "
-                           "und ob eine Ausweichmöglichkeit besteht.")
-        else:
-            antwort = "Ordne den Absender zunächst einem Kunden zu, damit der Support die passende Kundenakte und frühere Fälle prüfen kann."
-    elif kunde:
+    elif ticketfragen.faktenfrage(frage) and not (
+            ticketfragen.fragt_nach_messwert(frage) or ticketfragen.fragt_nach_historie(frage)
+    ) and kunde:
         ergebnis = kundendoku_suche(kunde, Frage(frage=frage))
         antwort, quellen, modus, tokens = (ergebnis[k] for k in ("antwort", "quellen", "modus", "tokens"))
         if quellen:
             antwort = doku.kurzbeleg(frage, quellen[0]["text"])
     else:
-        antwort = "Zu diesem Ticket ist keine Kundenakte zugeordnet. Für eine belegte Antwort fehlt der Kundenbezug."
+        antwort, quellen, modus, tokens = berate_zum_ticket(ticket, bestand, dokument, frage)
     return {"antwort": antwort, "quellen": quellen, "modus": modus, "tokens": tokens,
             "dauer_ms": round((time.perf_counter() - start) * 1000)}
 

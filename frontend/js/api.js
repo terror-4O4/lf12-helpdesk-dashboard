@@ -59,7 +59,6 @@ export const api = {
   ticketDoku: (id) => anfrage("GET", `/api/tickets/${id}/doku`),
   frageTicket: (id, frage, vorherige_frage) =>
     anfrage("POST", `/api/tickets/${id}/frage`, { frage, vorherige_frage }),
-  frageWikipedia: (frage) => anfrage("POST", "/api/wissen/wikipedia", { frage }),
   frageKundendoku: (kunde, frage) =>
     anfrage("POST", `/api/kunden/${encodeURIComponent(kunde)}/doku/suche`, { frage }),
   frage: (text) => anfrage("POST", "/api/ki/frage", { frage: text }),
