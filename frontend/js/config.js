@@ -32,9 +32,9 @@ export const STATUS = {
 };
 
 export const PRIORITAET = {
-  sehr_hoch: "Sehr hoch",
+  sehr_hoch: "Sehr dringend",
   hoch: "Hoch",
-  mittel: "Mittel",
+  mittel: "Normal",
   niedrig: "Niedrig",
 };
 

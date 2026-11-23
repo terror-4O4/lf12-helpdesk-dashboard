@@ -31,7 +31,14 @@ function leseAdresse() {
 let zeichnet = false;
 let nochmal = null; // Wunsch zum Neuzeichnen, während gerade gezeichnet wird
 
-async function zeichnen({ neuLaden = true } = {}) {
+function uebersichtDarfAktualisieren() {
+  return !document.hidden && leseAdresse().name === "uebersicht"
+    && !document.activeElement?.closest("#inhalt, #mitarbeiter, #assistent")
+    && !document.querySelector("dialog[open], #inhalt button:disabled");
+}
+
+async function zeichnen({ neuLaden = true, imHintergrund = false } = {}) {
+  if (imHintergrund && (zeichnet || !uebersichtDarfAktualisieren())) return;
   if (zeichnet) {
     nochmal = { neuLaden: neuLaden || nochmal?.neuLaden };
     return;
@@ -50,11 +57,13 @@ async function zeichnen({ neuLaden = true } = {}) {
 
   try {
     if (neuLaden) await ladeDaten();
+    if (imHintergrund && !uebersichtDarfAktualisieren()) return;
     aktualisiereKopf();
     leeren(ziel);
     const titel = await ansicht.zeige(ziel, adresse);
     setzeTitel(titel || ansicht.titel);
   } catch (fehler) {
+    if (imHintergrund) return;
     leeren(ziel);
     ziel.append(
       h("div", { class: "karte leer-zustand" },
@@ -154,7 +163,10 @@ function start() {
   });
 
   pruefeKiStatus();
-  setInterval(pruefeKiStatus, STATUS_ABFRAGE_MS);
+  setInterval(() => {
+    pruefeKiStatus();
+    zeichnen({ imHintergrund: true });
+  }, STATUS_ABFRAGE_MS);
   zeichnen();
 }
 

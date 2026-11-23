@@ -18,11 +18,13 @@ Vergleich in Python dauert unter einer Millisekunde.
 import hashlib
 import json
 import math
-import os
 import re
 from pathlib import Path
+from threading import Lock
 
 import httpx
+
+from backend.speicher import schreibe_atomar
 
 # EmbeddingGemma erwartet eine Aufgabe vor dem Text. Für den Vergleich
 # Ticket mit Ticket ist "sentence similarity" passend (beide Seiten gleich).
@@ -141,18 +143,18 @@ def mock_vektor(text: str) -> list[float]:
 class Wissensbasis:
     def __init__(self, pfad: Path):
         self.pfad = pfad
+        self._datei_lock = Lock()
 
     def _lade(self) -> dict:
-        try:
-            return json.loads(self.pfad.read_text(encoding="utf-8"))
-        except (FileNotFoundError, json.JSONDecodeError):
-            return {}
+        with self._datei_lock:
+            try:
+                return json.loads(self.pfad.read_text(encoding="utf-8"))
+            except (FileNotFoundError, json.JSONDecodeError):
+                return {}
 
     def _speichere(self, daten: dict) -> None:
-        self.pfad.parent.mkdir(parents=True, exist_ok=True)
-        tmp = self.pfad.with_suffix(".tmp")
-        tmp.write_text(json.dumps(daten), encoding="utf-8")
-        os.replace(tmp, self.pfad)
+        with self._datei_lock:
+            schreibe_atomar(self.pfad, json.dumps(daten))
 
     def vektoren(self, faelle: list[dict], einbetter: Einbetter) -> dict[int, list[float]]:
         """Vektoren aller Fälle. Berechnet nur, was neu ist oder sich geändert hat."""

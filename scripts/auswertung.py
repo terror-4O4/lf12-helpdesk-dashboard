@@ -13,6 +13,8 @@ Aufruf aus dem Repo-Hauptordner mit aktivierter .venv:
     python scripts/auswertung.py                         alle Modelle
     python scripts/auswertung.py -m gemma-4-12b-it-qat-q4_0   nur dieses Modell
     python scripts/auswertung.py -m modell_a -m modell_b      mehrere Modelle
+    python scripts/auswertung.py --vergleich           beide Prompts auf neuen Testtickets
+    python scripts/auswertung.py --vergleich --mock    Probelauf mit Platzhalter-Klassifikator
 
 Ergebnis: Tabelle in der Konsole und als Markdown (für das Testprotokoll) und
 JSON unter data/laufzeit/auswertung/ (nicht im Repo).
@@ -36,6 +38,8 @@ import backend.app as app  # noqa: E402  (liest .env, prüft "nur lokale KI-Adre
 
 FELDER = ("prioritaet", "spam", "kategorie")
 ZIEL = REPO / "data" / "laufzeit" / "auswertung"
+VERGLEICHSDATEN = "tickets_promptvergleich.json"
+PROMPTS = {"einfach": app.SYSTEMPROMPT_ANALYSE_EINFACH, "angepasst": app.SYSTEMPROMPT_ANALYSE}
 
 
 def kopfzeilen() -> dict:
@@ -68,44 +72,67 @@ def lade_modell(modell: str | None) -> float:
     return time.perf_counter() - start
 
 
-def teste_modell(modell: str | None, tickets: list, erwartet: dict) -> dict:
-    name = modell or "(einzelnes Modell)"
-    print(f"\n=== {name} ===")
+def bewerte_ticket(t: dict, soll: dict, prompt: str, mock: bool) -> dict:
+    messung = {}
+    start = time.perf_counter()
     try:
-        ladezeit = lade_modell(modell)
-    except HTTPException as fehler:
-        print(f"  übersprungen: {fehler.detail}")
-        return {"modell": name, "fehler": str(fehler.detail), "tickets": []}
-    print(f"  geladen in {ladezeit:.1f} s")
+        if mock:
+            ist, tokens = app.analysiere_mock(t), None
+        else:
+            ist, tokens = app.analysiere_llama(t, systemprompt=prompt, messung=messung)
+        fehler = None
+    except HTTPException as e:
+        ist, tokens, fehler = None, None, str(e.detail)
+    return {
+        "id": t["id"], "titel": t["titel"], "erwartet": {f: soll[f] for f in FELDER},
+        "ki": ist,
+        "treffer": {f: ist is not None and ist[f] == soll[f] for f in FELDER},
+        "dauer_s": None if mock else round(time.perf_counter() - start, 3),
+        "tokens": tokens, "fehler": fehler, "hinweis": soll.get("hinweis"),
+        "zeit_bis_erster_token_s": messung.get("zeit_bis_erster_token_s"),
+        "antwortzeit_s": messung.get("antwortzeit_s"),
+        "tokens_pro_s": messung.get("tokens_pro_s"),
+    }
 
-    ergebnisse = []
+
+def teste_modell(modell: str | None, tickets: list, erwartet: dict, varianten: list[str],
+                 mock: bool = False) -> list[dict]:
+    name = "Mock (Platzhalter)" if mock else modell or "(Server-Standardmodell)"
+    print(f"\n=== {name} ===")
+    laeufe = [{"modell": name, "variante": v, "tickets": []} for v in varianten]
+    if not mock:
+        try:
+            ladezeit = lade_modell(modell)
+        except HTTPException as fehler:
+            print(f"  übersprungen: {fehler.detail}")
+            return [dict(lauf, fehler=str(fehler.detail)) for lauf in laeufe]
+        print(f"  Modellantwort zur Aufwärmanfrage nach {ladezeit:.1f} s")
+        for lauf in laeufe:
+            lauf["ladezeit_s"] = round(ladezeit, 3)
+
     for i, t in enumerate(tickets, 1):
         soll = erwartet[t["id"]]
-        start = time.perf_counter()
-        try:
-            ist, tokens = app.analysiere_llama(t)
-            fehler = None
-        except HTTPException as e:
-            ist, tokens, fehler = None, None, str(e.detail)
-        dauer = time.perf_counter() - start
-
-        treffer = {f: ist is not None and ist[f] == soll[f] for f in FELDER}
-        ergebnisse.append({
-            "id": t["id"], "titel": t["titel"], "erwartet": {f: soll[f] for f in FELDER},
-            "ki": ist, "treffer": treffer, "dauer_s": round(dauer, 2), "tokens": tokens,
-            "fehler": fehler, "hinweis": soll.get("hinweis"),
-        })
-        status = "ok    " if all(treffer.values()) else "FEHLER"
-        print(f"  [{i:2}/{len(tickets)}] #{t['id']} {status} {dauer:4.1f} s  {t['titel'][:50]}")
-
-    return {"modell": name, "ladezeit_s": round(ladezeit, 1), "tickets": ergebnisse}
+        # Die wechselnde Reihenfolge verteilt Effekte durch Aufwärmen und Prompt-Cache.
+        reihenfolge = laeufe if i % 2 else reversed(laeufe)
+        for lauf in reihenfolge:
+            variante = lauf["variante"]
+            ergebnis = bewerte_ticket(t, soll, PROMPTS[variante], mock)
+            lauf["tickets"].append(ergebnis)
+            status = "ok" if all(ergebnis["treffer"].values()) else "FEHLER"
+            dauer = messwert(ergebnis["dauer_s"], "s")
+            print(f"  [{i:2}/{len(tickets)}] #{t['id']} {variante:<9} {status:<6} {dauer}  {t['titel'][:50]}")
+    return laeufe
 
 
 def kennzahlen(lauf: dict) -> dict:
     tk = lauf["tickets"]
     n = len(tk)
     je_feld = {f: sum(x["treffer"][f] for x in tk) for f in FELDER}
-    dauer = [x["dauer_s"] for x in tk if x["fehler"] is None]
+    messfelder = ("dauer_s", "zeit_bis_erster_token_s", "antwortzeit_s", "tokens_pro_s")
+    messwerte = {
+        feld: [x[feld] for x in tk if x["fehler"] is None and x.get(feld) is not None]
+        for feld in messfelder
+    }
     return {
         "n": n,
         **je_feld,
@@ -113,8 +140,11 @@ def kennzahlen(lauf: dict) -> dict:
         "komplett": sum(all(x["treffer"].values()) for x in tk),
         "spam_uebersehen": sum(1 for x in tk if x["erwartet"]["spam"] and not (x["ki"] or {}).get("spam")),
         "spam_fehlalarm": sum(1 for x in tk if not x["erwartet"]["spam"] and (x["ki"] or {}).get("spam")),
-        "dauer_avg": sum(dauer) / len(dauer) if dauer else 0,
-        "dauer_max": max(dauer) if dauer else 0,
+        "dauer_avg": sum(messwerte["dauer_s"]) / len(messwerte["dauer_s"]) if messwerte["dauer_s"] else None,
+        "dauer_max": max(messwerte["dauer_s"], default=None),
+        "mittelwerte": {feld: sum(werte) / len(werte) if werte else None
+                         for feld, werte in messwerte.items()},
+        "anzahl_messwerte": {feld: len(werte) for feld, werte in messwerte.items()},
     }
 
 
@@ -129,33 +159,56 @@ def zahl(wert: float, stellen: int = 1) -> str:
     return f"{wert:.{stellen}f}".replace(".", ",")
 
 
+def messwert(wert: float | None, einheit: str) -> str:
+    return "–" if wert is None else f"{zahl(wert, 3 if einheit == 's' else 1)} {einheit}"
+
+
 def prozent(a: int, b: int) -> str:
     return f"{a}/{b} ({zahl(a / b * 100)} %)" if b else "-"
 
 
+def tabellenzelle(text: str) -> str:
+    return " ".join(text.splitlines()).replace("|", r"\|")
+
+
 def als_markdown(laeufe: list, meta: dict) -> str:
+    prompts = ", ".join(f"{name} `{hashwert}`" for name, hashwert in meta["prompts"].items())
     z = [f"# Auswertung Ticket-Analyse {meta['datum']}", "",
-         f"- Tickets: {meta['tickets']}, erwartete Werte aus `data/testdaten/erwartet.json`",
-         f"- llama-server: {meta['llama_url']}",
-         f"- Analyse-Prompt (SHA-256, erste 12 Zeichen): `{meta['prompt_hash']}`", "",
-         "| Modell | Priorität | Spam | Kategorie | Gesamt | Komplett richtig | Spam übersehen | Fehlalarme | Ø Dauer | Ladezeit |",
-         "|---|---|---|---|---|---|---|---|---|---|"]
+         f"- Tickets: {meta['tickets']}, Testdaten: {meta['datenbasis']}",
+         f"- Modus: {meta['modus']}",
+         f"- Prompts (SHA-256, erste 12 Zeichen): {prompts}", ""]
+    if meta["modus"] == "mock":
+        z += ["Mock-Probelauf mit festem Platzhalter-Klassifikator. Die Simulation nutzt keinen Prompt.",
+              "Die Werte sind kein Nachweis für Modellgüte oder Modellleistung.", ""]
+    else:
+        z += [f"- llama-server: {meta['llama_url']}", ""]
+    z += ["| Modell | Prompt | Priorität | Spam | Kategorie | Gesamt | Komplett | Spam übersehen | Fehlalarme |",
+          "|---|---|---|---|---|---|---|---|---|"]
     for lauf in laeufe:
         if not lauf["tickets"]:
-            z.append(f"| {lauf['modell']} | übersprungen: {lauf['fehler']} |||||||||")
+            z.append(f"| {lauf['modell']} | {lauf['variante']} | übersprungen: {lauf['fehler']} ||||||")
             continue
-        k = kennzahlen(lauf)
+        k = lauf["kennzahlen"]
         n = k["n"]
-        z.append(f"| {lauf['modell']} | {prozent(k['prioritaet'], n)} | {prozent(k['spam'], n)} | "
+        z.append(f"| {lauf['modell']} | {lauf['variante']} | {prozent(k['prioritaet'], n)} | {prozent(k['spam'], n)} | "
                  f"{prozent(k['kategorie'], n)} | **{prozent(k['gesamt'], 3 * n)}** | {k['komplett']}/{n} | "
-                 f"{k['spam_uebersehen']} | {k['spam_fehlalarm']} | "
-                 f"{zahl(k['dauer_avg'])} s | {zahl(lauf['ladezeit_s'], 0)} s |")
+                 f"{k['spam_uebersehen']} | {k['spam_fehlalarm']} |")
+
+    z += ["", "| Modell | Prompt | Ø Erster Token | Ø Antwort vollständig | Ø Token pro Sekunde | Ø Gesamt | Aufwärmanfrage |",
+          "|---|---|---|---|---|---|---|"]
+    for lauf in laeufe:
+        if not lauf["tickets"]:
+            continue
+        k = lauf["kennzahlen"]["mittelwerte"]
+        z.append(f"| {lauf['modell']} | {lauf['variante']} | {messwert(k['zeit_bis_erster_token_s'], 's')} | "
+                 f"{messwert(k['antwortzeit_s'], 's')} | {messwert(k['tokens_pro_s'], 'Tok/s')} | "
+                 f"{messwert(k['dauer_s'], 's')} | {messwert(lauf.get('ladezeit_s'), 's')} |")
 
     for lauf in laeufe:
         falsch = [x for x in lauf["tickets"] if not all(x["treffer"].values())]
         if not lauf["tickets"]:
             continue
-        z += ["", f"## Fehler {lauf['modell']} ({len(falsch)})", ""]
+        z += ["", f"## Fehler {lauf['modell']} mit Prompt {lauf['variante']} ({len(falsch)})", ""]
         if not falsch:
             z.append("Keine Fehler.")
             continue
@@ -168,7 +221,19 @@ def als_markdown(laeufe: list, meta: dict) -> str:
                 ist = ", ".join(f"**{wert_text(f, x['ki'][f])}**" if not x["treffer"][f]
                                 else wert_text(f, x["ki"][f]) for f in FELDER)
                 grund = x["ki"].get("begruendung", "")
-            z.append(f"| #{x['id']} {x['titel']} | {soll} | {ist} | {grund} | {x['hinweis'] or ''} |")
+            z.append(f"| #{x['id']} {tabellenzelle(x['titel'])} | {soll} | {ist} | "
+                     f"{tabellenzelle(grund)} | {tabellenzelle(x['hinweis'] or '')} |")
+    if meta["vergleich"]:
+        z += ["", "## Priorität je Testticket", "",
+              "| Modell | Prompt | Ticket | Soll | Modellantwort | Erster Token | Antwort vollständig | Token pro Sekunde |",
+              "|---|---|---|---|---|---|---|---|"]
+        for lauf in laeufe:
+            for ticket in lauf["tickets"]:
+                ist = ticket["ki"]["prioritaet"] if ticket["ki"] else "Fehler"
+                z.append(f"| {lauf['modell']} | {lauf['variante']} | #{ticket['id']} | "
+                         f"{ticket['erwartet']['prioritaet']} | {ist} | "
+                         f"{messwert(ticket['zeit_bis_erster_token_s'], 's')} | "
+                         f"{messwert(ticket['antwortzeit_s'], 's')} | {messwert(ticket['tokens_pro_s'], 'Tok/s')} |")
     return "\n".join(z) + "\n"
 
 
@@ -176,23 +241,43 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Trefferquote der KI-Ticket-Analyse messen")
     parser.add_argument("-m", "--modell", action="append",
                         help="nur dieses Modell testen (mehrfach möglich), Standard: alle")
+    parser.add_argument("--vergleich", action="store_true",
+                        help="einfachen und angepassten Prompt auf zurückgehaltenen Tickets vergleichen")
+    parser.add_argument("--mock", action="store_true",
+                        help="Auswertung offline mit Platzhalter testen. Keine Modellmessung.")
     args = parser.parse_args()
 
-    tickets = app.lade_json(app.DATEN / "tickets.json")
-    erwartet = {e["id"]: e for e in app.lade_json(app.DATEN / "erwartet.json")}
-    fehlend = [t["id"] for t in tickets if t["id"] not in erwartet]
-    if fehlend:
-        sys.exit(f"Für diese Tickets fehlen erwartete Werte in erwartet.json: {fehlend}")
+    if args.mock and args.modell:
+        parser.error("--mock kann kein Modell testen")
+
+    if args.vergleich:
+        tickets = app.lade_json(app.DATEN / VERGLEICHSDATEN)
+        erwartet = {t["id"]: {**t["erwartet"], "hinweis": t.get("hinweis")} for t in tickets}
+        varianten = list(PROMPTS)
+        datenbasis = f"`data/testdaten/{VERGLEICHSDATEN}`"
+    else:
+        tickets = app.lade_json(app.DATEN / "tickets.json")
+        erwartet = {e["id"]: e for e in app.lade_json(app.DATEN / "erwartet.json")}
+        fehlend = [t["id"] for t in tickets if t["id"] not in erwartet]
+        if fehlend:
+            sys.exit(f"Für diese Tickets fehlen erwartete Werte in erwartet.json: {fehlend}")
+        varianten = ["angepasst"]
+        datenbasis = "`data/testdaten/tickets.json` und `data/testdaten/erwartet.json`"
 
     standard = app.LLAMA_MODEL
-    modelle = args.modell or verfuegbare_modelle()
+    if args.mock:
+        modelle = [None]
+    elif args.vergleich:
+        modelle = args.modell or [standard or None]
+    else:
+        modelle = args.modell or verfuegbare_modelle()
     print(f"{len(tickets)} Tickets, {len(modelle)} Modell(e): "
-          f"{', '.join(m or '(einzelnes Modell)' for m in modelle)}")
+          f"{'Mock (Platzhalter)' if args.mock else ', '.join(m or '(Server-Standardmodell)' for m in modelle)}")
 
     laeufe = []
     try:
         for modell in modelle:
-            laeufe.append(teste_modell(modell, tickets, erwartet))
+            laeufe.extend(teste_modell(modell, tickets, erwartet, varianten, mock=args.mock))
     except KeyboardInterrupt:
         print("\nAbgebrochen, werte die bisherigen Ergebnisse aus.")
     finally:
@@ -200,16 +285,23 @@ def main() -> None:
 
     if not laeufe:
         return
+    for lauf in laeufe:
+        lauf["kennzahlen"] = kennzahlen(lauf)
     meta = {
         "datum": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "tickets": len(tickets),
-        "llama_url": app.LLAMA_URL,
+        "datenbasis": datenbasis,
+        "modus": "mock" if args.mock else "llama",
+        "vergleich": args.vergleich,
+        "llama_url": None if args.mock else app.LLAMA_URL,
         "prompt_hash": hashlib.sha256(app.SYSTEMPROMPT_ANALYSE.encode()).hexdigest()[:12],
+        "prompts": {v: hashlib.sha256(PROMPTS[v].encode()).hexdigest()[:12] for v in varianten},
     }
     markdown = als_markdown(laeufe, meta)
 
     ZIEL.mkdir(parents=True, exist_ok=True)
-    datei = ZIEL / f"auswertung-{datetime.now().strftime('%Y-%m-%d_%H-%M')}"
+    praefix = "promptvergleich" if args.vergleich else "auswertung"
+    datei = ZIEL / f"{praefix}-{meta['modus']}-{datetime.now():%Y-%m-%d_%H-%M-%S-%f}"
     datei.with_suffix(".md").write_text(markdown, encoding="utf-8")
     datei.with_suffix(".json").write_text(
         json.dumps({"meta": meta, "laeufe": laeufe}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

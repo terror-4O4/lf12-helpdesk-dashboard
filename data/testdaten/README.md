@@ -10,6 +10,9 @@
 | `kunden.json` | 5 Testkunden |
 | `doku/<kunde>.md` | Kundendoku je Testkunde, Zugangsdaten nur als Verweis auf den Passwortmanager |
 | `erwartet.json` | Erwartete KI-Bewertung je Ticket (Priorität, Spam, Kategorie) für die Trefferquote |
+| `fragen_doku.json` | Freie Doku-Fragen und Ticketfälle mit Sollfundstellen, fehlenden Treffern und einem Passwortmanager-Verweis |
+
+Die Doku-Fälle lassen sich bei laufendem Backend mit `python scripts/auswertung_doku.py` prüfen. Die Auswertung trennt die Trefferquote für vorbereitete Fragen von Fällen ohne belegte Fundstelle und von der automatischen Suche zum Ticket.
 
 ## Aufbau der 30 Tickets
 

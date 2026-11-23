@@ -56,5 +56,8 @@ export const api = {
   loesungsvorschlag: (id) => anfrage("POST", `/api/tickets/${id}/loesungsvorschlag`),
   kunden: () => anfrage("GET", "/api/kunden"),
   kundendoku: (kunde) => anfrage("GET", `/api/kunden/${encodeURIComponent(kunde)}/doku`),
+  ticketDoku: (id) => anfrage("GET", `/api/tickets/${id}/doku`),
+  frageKundendoku: (kunde, frage) =>
+    anfrage("POST", `/api/kunden/${encodeURIComponent(kunde)}/doku/suche`, { frage }),
   frage: (text) => anfrage("POST", "/api/ki/frage", { frage: text }),
 };

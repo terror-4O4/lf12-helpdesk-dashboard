@@ -3,8 +3,8 @@
 
 import { PRIORITAET, STATUS } from "../config.js";
 import {
-  alter, h, istOffen, istSpamVerdacht, nachDringlichkeit, prioBadge, prioRang, sla, slaAmpel,
-  statusBadge, ticketNr,
+  alter, dauer, h, istOffen, istSpamVerdacht, jetzt, nachDringlichkeit, prioBadge, prioRang, sla, slaAmpel,
+  statusBadge, ticketNr, wartezeit,
 } from "../hilfen.js";
 import { anzeigeName, kundeName, mitarbeiterListe, zustand } from "../zustand.js";
 
@@ -62,7 +62,9 @@ export function zeigeTickets(ziel, { abfrage }) {
     auswahl("sortierung", "Sortierung", Object.entries(SORTIERUNGEN).map(([k, v]) => [k, v.text])),
   );
 
-  const liste = filtern(zustand.tickets, filter).sort(SORTIERUNGEN[filter.sortierung].fn);
+  const bezugszeit = jetzt();
+  const liste = filtern(zustand.tickets, filter, bezugszeit)
+    .sort((a, b) => SORTIERUNGEN[filter.sortierung].fn(a, b, bezugszeit));
   const aktiveFilter = ["suche", "kunde", "prioritaet", "bearbeiter", "sla"].some((f) => filter[f])
     || filter.status !== "offen";
 
@@ -73,11 +75,11 @@ export function zeigeTickets(ziel, { abfrage }) {
         h("span", {}, `${liste.length} ${liste.length === 1 ? "Ticket" : "Tickets"}`),
         filter.sla === "rot" ? h("span", { class: "badge" }, "nur SLA überschritten") : null,
         aktiveFilter ? h("a", { href: "#/tickets", class: "link" }, "Filter zurücksetzen") : null),
-      liste.length ? ticketTabelle(liste) : h("p", { class: "leer" }, "Keine Tickets für diese Filter.")),
+      liste.length ? ticketTabelle(liste, { bezugszeit }) : h("p", { class: "leer" }, "Keine Tickets für diese Filter.")),
   );
 }
 
-function filtern(tickets, f) {
+function filtern(tickets, f, bezugszeit) {
   const text = f.suche.toLowerCase().replace(/^#/, "");
   return tickets.filter((t) => {
     if (f.status === "offen" && !istOffen(t)) return false;
@@ -85,7 +87,7 @@ function filtern(tickets, f) {
     if (f.kunde === "_ohne" ? t.kunde : f.kunde && t.kunde !== f.kunde) return false;
     if (f.prioritaet === "_ohne" ? t.prioritaet : f.prioritaet && t.prioritaet !== f.prioritaet) return false;
     if (f.bearbeiter === "_ohne" ? t.zugewiesen_an : f.bearbeiter && t.zugewiesen_an !== f.bearbeiter) return false;
-    if (f.sla && sla(t).zustand !== f.sla) return false;
+    if (f.sla && sla(t, bezugszeit).zustand !== f.sla) return false;
     if (text) {
       const inhalt = `${t.id} ${t.titel} ${t.beschreibung} ${kundeName(t.kunde)}`.toLowerCase();
       if (!inhalt.includes(text)) return false;
@@ -95,16 +97,18 @@ function filtern(tickets, f) {
 }
 
 // Tabelle, die auch die Übersicht verwendet. Ganze Zeile ist klickbar.
-export function ticketTabelle(tickets, { kompakt = false } = {}) {
-  const kopf = ["SLA", "Nr.", "Betreff und Kunde", "Status", "Priorität", kompakt ? null : "Bearbeiter", "Erstellt"]
+export function ticketTabelle(tickets, { kompakt = false, bezugszeit = jetzt() } = {}) {
+  const kopf = ["SLA", "Nr.", "Betreff und Kunde", "Status", "Priorität",
+    kompakt ? null : "Bearbeiter", "Ticketalter", "Wartezeit"]
     .filter(Boolean);
 
   return h("div", { class: "tabelle-huelle" },
     h("table", { class: "tabelle" },
       h("thead", {}, h("tr", {}, kopf.map((k) => h("th", { scope: "col" }, k)))),
       h("tbody", {}, tickets.map((t) => {
+        const warten = wartezeit(t, bezugszeit);
         const zeile = h("tr", { class: istSpamVerdacht(t) ? "zeile-spam" : "" },
-          h("td", { class: "spalte-sla" }, slaAmpel(t)),
+          h("td", { class: "spalte-sla" }, slaAmpel(t, false, bezugszeit)),
           h("td", { class: "nr" }, h("a", { href: `#/ticket/${t.id}` }, ticketNr(t.id))),
           h("td", { class: "betreff", title: t.titel },
             h("span", { class: "betreff-titel" }, t.titel,
@@ -113,7 +117,9 @@ export function ticketTabelle(tickets, { kompakt = false } = {}) {
           h("td", {}, statusBadge(t.status)),
           h("td", {}, prioBadge(t.prioritaet, t.prioritaet_quelle)),
           kompakt ? null : h("td", {}, t.zugewiesen_an ? anzeigeName(t.zugewiesen_an) : h("span", { class: "gedimmt" }, "–")),
-          h("td", { class: "gedimmt", title: t.erstellt_am }, alter(t.erstellt_am)));
+          h("td", { class: "gedimmt", title: t.erstellt_am }, alter(t.erstellt_am, bezugszeit) || "–"),
+          h("td", { class: "gedimmt", title: warten ? `Wartezeit auf ${warten.auf}` : null },
+            warten ? dauer(warten.minuten) : "–"));
         zeile.addEventListener("click", (ev) => {
           if (ev.target.closest("a")) return;
           location.hash = `#/ticket/${t.id}`;

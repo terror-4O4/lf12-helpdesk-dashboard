@@ -49,21 +49,21 @@ export function leeren(el) {
 // --- Zeit -----------------------------------------------------------------
 // Zeitstempel ohne Zeitzone ("2026-11-19T08:12:00") liest der Browser als Ortszeit.
 export function zeit(text) {
-  return text ? new Date(text) : null;
+  const datum = text ? new Date(text) : null;
+  return datum && !Number.isNaN(datum.getTime()) ? datum : null;
+}
+
+function festeZeit() {
+  const ausAdresse = new URLSearchParams(location.search).get("jetzt");
+  return zeit(ausAdresse) || zeit(DEMO_JETZT);
 }
 
 export function jetzt() {
-  const ausAdresse = new URLSearchParams(location.search).get("jetzt");
-  const fest = ausAdresse || DEMO_JETZT;
-  if (fest) {
-    const d = new Date(fest);
-    if (!Number.isNaN(d.getTime())) return d;
-  }
-  return new Date();
+  return festeZeit() || new Date();
 }
 
 export function istDemoZeit() {
-  return Boolean(new URLSearchParams(location.search).get("jetzt") || DEMO_JETZT);
+  return Boolean(festeZeit());
 }
 
 const DATUM = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit" });
@@ -85,10 +85,10 @@ export function dauer(minuten) {
   return `${tage} ${tage === 1 ? "Tag" : "Tage"}`;
 }
 
-export function alter(text) {
+export function alter(text, bezugszeit = jetzt()) {
   const d = zeit(text);
   if (!d) return "";
-  const min = (jetzt() - d) / 60000;
+  const min = (bezugszeit - d) / 60000;
   return min < 1 ? "gerade eben" : `vor ${dauer(min)}`;
 }
 
@@ -97,30 +97,47 @@ export const istOffen = (t) => t.status !== "geschlossen";
 
 // Spam-Verdacht: KI sagt Spam und kein Mitarbeiter hat widersprochen
 export const istSpamVerdacht = (t) =>
-  Boolean(t.ki?.spam) && t.spam_entscheidung !== "kein_spam" && istOffen(t);
+  (t.spam_entscheidung === "spam" || (Boolean(t.ki?.spam) && !t.spam_entscheidung)) && istOffen(t);
 
 // Noch zu entscheiden auf der Spam-Seite
 export const spamOffen = (t) => istSpamVerdacht(t) && !t.spam_entscheidung;
 
 export const prioRang = (t) => PRIO_RANG[t.prioritaet] || 0;
 
+export const hatHandlungsbedarf = (t) =>
+  SLA_LAEUFT_BEI.includes(t.status) && !istSpamVerdacht(t);
+
 // Seit wann ist das Ticket im aktuellen Status?
 function seitStatus(t) {
   const liste = t.statushistorie || [];
   const letzter = liste[liste.length - 1];
-  return zeit(letzter?.seit || t.erstellt_am);
+  return zeit(letzter?.seit) || zeit(t.erstellt_am);
+}
+
+export function wartezeit(t, bezugszeit = jetzt()) {
+  const wartetAufKunde = t.status === "warten_auf_kunde";
+  if ((!wartetAufKunde && !SLA_LAEUFT_BEI.includes(t.status)) || istSpamVerdacht(t)) return null;
+  const seit = seitStatus(t);
+  if (!seit) return null;
+  return {
+    auf: wartetAufKunde ? "Kunde" : "Support",
+    minuten: Math.max(0, (bezugszeit - seit) / 60000),
+  };
 }
 
 // Ergebnis: { zustand: "gruen" | "gelb" | "rot" | "pausiert" | "keine", anteil, text }
-export function sla(t) {
+export function sla(t, bezugszeit = jetzt()) {
   if (!istOffen(t) || istSpamVerdacht(t)) return { zustand: "keine", anteil: -1, text: "" };
   if (!SLA_LAEUFT_BEI.includes(t.status)) {
     return { zustand: "pausiert", anteil: -1, text: "SLA pausiert" };
   }
+  const warten = wartezeit(t, bezugszeit);
+  if (!warten) return { zustand: "keine", anteil: -1, text: "" };
   const grenze = SLA_MINUTEN[t.prioritaet] ?? SLA_MINUTEN.unbewertet;
-  const vergangen = (jetzt() - seitStatus(t)) / 60000;
+  const vergangen = warten.minuten;
   const anteil = vergangen / grenze;
   const rest = grenze - vergangen;
+  if (rest === 0) return { zustand: "rot", anteil, text: "Reaktionsfrist erreicht" };
   if (anteil >= 1) return { zustand: "rot", anteil, text: `${dauer(rest)} überschritten` };
   return {
     zustand: anteil >= SLA_GELB_AB ? "gelb" : "gruen",
@@ -130,8 +147,12 @@ export function sla(t) {
 }
 
 // Sortierung "was ist am dringendsten": SLA-Verbrauch, dann Priorität, dann Alter
-export function nachDringlichkeit(a, b) {
-  return sla(b).anteil - sla(a).anteil || prioRang(b) - prioRang(a) || a.id - b.id;
+export function nachDringlichkeit(a, b, bezugszeit = jetzt()) {
+  return Number(hatHandlungsbedarf(b)) - Number(hatHandlungsbedarf(a))
+    || sla(b, bezugszeit).anteil - sla(a, bezugszeit).anteil
+    || prioRang(b) - prioRang(a)
+    || (zeit(a.erstellt_am)?.getTime() ?? Infinity) - (zeit(b.erstellt_am)?.getTime() ?? Infinity)
+    || a.id - b.id;
 }
 
 // --- Badges ---------------------------------------------------------------
@@ -150,8 +171,8 @@ export function prioBadge(prio, quelle) {
   );
 }
 
-export function slaAmpel(t, mitText = false) {
-  const s = sla(t);
+export function slaAmpel(t, mitText = false, bezugszeit = jetzt()) {
+  const s = sla(t, bezugszeit);
   if (s.zustand === "keine") return h("span", { class: "ampel ampel-keine", "aria-hidden": "true" });
   return h(
     "span",
@@ -167,6 +188,26 @@ export function kiMarke(text = "KI") {
 }
 
 export const ticketNr = (id) => `#${id}`;
+
+export function dokuQuellen(quellen, antwort = "") {
+  if (!quellen?.length) return null;
+  return h("ul", { class: "doku-quellen", "aria-label": "Fundstellen in der Kundendokumentation" },
+    quellen.map(({ titel, quelle, text, links }) => h("li", {},
+      h("strong", {}, titel),
+      h("div", { class: "klein gedimmt" }, "Fundstelle ", quelle),
+      text === antwort ? null : h("div", { class: "md" }, markdown(text)),
+      h("div", { class: "doku-links" }, links?.map(dokuLink)))));
+}
+
+function dokuLink(link) {
+  try {
+    const url = new URL(link.url);
+    if (!["https:", "http:"].includes(url.protocol) || url.username || url.password) return null;
+    return h("a", { href: url.href, target: "_blank", rel: "noopener noreferrer" }, link.titel);
+  } catch {
+    return null;
+  }
+}
 
 // --- Markdown (klein, nur das Nötigste) -----------------------------------
 // Unterstützt: # Überschriften, - Listen, 1. Listen, **fett**, `Code`, Absätze.

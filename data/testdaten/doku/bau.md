@@ -19,6 +19,9 @@
 ## Software
 - Bauzeiten-Programm: Add-In in Outlook. Nach Updates des Programms gab es bereits Startprobleme in Outlook (siehe Ticket #1001)
 
+## Portal-Links
+- [Bau-VPN-Portal](https://vpn.bau.example/) für VPN-Profile der Bauleiter-Notebooks
+
 ## Zugangsdaten
 - Server-Admin: siehe Passwortmanager, Eintrag "bau / Server"
 - Firewall-Admin: siehe Passwortmanager, Eintrag "bau / Firewall"

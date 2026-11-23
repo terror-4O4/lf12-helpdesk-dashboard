@@ -4,8 +4,8 @@
 import { api } from "../api.js";
 import { PRIORITAET, STATUS } from "../config.js";
 import {
-  alter, formatZeit, fuege, h, istSpamVerdacht, kiMarke, leeren, markdown, prioBadge, slaAmpel,
-  statusBadge, ticketNr,
+  alter, dauer, dokuQuellen, formatZeit, fuege, h, istSpamVerdacht, jetzt, kiMarke, leeren, markdown, prioBadge, slaAmpel,
+  statusBadge, ticketNr, wartezeit,
 } from "../hilfen.js";
 import {
   anzeigeName, kundeName, meldung, mitarbeiterListe, neuZeichnen, ticketErsetzen, zustand,
@@ -22,6 +22,8 @@ export function zeigeTicket(ziel, { teile }) {
     return "Ticket";
   }
 
+  const bezugszeit = jetzt();
+  const warten = wartezeit(t, bezugszeit);
   ziel.append(
     h("a", { href: "#/tickets", class: "zurueck" }, "← Alle Tickets"),
     h("div", { class: "ticket-kopf" },
@@ -29,21 +31,22 @@ export function zeigeTicket(ziel, { teile }) {
       h("div", { class: "badges" },
         statusBadge(t.status),
         prioBadge(t.prioritaet, t.prioritaet_quelle),
-        slaAmpel(t, true),
+        slaAmpel(t, true, bezugszeit),
+        warten ? h("span", { class: "hinweis" }, `Wartezeit auf ${warten.auf}: ${dauer(warten.minuten)}`) : null,
         istSpamVerdacht(t) ? h("span", { class: "badge badge-ki" }, "✦ Spam-Verdacht") : null)),
     h("div", { class: "raster-detail" },
-      h("div", { class: "spalte" }, beschreibung(t), bearbeiten(t), verlauf(t)),
+      h("div", { class: "spalte" }, beschreibung(t, bezugszeit), bearbeiten(t), verlauf(t, bezugszeit)),
       h("div", { class: "spalte" }, kiBlock(t), kiFaelle(t), kundeKarte(t))),
   );
   return `Ticket ${ticketNr(t.id)}`;
 }
 
 // --- Links: Mensch --------------------------------------------------------
-function beschreibung(t) {
+function beschreibung(t, bezugszeit) {
   return h("section", { class: "karte" },
     h("div", { class: "karte-kopf" },
       h("h3", {}, "Nachricht"),
-      h("span", { class: "hinweis" }, `${kundeName(t.kunde)} · ${formatZeit(t.erstellt_am)} (${alter(t.erstellt_am)})`)),
+      h("span", { class: "hinweis" }, `${kundeName(t.kunde)} · ${formatZeit(t.erstellt_am)} (${alter(t.erstellt_am, bezugszeit)})`)),
     h("p", { class: "nachricht" }, t.beschreibung),
     t.ursache || t.loesungsweg
       ? h("div", { class: "loesung" },
@@ -138,14 +141,14 @@ function bearbeiten(t) {
   return h("section", { class: "karte" }, h("div", { class: "karte-kopf" }, h("h3", {}, "Bearbeiten")), formular);
 }
 
-function verlauf(t) {
+function verlauf(t, bezugszeit) {
   const eintraege = [...(t.statushistorie || [])].reverse();
   return h("section", { class: "karte" },
     h("div", { class: "karte-kopf" }, h("h3", {}, "Verlauf")),
     h("ol", { class: "verlauf" },
       eintraege.map((e) => h("li", {},
         statusBadge(e.status),
-        h("span", { class: "gedimmt" }, `${formatZeit(e.seit)} (${alter(e.seit)})`)))));
+        h("span", { class: "gedimmt" }, `${formatZeit(e.seit)} (${alter(e.seit, bezugszeit)})`)))));
 }
 
 // --- Rechts: KI -----------------------------------------------------------
@@ -296,12 +299,30 @@ function kundeKarte(t) {
     knopf.textContent = "Kundendoku ausblenden";
   });
 
+  const fundstellen = h("div", { "aria-live": "polite" });
+  const ladeFundstellen = async () => {
+    fundstellen.replaceChildren(h("p", { class: "leer" }, "Suche passende Fundstellen …"));
+    try {
+      const ergebnis = await api.ticketDoku(t.id);
+      fundstellen.replaceChildren(dokuQuellen(ergebnis.quellen) ||
+        h("p", { class: "leer" }, "Keine passende Fundstelle in der Kundendoku."));
+    } catch (e) {
+      fundstellen.replaceChildren(
+        h("p", { class: "leer" }, `Fundstellen konnten nicht geladen werden. ${e.message}`),
+        h("button", { class: "knopf", type: "button", onclick: ladeFundstellen }, "Erneut versuchen"));
+    }
+  };
+
   karte.append(
     h("dl", { class: "werte" },
       h("dt", {}, "Name"), h("dd", {}, kunde.name),
       h("dt", {}, "Ort"), h("dd", {}, kunde.ort),
       h("dt", {}, "Ansprechpartner"), h("dd", {}, kunde.ansprechpartner)),
     h("p", { class: "klein gedimmt" }, "🔒 Zugangsdaten stehen nie in der Doku, nur der Verweis auf den Passwortmanager."),
-    knopf, doku);
+    h("div", { class: "knopfreihe" }, knopf,
+      h("button", { class: "knopf", type: "button", onclick: () => oeffneAssistent(t) }, "Kundendoku fragen")),
+    doku,
+    h("div", { class: "doku-fundstellen" }, h("h4", {}, "Fundstellen zum Ticket"), fundstellen));
+  ladeFundstellen();
   return karte;
 }
