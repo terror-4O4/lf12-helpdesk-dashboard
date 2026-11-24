@@ -267,3 +267,79 @@ class TicketfragenTest(unittest.TestCase):
         self.assertIn(plan["pruefung"], r["antwort"])
         self.assertIn("Mögliche Erklärung", r["antwort"])
         self.assertIn(plan["hypothese"], r["antwort"])
+
+    def test_fachnotiz_verwendet_nur_explizit_zugeordnete_server(self):
+        archiv = app.doku.Abschnitt("Software", "doku/beispiel.md#software",
+                                    "Archivsoftware (Datenbank auf `ARCHIV-SRV03`)")
+        zeit = app.doku.Abschnitt("Software", archiv.quelle, "Zeitbuchung (Datenbank auf `ZEIT-SRV02`)")
+        anders = app.doku.Abschnitt("Software", archiv.quelle, "Zeitbuchung (Datenbank auf `ZEIT-SRV04`)")
+        for text, fakten, erlaubter_host in [
+                ("Rechnername funktioniert nicht, DNS-Auflösung schlägt fehl.", [archiv], None),
+                ("Zeitbuchung meldet: Datenbank nicht erreichbar.", [archiv], None),
+                ("Zeitbuchung meldet: Datenbank nicht erreichbar.", [archiv, zeit], "ZEIT-SRV02"),
+                ("Zeitbuchung meldet: Datenbank nicht erreichbar.", [zeit, anders], None)]:
+            ticket = {"titel": text, "beschreibung": text}
+            nachweis = {}
+            wissen = app.wiki.hintergrund(text)
+            with self.subTest(text=text, ziel=erlaubter_host), patch.object(
+                    app, "frage_beratungsmodell", side_effect=AssertionError("Anleitung bereits vorhanden")) as modell:
+                antwort, quellen, tokens = app.ticketfragen.beratung(
+                    ticket, "Was soll ich prüfen?", fakten, None, wissen, modell=modell, nachweis=nachweis)
+            self.assertIsNone(tokens)
+            self.assertEqual(nachweis["modus"], "fachnotiz")
+            self.assertTrue(any(q.get("pruefschritte") for q in quellen))
+            for host in ("ARCHIV-SRV03", "ZEIT-SRV02", "ZEIT-SRV04"):
+                self.assertEqual(host in antwort, host == erlaubter_host)
+                self.assertEqual(host in json.dumps(quellen), host == erlaubter_host)
+
+    def test_client_und_datenbank_in_derselben_aktenzeile(self):
+        text = "Zeitbuchung meldet: Datenbank nicht erreichbar."
+        fakt = app.doku.Abschnitt("Software", "doku/beispiel.md#software",
+                                  "Zeitbuchung (Client auf `BUERO-PC01`, Datenbank auf `ZEIT-SRV02`)")
+        fall = {"id": 80, "titel": "Zeitbuchung gestört", "ursache": "Dienst beendet",
+                "loesungsweg": "Dienst wieder verfügbar."}
+        plan = {"schritt": 0, "anweisung": "Prüfe auf BUERO-PC01 den Status und Starttyp der Dienstinstanz.",
+                "rueckfrage": "Welchen Status meldet BUERO-PC01?"}
+        with patch.object(app, "frage_beratungsmodell", return_value=(json.dumps(plan), 32)) as modell:
+            antwort, _, tokens = app.ticketfragen.beratung(
+                {"titel": text, "beschreibung": text}, "Was soll ich prüfen?", [fakt], fall,
+                app.wiki.hintergrund(text), modell=modell)
+        self.assertEqual(tokens, 32)
+        self.assertIn("ZEIT-SRV02", antwort)
+        self.assertNotIn("BUERO-PC01", antwort)
+
+    def test_schemazeichenlimit_zeigt_vollstaendige_saetze_und_einen_ehrlichen_rueckfall(self):
+        def abgeschnitten(anfang, limit):
+            text = anfang + " Wenn dagegen z. B. die Anzeige im Vergleich " + "erneut abweicht und " * 25
+            return text[:limit - 7] + "untersc"
+
+        erster = "Vergleiche den Ausdruck direkt am Drucker."
+        frage = "Tritt das Problem auch bei einer Testseite direkt am Gerät auf?"
+        angenommene_ursache = "Eine abweichende Vorschau könnte den leeren Ausdruck erklären."
+        for pruefung, rueckfrage, modus in [
+                (abgeschnitten(erster, 360), abgeschnitten(frage, 180), "modellvorschlag"),
+                (abgeschnitten("Prüfe die Anzeige", 360), frage, "modellrueckfrage"),
+                (abgeschnitten("Prüfe die Anzeige", 360), abgeschnitten("Wo erscheint z.B.", 180), "standardpruefung"),
+                (erster.rstrip("."), "", "modellvorschlag")]:
+            plan = {"pruefung": pruefung, "hypothese": abgeschnitten(angenommene_ursache, 180),
+                    "rueckfrage": rueckfrage}
+            with self.subTest(modus=modus, pruefung=pruefung), patch.object(app, "KI_MOCK", False), patch.object(
+                    app, "erzeuge_vorschlag", return_value={"ergebnis": {"vorschlaege": []}, "tokens": 0}), \
+                    patch.object(app, "frage_beratungsmodell", return_value=(json.dumps(plan), 120)):
+                r = self.frage(1027, "Was kann ich prüfen?")
+            self.assertEqual(modus, r["modus"])
+            self.assertNotIn("untersc", r["antwort"])
+            self.assertNotIn("Wenn dagegen", r["antwort"])
+            if modus == "modellvorschlag":
+                self.assertIn(erster.rstrip("."), r["antwort"])
+                self.assertIn(angenommene_ursache, r["antwort"])
+                if rueckfrage:
+                    self.assertIn(frage, r["antwort"])
+            elif modus == "modellrueckfrage":
+                self.assertEqual(frage, r["antwort"])
+
+    def test_vollstaendiger_satz_genau_am_limit(self):
+        satz = "Vergleiche die Vorschau, z. B. mit dem Ergebnis am anderen Arbeitsplatz."
+        self.assertEqual(app.ticketfragen.vollstaendiges_feld(satz, len(satz)), satz)
+        fragment = "Prüfe den Wert, z. B."
+        self.assertEqual(app.ticketfragen.vollstaendiges_feld(fragment, len(fragment)), "")

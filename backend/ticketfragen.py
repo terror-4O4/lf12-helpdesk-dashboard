@@ -255,6 +255,24 @@ _UNBESTIMMT = doku._begriffe(
     "wurde gesagt schreiben schrieb zurückrufen kaputt weiß wissen leider einschätzen seitdem weiter bitte")
 
 
+_ABKUERZUNG = re.compile(
+    r"\b(?:[a-zäöü]\.(?:\s*[a-zäöü]\.)+|"
+    r"(?:[a-zäöü]|bzw|ggf|evtl|ca|vgl|inkl|zzgl|insb|etc|usw|nr|abb|art|abs|dr|prof)\.)", re.I)
+_SATZENDE = re.compile(r"(?<![.!?])(?:[!?]+|\.(?!\.))[»“”’'\")\]]*(?=\s|$)")
+
+
+def vollstaendiges_feld(text, limit: int):
+    """Am Zeichenlimit kann llama.cpp mitten im Wort aufhören. Nur sichere Satzenden übernehmen."""
+    if not isinstance(text, str) or len(text) < limit:
+        return text
+    # Abkürzungspunkte verdecken, die Positionen im Originaltext bleiben erhalten.
+    markiert = _ABKUERZUNG.sub(lambda m: m[0].replace(".", "_"), text)
+    ende = 0
+    for treffer in _SATZENDE.finditer(markiert):
+        ende = treffer.end()
+    return text[:ende].strip()
+
+
 def offener_text(text, belege: str) -> bool:
     """Allgemeines Fachwissen darf neue Begriffe enthalten, lokale Kennungen brauchen einen Beleg."""
     if not isinstance(text, str) or not 8 <= len(text.strip()) <= 440:
@@ -345,6 +363,8 @@ def offene_diagnose(ticket: dict, frage: str, fakten: list[doku.Abschnitt], mode
         plan = json.loads(antwort)
         if not isinstance(plan, dict):
             raise ValueError("Die Modellantwort muss ein Objekt sein")
+        for feld in ("pruefung", "hypothese", "rueckfrage"):
+            plan[feld] = vollstaendiges_feld(plan.get(feld), schema["properties"][feld]["maxLength"])
         detail = plan.get("pruefung")
         belege = befund + " " + " ".join(fakttext(f) for f in fakten)
         alte_pruefung = r"\b(?:nachbarplatz|anderen (?:pc|platz|arbeitsplatz))\b"
@@ -394,18 +414,29 @@ def bekannter_befund(frage: str, schritt: str) -> str:
     return ""
 
 
-def konkreter_schritt(text: str, fakten: list[doku.Abschnitt]) -> str:
-    # Nur ein ausdrücklich als Datenbank-Host belegtes Ziel einsetzen.
+def datenbankziel(fakten: list[doku.Abschnitt], meldung: str) -> tuple[str, doku.Abschnitt] | None:
+    """Ein Servername gehört nur dann zur Prüfung, wenn die Akte die betroffene Anwendung zuordnet."""
+    ziele = {}
+    generisch = fachbegriffe("Anwendung Client Software Datenbank SQL Server Datenbankserver Arbeitsplatz Dienst Programm")
     for fakt in fakten:
-        host = re.search(r"\bDatenbank (?:auf|unter) `([a-zA-Z0-9.-]+)`", fakt.text)
-        if host:
-            if text.startswith("Vergleiche ") and "Datenbankprotokoll" in text:
-                return text.replace("Vergleiche ", "Vergleiche auf " + host[1] + " ", 1)
-            return text.replace("auf dem Datenbankserver", "auf " + host[1])
-    return text
+        zuordnung = re.search(r"\bDatenbank (?:auf|unter) `([a-zA-Z0-9.-]+)`", fakt.text, re.I)
+        if zuordnung:
+            anwendung = re.split(r"[(,;:]", fakt.text[:zuordnung.start()], maxsplit=1)[0]
+            name = fachbegriffe(anwendung) - generisch
+            if name and name <= fachbegriffe(meldung):
+                ziele[zuordnung[1].casefold()] = (zuordnung[1], fakt)
+    return next(iter(ziele.values())) if len(ziele) == 1 else None
 
 
-def sichere_pruefung(satz: str, schritt: str, fakten: list[doku.Abschnitt]) -> bool:
+def konkreter_schritt(text: str, host: str | None) -> str:
+    if host is None:
+        return text
+    if text.startswith("Vergleiche ") and "Datenbankprotokoll" in text:
+        return text.replace("Vergleiche ", "Vergleiche auf " + host + " ", 1)
+    return text.replace("auf dem Datenbankserver", "auf " + host)
+
+
+def sichere_pruefung(satz: str, schritt: str) -> bool:
     """Prüfanweisung muss zur gewählten, lesenden Maßnahme passen und ihre Details belegen."""
     if not isinstance(satz, str) or not re.fullmatch(
             r"(?:Prüfe|Überprüfe|Kontrolliere|Vergleiche|Ermittle|Öffne|Lies|Suche|Notiere) "
@@ -419,10 +450,9 @@ def sichere_pruefung(satz: str, schritt: str, fakten: list[doku.Abschnitt]) -> b
     inhalt = doku._begriffe(satz)
     if len(inhalt & fachlich) < min(2, len(fachlich)) or not fachlich:
         return False
-    belege = schritt + " " + " ".join(f.text for f in fakten)
-    if not set(re.findall(r"[\w-]*\d[\w-]*", satz.lower())) <= set(re.findall(r"[\w-]*\d[\w-]*", belege.lower())):
+    if not set(re.findall(r"[\w-]*\d[\w-]*", satz.lower())) <= set(re.findall(r"[\w-]*\d[\w-]*", schritt.lower())):
         return False
-    belegt = doku._begriffe(belege)
+    belegt = doku._begriffe(schritt)
     grammatik = doku._begriffe(
         "Prüfe Überprüfe Kontrolliere Vergleiche Ermittle Öffne Lies Notiere Suche "
         "läuft laufend vorhanden gestartet aktuell aktuellen betreffenden betroffenen passenden richtige "
@@ -467,10 +497,10 @@ def diagnoseplan(frage, meldung, fakten, fall, schritte, modell):
             return 0, "", "", tokens
         schritt, quelle = schritte[nummer]
         anweisung = plan.get("anweisung")
-        if not sichere_pruefung(anweisung, schritt, fakten):
+        if not sichere_pruefung(anweisung, schritt):
             anweisung = ""
         rueckfrage = plan.get("rueckfrage")
-        if not isinstance(rueckfrage, str) or not sichere_rueckfrage(rueckfrage, meldung, quelle, fakten):
+        if not isinstance(rueckfrage, str) or not sichere_rueckfrage(rueckfrage, schritt, quelle, []):
             rueckfrage = ""
         return nummer, anweisung, rueckfrage, tokens
     except (HTTPException, ValueError, KeyError, TypeError):
@@ -515,6 +545,8 @@ def beratung(ticket, frage, fakten, fall, fachwissen, modell=None, *, verlauf=()
     kontext = frage
     if verlauf and kurze_rueckfrage(frage):
         kontext = "\n".join([*verlauf, frage])
+    datenbank = datenbankziel(fakten, meldung)
+    host = datenbank[0] if datenbank else None
     schritte, folgefragen = [], []
     for q in fachwissen:
         for schritt in q.get("pruefschritte", []):
@@ -522,15 +554,33 @@ def beratung(ticket, frage, fakten, fall, fachwissen, modell=None, *, verlauf=()
             if befund:
                 folgefragen.append(befund)
             else:
-                schritte.append((konkreter_schritt(schritt, fakten), q))
+                schritte.append((konkreter_schritt(schritt, host), q))
     if folgefragen and not schritte:
+        if nachweis is not None:
+            nachweis["modus"] = "fachnotiz"
         return ("Dieser Befund grenzt das Problem weiter ein. " + folgefragen[0], [], None)
     if not schritte and not fall:
         antwort, quellen, tokens, modus = offene_diagnose(ticket, frage, fakten, modell, verlauf)
         if nachweis is not None:
             nachweis["modus"] = modus
         return antwort, quellen, tokens
-    nummer, formuliert, rueckfrage, tokens = diagnoseplan(frage, meldung, fakten, fall, schritte, modell)
+    nummer, formuliert, rueckfrage, tokens = 0, "", "", None
+    if schritte:
+        # Die erste Fachquelle kommt aus der nach Relevanz sortierten Suche. Keine Zielnamen aus
+        # benachbarten Inventarzeilen auf ihre Anweisungen übertragen.
+        fachquelle = schritte[0][1]
+        schritte = [(s, q) for s, q in schritte if q == fachquelle]
+        if datenbank and any(konkreter_schritt(s, host) != s for s in fachquelle["pruefschritte"]):
+            fakten = [datenbank[1]]
+            if fall:
+                nummer, formuliert, rueckfrage, tokens = diagnoseplan(frage, meldung, fakten, fall, schritte, modell)
+        else:
+            fachthema = fachbegriffe(fachquelle["titel"]) & fachbegriffe(meldung)
+            fakten = [f for f in fakten if fall and (
+                fachthema & fachbegriffe(fakttext(f)) or
+                fachbegriffe(re.split(r"[(,;:]", fakttext(f), maxsplit=1)[0]) & fachbegriffe(ticket["titel"]))]
+        if nachweis is not None and not formuliert and not rueckfrage:
+            nachweis["modus"] = "fachnotiz"
     absatz = []
     quellen = []
     if not folgefragen and (einordnung := beobachtung(meldung)):
@@ -538,9 +588,8 @@ def beratung(ticket, frage, fakten, fall, fachwissen, modell=None, *, verlauf=()
     if fakten and (schritte or fall):
         fakt = fakten[0]
         fakt_text = fakttext(fakt)
-        im_pruefschritt = re.search(r"`([^\s`]+)`", fakt.text)
-        ist_eingesetzt = bool(im_pruefschritt and schritte and (
-            im_pruefschritt[1] in (formuliert or schritte[nummer][0])))
+        ist_eingesetzt = bool(datenbank and fakt == datenbank[1] and schritte
+                              and host in (formuliert or schritte[nummer][0]))
         if not folgefragen and not ist_eingesetzt:
             absatz.append("Laut Kundenakte: " + fakt_text.rstrip(".") + ".")
         quellen.append({**fakt.als_quelle(), "text": fakt_text})

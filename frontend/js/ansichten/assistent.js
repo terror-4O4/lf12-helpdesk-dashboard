@@ -14,6 +14,7 @@ const VORSCHLAEGE = [
 const ANTWORTHERKUNFT = {
   mock: "Demo-Modus",
   fachdialog: "Prüfanleitung aus dem Fachwissen",
+  fachnotiz: "Prüfanleitung aus dem Fachwissen",
   modellvorschlag: "Prüfschritt vom lokalen Modell",
   modellrueckfrage: "Rückfrage vom lokalen Modell",
   standardpruefung: "Allgemeine Prüfhilfe",
