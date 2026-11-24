@@ -11,6 +11,14 @@ const VORSCHLAEGE = [
   "Woran erkenne ich eine Phishing-Mail?",
 ];
 
+const ANTWORTHERKUNFT = {
+  mock: "Demo-Modus",
+  fachdialog: "Prüfanleitung aus dem Fachwissen",
+  modellvorschlag: "Prüfschritt vom lokalen Modell",
+  modellrueckfrage: "Rückfrage vom lokalen Modell",
+  standardpruefung: "Allgemeine Prüfhilfe",
+};
+
 const verlaeufe = new Map();
 const entwuerfe = new Map();
 let kontext = null; // Ticket oder null
@@ -133,7 +141,7 @@ async function fragen(text) {
 
   try {
     const r = id == null ? await api.frage(frage) : await api.frageTicket(id, frage, vorherigeFragen);
-    const info = r.modus === "mock" ? "Demo-Modus" : "";
+    const info = ANTWORTHERKUNFT[r.modus] || "";
     verlauf.push({ rolle: "ki", text: r.antwort, info, quellen: r.quellen });
   } catch (e) {
     verlauf.push({ rolle: "ki", text: `Fehler: ${e.message}`, info: "" });

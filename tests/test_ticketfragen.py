@@ -164,6 +164,7 @@ class TicketfragenTest(unittest.TestCase):
     def test_angefragte_erstpruefung_konkretisierung_und_neuer_befund(self):
         fragen = ["Was ist der nächste Schritt?", "Was soll ich machen?"]
         start = self.frage(1008, fragen[0])
+        self.assertEqual(start["modus"], "fachdialog")
         self.assertIn("Display", start["antwort"])
         self.assertNotIn("dialog", json.dumps(start["quellen"]))
         self.assertIn("Anmeldeplatz 1", start["antwort"])
@@ -208,4 +209,61 @@ class TicketfragenTest(unittest.TestCase):
         with patch.object(app, "KI_MOCK", False), patch.object(app, "erzeuge_vorschlag", return_value={
                 "modus": "llama", "tokens": 0, "ergebnis": {"vorschlaege": []}}), patch.object(
                 app, "frage_beratungsmodell", return_value=(json.dumps({"pruefung": schritt, "rueckfrage": ""}), 18)):
-            self.assertTrue(self.frage(1031, "Was soll ich machen?")["antwort"].startswith(schritt))
+            antwort = self.frage(1031, "Was soll ich machen?")
+            self.assertTrue(antwort["antwort"].startswith(schritt))
+            self.assertEqual(antwort["modus"], "modellvorschlag")
+
+    def test_offener_modellvorschlag_mit_neuem_fachbegriff_und_gueltiger_herkunft(self):
+        ticket = next(t for t in self.tickets if t["id"] == 1027)
+        ticket.update(titel="Fußnote im Schriftstück verschoben",
+                      beschreibung="Die Fußnote beginnt in der Mitte der Seite. Im anderen Dokument steht sie unten.")
+        rfrage = "Welchen Abstand zeigt der Absatzdialog in den beiden Fußnoten?"
+        schritt = "Vergleiche die Absatzformatierung der verschobenen Fußnote mit der im zweiten Dokument."
+        for vorschlag, modus in [
+                (schritt, "modellvorschlag"), ("", "modellrueckfrage"),
+                ("Prüfe die Fußnote auf DOK-SRV99.", "standardpruefung"),
+                ("Prüfe die Fußnote und lösche die Formatvorlage.", "standardpruefung")]:
+            with self.subTest(vorschlag=vorschlag), patch.object(app, "KI_MOCK", False), patch.object(
+                    app, "erzeuge_vorschlag", return_value={"ergebnis": {"vorschlaege": []}, "tokens": 0}), patch.object(
+                    app, "frage_beratungsmodell", return_value=(
+                        json.dumps({"pruefung": vorschlag, "rueckfrage": rfrage}), 33)) as modell:
+                r = self.frage(1027, "Was soll ich machen?", verlauf=["Beide Seiten sind gleich groß."])
+                eingabe = json.loads(modell.call_args.args[0][1]["content"])
+                self.assertEqual(eingabe["fruehere_nachrichten"], ["Beide Seiten sind gleich groß."])
+                self.assertNotIn("moegliche_pruefung", eingabe)
+                self.assertEqual(modus, r["modus"])
+                self.assertEqual(r["quellen"], [])
+                self.assertEqual(r["tokens"], 33)
+                if modus == "modellvorschlag":
+                    self.assertIn(schritt, r["antwort"])
+                    self.assertIn(rfrage, r["antwort"])
+                elif modus == "modellrueckfrage":
+                    self.assertEqual(rfrage, r["antwort"])
+                else:
+                    self.assertNotIn(vorschlag, r["antwort"])
+
+    def test_meldung_ohne_betroffene_funktion(self):
+        ticket = next(t for t in self.tickets if t["id"] == 1027)
+        ticket.update(titel="IT-Problem", beschreibung="Seit heute geht es nicht mehr. Bitte dringend helfen.")
+        with patch.object(app, "erzeuge_vorschlag", return_value={"ergebnis": {"vorschlaege": []}, "tokens": 0}), \
+                patch.object(app, "frage_beratungsmodell", side_effect=AssertionError("kein konkretes Symptom")):
+            r = self.frage(1027, "Was soll ich machen?")
+        self.assertEqual(r["modus"], "rueckfrage")
+        self.assertIn("welcher Anwendung", r["antwort"])
+
+    def test_lesender_modelltest_mit_vorschau_und_hypothese(self):
+        ticket = next(t for t in self.tickets if t["id"] == 1027)
+        ticket.update(titel="Abstand im Dokument", beschreibung="Vor einer Fußnote bleibt eine Lücke.")
+        plan = {"erfolgreiche_gegenprobe": "", "fehlerbild": "Abstand vor der Fußnote",
+                "hypothese": "Eine abweichende Formatierung könnte vor dem Absatz zusätzlichen Platz vorsehen.",
+                "pruefung": "In der Vorschau die betroffene Fußnote ohne Speichern mit einer passenden Fußnote vergleichen. "
+                            "Welcher Absatzabstand wird in der Formatierung der beiden Stellen angezeigt?",
+                "rueckfrage": "Unterscheiden sich die Werte?"}
+        with patch.object(app, "KI_MOCK", False), patch.object(app, "erzeuge_vorschlag", return_value={
+                "ergebnis": {"vorschlaege": []}, "tokens": 0}), patch.object(
+                    app, "frage_beratungsmodell", return_value=(json.dumps(plan), 70)):
+            r = self.frage(1027, "Was kann ich prüfen?")
+        self.assertEqual(r["modus"], "modellvorschlag")
+        self.assertIn(plan["pruefung"], r["antwort"])
+        self.assertIn("Mögliche Erklärung", r["antwort"])
+        self.assertIn(plan["hypothese"], r["antwort"])

@@ -122,7 +122,7 @@ test("der Assistent trennt offene Anfragen, Entwürfe und Folgefragen beim Ticke
   t.mock.method(api, "frageTicket", async (id, frage, verlauf) => {
     aufrufe.push([id, frage, verlauf]);
     if (id === 1021) return new Promise(resolve => { antwortePraxis = resolve; });
-    return { antwort: "Datenbankdienst prüfen." };
+    return { antwort: "Datenbankdienst prüfen.", modus: "modellvorschlag" };
   });
   t.mock.method(api, "frage", async frage => ({ antwort: `Allgemeine Antwort auf ${frage}` }));
   initAssistent();
@@ -149,6 +149,7 @@ test("der Assistent trennt offene Anfragen, Entwürfe und Folgefragen beim Ticke
   antwortePraxis({ antwort: "Postfachbelegung prüfen." });
   await fertig();
   assert.match(chat.textContent, /Datenbankdienst/);
+  assert.match(chat.textContent, /Prüfschritt vom lokalen Modell/);
   assert.doesNotMatch(chat.textContent, /Postfach/);
   abschicken("Und danach?");
   await fertig();

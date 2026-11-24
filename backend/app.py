@@ -1124,10 +1124,11 @@ def berate_zum_ticket(ticket: dict, bestand: list[dict], dokument: list[doku.Abs
         if fall:
             return ticketfragen.historischer_fall(fall), [ticketfragen.fallquelle(fall)], "ticket", tokens
         return "Für dieses Ticket konnte ich keinen passenden gelösten Fall desselben Kunden belegen.", [], "ticket", tokens
+    nachweis = {}
     antwort, quellen, plantokens = ticketfragen.beratung(
         ticket, frage, fakten, fall, wissen, modell=None if KI_MOCK else frage_beratungsmodell,
-        verlauf=verlauf)
-    modus = "llama" if plantokens is not None else "ticket"
+        verlauf=verlauf, nachweis=nachweis)
+    modus = nachweis.get("modus", "llama" if plantokens is not None else "ticket")
     return antwort, quellen, modus, (tokens or 0) + (plantokens or 0) or None
 
 
