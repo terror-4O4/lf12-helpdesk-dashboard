@@ -48,10 +48,11 @@ def _finde(meldung: str, frage: str, mit_diagnose: bool) -> list[dict]:
 
     ergebnis = []
     for _, artikel in sorted(treffer, key=lambda t: t[0])[:2]:
+        anbieter = artikel.get("anbieter", "Wikipedia")
         quelle = {
             "titel": artikel["titel"], "text": artikel["text"], "url": artikel["url"],
-            "quelle": f"Wikipedia · {artikel['artikel']}",
-            "links": [{"titel": "Wikipedia-Artikel öffnen", "url": artikel["url"]}],
+            "quelle": f"{anbieter} · {artikel['artikel']}",
+            "links": [{"titel": f"{anbieter} · {artikel['artikel']}", "url": artikel["url"]}],
         }
         pruefung = artikel.get("pruefung")
         if mit_diagnose and pruefung and (
@@ -60,6 +61,8 @@ def _finde(meldung: str, frage: str, mit_diagnose: bool) -> list[dict]:
             quelle["pruefschritte"] = list(pruefung["schritte"])
             quelle["pruefhinweis"] = " ".join(pruefung["schritte"])
             quelle["links"].extend(pruefung["quellen"])
+            if "dialog" in pruefung:
+                quelle["dialog"] = pruefung["dialog"]
         ergebnis.append(quelle)
     return ergebnis
 

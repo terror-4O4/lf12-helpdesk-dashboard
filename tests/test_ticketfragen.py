@@ -24,8 +24,9 @@ class TicketfragenTest(unittest.TestCase):
         stack.enter_context(patch.object(app, "KI_MOCK", True))
         self.client = stack.enter_context(TestClient(app.app))
 
-    def frage(self, nr, text, vorher=None):
-        r = self.client.post(f"/api/tickets/{nr}/frage", json={"frage": text, "vorherige_frage": vorher})
+    def frage(self, nr, text, vorher=None, *, verlauf=()):
+        r = self.client.post(f"/api/tickets/{nr}/frage", json={
+            "frage": text, "vorherige_frage": vorher, "verlauf": verlauf})
         self.assertEqual(r.status_code, 200, r.text)
         return r.json()
 
@@ -159,3 +160,52 @@ class TicketfragenTest(unittest.TestCase):
                     self.assertNotIn("Passwort", r["antwort"])
                     if frage == text:
                         self.assertIn(text, r["antwort"])
+
+    def test_angefragte_erstpruefung_konkretisierung_und_neuer_befund(self):
+        fragen = ["Was ist der nächste Schritt?", "Was soll ich machen?"]
+        start = self.frage(1008, fragen[0])
+        self.assertIn("Display", start["antwort"])
+        self.assertNotIn("dialog", json.dumps(start["quellen"]))
+        self.assertIn("Anmeldeplatz 1", start["antwort"])
+        genauer = self.frage(1008, fragen[1], verlauf=fragen[:1])
+        self.assertIn("Einlesen", genauer["antwort"])
+        self.assertNotEqual(start["antwort"], genauer["antwort"])
+        mit_befund = self.frage(1008, "Das Display leuchtet. Was soll ich machen?", verlauf=fragen)
+        self.assertIn("Kartensymbol", mit_befund["antwort"])
+        self.assertNotIn("Stromversorgung", mit_befund["antwort"])
+        erneut = self.frage(1008, "Was jetzt?", verlauf=[*fragen, "Das Display leuchtet."])
+        self.assertIn("Einstecken", erneut["antwort"])
+        self.assertNotEqual(mit_befund["antwort"], erneut["antwort"])
+        neuer = self.frage(1008, "Inzwischen bleibt das Display dunkel.", verlauf=["Das Display leuchtet."])
+        self.assertIn("Stromversorgung", neuer["antwort"])
+        hypothetisch = self.frage(1008, "Ist das Display dunkel?")
+        self.assertNotIn("Stromversorgung", hypothetisch["antwort"])
+
+    def test_unverstaendliche_eingabe_ohne_erneute_suche(self):
+        with patch.object(app, "erzeuge_vorschlag", side_effect=AssertionError("Fallsuche")), \
+                patch.object(app, "frage_beratungsmodell", side_effect=AssertionError("Modellaufruf")):
+            for text in ("aaaa", "???", "asdf"):
+                r = self.frage(1008, text, verlauf=["Das Display leuchtet."])
+                self.assertEqual(r["modus"], "rueckfrage")
+                self.assertEqual(r["quellen"], [])
+                self.assertNotIn("Display", r["antwort"])
+        self.assertFalse(app.ticketfragen.unverstaendlich("AAAA", "DNS-Einträge prüfen"))
+        self.assertFalse(app.ticketfragen.unverstaendlich("0x80004005", "Systemfehler"))
+
+    def test_wissensluecke_mit_geraetepruefung_statt_erledigtem_vergleich(self):
+        r = self.frage(1031, "Was soll ich machen?")
+        self.assertIn("Geräteübersicht", r["antwort"])
+        self.assertIn("funktioniert laut Meldung am anderen Arbeitsplatz", r["antwort"])
+        self.assertNotIn("Kartenterminal", r["antwort"])
+        self.assertNotIn("Praxis", r["antwort"])
+        monitor = self.frage(1007, "Was soll ich machen?")
+        self.assertIn("Bildschirmmenü", monitor["antwort"])
+        self.assertNotIn("Werkstattplaner", json.dumps(monitor))
+        self.assertEqual(monitor["quellen"], [])
+
+    def test_offene_diagnose_nutzt_modellschritt_zum_symptom(self):
+        schritt = "Prüfe das Statussymbol in der Geräteübersicht am betroffenen Arbeitsplatz."
+        with patch.object(app, "KI_MOCK", False), patch.object(app, "erzeuge_vorschlag", return_value={
+                "modus": "llama", "tokens": 0, "ergebnis": {"vorschlaege": []}}), patch.object(
+                app, "frage_beratungsmodell", return_value=(json.dumps({"pruefung": schritt, "rueckfrage": ""}), 18)):
+            self.assertTrue(self.frage(1031, "Was soll ich machen?")["antwort"].startswith(schritt))

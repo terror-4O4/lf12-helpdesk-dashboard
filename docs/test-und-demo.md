@@ -81,6 +81,8 @@ Vor der Überarbeitung gab der Assistent auf den Originaltext von #1017 nur den 
 
 Für den Modellvergleich erhielten Qwen2.5 0.5B und 3B die gleichen Meldungen und Belege zu #1017 und #1021. Jeweils ein freier Antwortversuch pro Ticket, Temperatur 0, höchstens 250 Ausgabetokens. Bei #1017 erfand das kleinere Modell einen laufenden SQL-Dienst und fehlerfreie Protokolle (2,65 s). Das größere schlug die passenden Prüfungen vor, empfahl aber bereits Änderungen am Dienst (22,20 s). Bei #1021 nannte nur das größere Modell die Belegungsprüfung, vermutete jedoch unbegründet einen veralteten Bericht als Ursache (4,61 s bzw. 14,58 s). Das sind Einzelbeobachtungen. Die lokale Demo verwendet deshalb 3B für die Formulierung anhand ausgewählter Belege, 0.5B für die bisherige Ticketbewertung und EmbeddingGemma für die Fallsuche. [Modell für die Beratung](https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF)
 
+Ein weiterer Browsertest nutzte drei aufeinanderfolgende Eingaben bei #1008. Auf „Was ist der nächste Schritt?“ kam die Displayprüfung am Kartenleser. „Was soll ich machen?“ führte zum Vergleich der Anzeige beim Einstecken mit der Meldung in der Praxissoftware. Bei „aaaa“ bat der Assistent um Präzisierung. Ein betriebsbereites und ein dunkles Display führten anschließend zu unterschiedlichen Prüfschritten. Beim Wechsel zu #1031 bezog die Antwort den bereits erfolgreichen Test des USB-Kartenlesers am Nachbarplatz ein.
+
 ## Messlauf auf dem Mac Pro
 
 1. Die autorisierte Umgebung mit Chat- und Embedding-Dienst einrichten, `KI_MOCK=false` setzen und das Backend neu starten. `/api/status` zeigt den Betriebsmodus sowie die Erreichbarkeit beider Dienste. Den verwendeten Commit und die Modellnamen mit den Berichten festhalten.

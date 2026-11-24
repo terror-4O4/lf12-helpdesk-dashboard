@@ -6,7 +6,7 @@ from urllib.parse import urlsplit
 
 from fastapi.testclient import TestClient
 
-from backend import app, wiki
+from backend import app, ticketfragen, wiki
 
 
 class WikipediaTest(unittest.TestCase):
@@ -104,6 +104,38 @@ class WikipediaTest(unittest.TestCase):
     def test_leere_frage_wird_abgewiesen(self):
         r = self.client.post("/api/wissen/wikipedia", json={"frage": "   "})
         self.assertEqual(r.status_code, 422)
+
+    def test_gesundheitskarten_und_speicherkarten_bleiben_unterscheidbar(self):
+        with patch("socket.socket.connect", side_effect=AssertionError("Netzwerkzugriff")):
+            quelle, = wiki.hintergrund("Das Kartenlesegerät erkennt keine Versichertenkarten mehr.")
+        self.assertEqual(quelle["quelle"], "gematik · eHealth-Kartenterminal")
+        self.assertIn("Display", quelle["pruefschritte"][0])
+        self.assertIn("Praxissoftware", quelle["dialog"]["konkret"])
+        self.assertEqual(urlsplit(quelle["links"][0]["url"]).hostname, "fachportal.gematik.de")
+        self.assertEqual(wiki.hintergrund("Der USB-Kartenleser liest unsere Speicherkarten mit Fotos nicht."), [])
+        self.assertEqual(wiki.hintergrund("Am Empfang kann niemand mit Kreditkarte am Terminal zahlen."), [])
+        begriff, = self.frage("Was ist eine elektronische Gesundheitskarte?")["quellen"]
+        self.assertNotIn("dialog", begriff)
+
+    def test_befunde_am_kartenterminal(self):
+        meldung = "Versichertenkarten werden am Kartenlesegerät nicht gelesen."
+        quelle, = wiki.hintergrund(meldung)
+        for befund, naechste_pruefung in [
+            ("Es bleibt dunkel.", "Stromversorgung"),
+            ("Das Display ist nicht an.", "Stromversorgung"),
+            ("Das Display bleibt aus, auch nach der Sichtprüfung.", "technischen Praxisbetreuung"),
+            ("Es leuchtet.", "Kartensymbol"),
+            ("Das Display ist eingeschaltet.", "Kartensymbol"),
+            ("Das Gerät ist an, erkennt aber keine Karte.", "Markierung"),
+            ("Die Karte wird am Terminal nicht erkannt.", "Markierung"),
+            ("Das Display ist an, beim Einstecken tut sich nichts.", "Markierung"),
+            ("Am Terminal wird die Karte erkannt, die Praxissoftware zeigt einen Fehler.", "am PC"),
+        ]:
+            with self.subTest(befund=befund):
+                antwort = ticketfragen.dialogantwort(quelle, befund, meldung, ["Was soll ich machen?"])
+                self.assertIn(naechste_pruefung, antwort)
+        self.assertEqual(ticketfragen.dialogantwort(quelle, "Ist das Display dunkel?", meldung, []),
+                         quelle["dialog"]["einstieg"])
 
     def test_freier_assistent_nutzt_fachwissen_ohne_kundenakte(self):
         with patch.object(app, "KI_MOCK", True), patch.object(

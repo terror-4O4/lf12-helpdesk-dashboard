@@ -119,8 +119,8 @@ test("der Assistent trennt offene Anfragen, Entwürfe und Folgefragen beim Ticke
   document.body = { classList: { add() {}, remove() {} } };
   let antwortePraxis;
   const aufrufe = [];
-  t.mock.method(api, "frageTicket", async (id, frage, vorherige) => {
-    aufrufe.push([id, frage, vorherige]);
+  t.mock.method(api, "frageTicket", async (id, frage, verlauf) => {
+    aufrufe.push([id, frage, verlauf]);
     if (id === 1021) return new Promise(resolve => { antwortePraxis = resolve; });
     return { antwort: "Datenbankdienst prüfen." };
   });
@@ -152,11 +152,20 @@ test("der Assistent trennt offene Anfragen, Entwürfe und Folgefragen beim Ticke
   assert.doesNotMatch(chat.textContent, /Postfach/);
   abschicken("Und danach?");
   await fertig();
+  abschicken("Die Datenbank läuft bereits.");
+  await fertig();
   assert.deepEqual(aufrufe, [
-    [1021, "Postfach prüfen?", undefined],
-    [1017, "Alle Arbeitsplätze betroffen.", undefined],
-    [1017, "Und danach?", "Alle Arbeitsplätze betroffen."],
+    [1021, "Postfach prüfen?", []],
+    [1017, "Alle Arbeitsplätze betroffen.", []],
+    [1017, "Und danach?", ["Alle Arbeitsplätze betroffen."]],
+    [1017, "Die Datenbank läuft bereits.", ["Alle Arbeitsplätze betroffen.", "Und danach?"]],
   ]);
+  const weitereFragen = Array.from({ length: 7 }, (_, i) => `Rückmeldung ${i + 1}`);
+  for (const frage of weitereFragen) {
+    abschicken(frage);
+    await fertig();
+  }
+  assert.deepEqual(aufrufe.at(-1), [1017, weitereFragen[6], weitereFragen.slice(0, 6)]);
   aktualisiereAssistent(praxis);
   assert.match(chat.textContent, /Postfachbelegung/);
   assert.equal(eingabe.value, "Entwurf der Praxis");

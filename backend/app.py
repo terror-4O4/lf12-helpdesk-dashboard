@@ -18,7 +18,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from threading import RLock
-from typing import Literal
+from typing import Annotated, Literal
 from urllib.parse import urlparse
 
 import httpx
@@ -584,6 +584,7 @@ class Frage(BaseModel):
 
 class Ticketfrage(Frage):
     vorherige_frage: str | None = Field(default=None, max_length=2000)
+    verlauf: list[Annotated[str, Field(min_length=1, max_length=2000)]] = Field(default_factory=list, max_length=6)
 
 
 def waehle_doku_fundstelle(frage: str, treffer: list[doku.Abschnitt],
@@ -1083,7 +1084,7 @@ def erzeuge_vorschlag(t: dict, liste: list, wb: rag.Wissensbasis | None = None,
 
 
 def berate_zum_ticket(ticket: dict, bestand: list[dict], dokument: list[doku.Abschnitt],
-                      frage: str) -> tuple[str, list, str, int | None]:
+                      frage: str, verlauf: list[str]) -> tuple[str, list, str, int | None]:
     meldung = rag.ticket_text(ticket)
     anleitung = ticketfragen.anleitung(dokument, meldung)
     historie = ticketfragen.fragt_nach_historie(frage)
@@ -1124,7 +1125,8 @@ def berate_zum_ticket(ticket: dict, bestand: list[dict], dokument: list[doku.Abs
             return ticketfragen.historischer_fall(fall), [ticketfragen.fallquelle(fall)], "ticket", tokens
         return "Für dieses Ticket konnte ich keinen passenden gelösten Fall desselben Kunden belegen.", [], "ticket", tokens
     antwort, quellen, plantokens = ticketfragen.beratung(
-        ticket, frage, fakten, fall, wissen, modell=None if KI_MOCK else frage_beratungsmodell)
+        ticket, frage, fakten, fall, wissen, modell=None if KI_MOCK else frage_beratungsmodell,
+        verlauf=verlauf)
     modus = "llama" if plantokens is not None else "ticket"
     return antwort, quellen, modus, (tokens or 0) + (plantokens or 0) or None
 
@@ -1136,9 +1138,17 @@ def ticket_frage(ticket_id: int, eingabe: Ticketfrage):
     frage = eingabe.frage.strip()
     if not frage:
         raise HTTPException(422, "Bitte eine Frage eingeben")
-    if eingabe.vorherige_frage and ticketfragen.anschlussfrage(frage):
-        frage = eingabe.vorherige_frage.strip()
     _, bestand, ticket = ki_arbeitsstand(ticket_id)
+    if ticketfragen.unverstaendlich(frage, rag.ticket_text(ticket)):
+        return {"antwort": "Ich kann deine Eingabe nicht zuordnen. Beschreibe kurz, was du beobachtest, "
+                           "oder frag nach einem konkreten Prüfschritt.",
+                "quellen": [], "modus": "rueckfrage", "tokens": None,
+                "dauer_ms": round((time.perf_counter() - start) * 1000)}
+    verlauf = eingabe.verlauf or ([eingabe.vorherige_frage] if eingabe.vorherige_frage else [])
+    if verlauf and ticketfragen.anschlussfrage(frage) and (
+            ticketfragen.faktenfrage(verlauf[-1]) or ticketfragen.ist_begriffsfrage(verlauf[-1])
+            or ticketfragen.fragt_nach_historie(verlauf[-1])):
+        frage = verlauf[-1].strip()
     kunde = ticket.get("kunde")
     dokument = doku.abschnitte(kundendoku_pfad(kunde)) if kunde else []
     modus, tokens = "ticket", None
@@ -1149,9 +1159,12 @@ def ticket_frage(ticket_id: int, eingabe: Ticketfrage):
     elif doku.ist_zugangsfrage(frage):
         antwort = doku.PASSWORT_HINWEIS
         quellen = [q.als_quelle() for q in doku.passwortverweise(dokument, frage)]
-    elif ticketfragen.ist_begriffsfrage(frage) and (wissen := wiki.antwort(frage))[1]:
-        antwort, quellen = wissen
-        modus = "wikipedia"
+    elif ticketfragen.ist_begriffsfrage(frage) and not ticketfragen.handlungsfrage(frage):
+        antwort, quellen = wiki.antwort(frage)
+        if quellen:
+            modus = "wikipedia"
+        else:
+            return ki_frage(Frage(frage=frage))
     elif ticketfragen.faktenfrage(frage) and not (
             ticketfragen.fragt_nach_messwert(frage) or ticketfragen.fragt_nach_historie(frage)
     ) and kunde:
@@ -1160,7 +1173,7 @@ def ticket_frage(ticket_id: int, eingabe: Ticketfrage):
         if quellen:
             antwort = doku.kurzbeleg(frage, quellen[0]["text"])
     else:
-        antwort, quellen, modus, tokens = berate_zum_ticket(ticket, bestand, dokument, frage)
+        antwort, quellen, modus, tokens = berate_zum_ticket(ticket, bestand, dokument, frage, verlauf)
     return {"antwort": antwort, "quellen": quellen, "modus": modus, "tokens": tokens,
             "dauer_ms": round((time.perf_counter() - start) * 1000)}
 

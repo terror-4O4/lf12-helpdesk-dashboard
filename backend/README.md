@@ -41,13 +41,13 @@ Beenden mit `Strg + C`.
 | GET | `/api/kunden/{kunde}/doku` | Kundendoku als Markdown |
 | GET | `/api/tickets/{id}/doku` | Passende Abschnitte aus der Doku des Ticketkunden |
 | POST | `/api/kunden/{kunde}/doku/suche` | Antwort auf `{"frage": "..."}` mit Belegtext, Fundstelle und hinterlegten Portal-Links |
-| POST | `/api/tickets/{id}/frage` | Ordnet eine Störungsmeldung oder Rückfrage anhand der Meldung, der Kundenakte, gelöster Fälle desselben Kunden und lokaler Fachnotizen ein. Liefert Antwort und Belege. |
+| POST | `/api/tickets/{id}/frage` | Ordnet eine Störungsmeldung oder Rückfrage anhand von Kundenakte, Fallhistorie und lokalem Fachwissen ein. Für Folgefragen kann `verlauf` die letzten sechs Benutzernachrichten desselben Tickets in zeitlicher Reihenfolge enthalten. |
 | POST | `/api/ki/frage` | Beantwortet allgemeine IT-Fragen mit lokalem Fachwissen. Kundenakten und frühere Kundentickets sind nur im Ticketkontext verfügbar. |
 | POST | `/api/tickets/{id}/analyse` | Bewertet ein freigegebenes oder unauffälliges Ticket nach Priorität und Kategorie. Mit `?speichern=false` nur anzeigen |
 | GET | `/api/tickets/{id}/aehnliche` | Nur die Suche: ähnlichste gelöste Tickets mit Ähnlichkeit. `?ohne_schwelle=true&anzahl=10` zeigt auch Fälle unter der Schwelle |
 | POST | `/api/tickets/{id}/loesungsvorschlag` | Suche plus KI: bis zu 3 Ursachen mit Lösungsweg und Verweis auf die Tickets, oder „kein passender Fall“. `?speichern=false` = nur anzeigen |
 | GET | `/api/wissensbasis` | Anzahl der gelösten Tickets in der Wissensbasis, Schwelle, Modell |
-| POST | `/api/wissen/wikipedia` | Beantwortet allgemeine IT-Begriffsfragen aus lokalen Fachnotizen. Die Quellen verlinken die verwendeten Wikipedia-Artikelfassungen. |
+| POST | `/api/wissen/wikipedia` | Beantwortet allgemeine IT-Begriffsfragen aus den lokalen Fachnotizen und liefert die jeweilige Originalquelle. |
 | POST | `/api/testdaten/zuruecksetzen` | Verwirft alle Änderungen und lädt die Testtickets neu |
 
 Das Backend arbeitet mit einer Arbeitskopie der Tickets in `data/laufzeit/` (nicht im Repo). Details in [`docs/datenformat.md`](../docs/datenformat.md#testdaten-und-arbeitskopie).
@@ -83,7 +83,7 @@ Passwortmanager-Verweise.
 
 ## Fachwissen in der Ticketberatung
 
-Die Anwendung sucht automatisch nach passenden [lokalen Fachnotizen](../data/wissen/wikipedia.json). Wikipedia liefert die Grundlagen, Herstellerdokumentation belegt praktische Prüfungen. Die Ticketberatung verbindet diese Hinweise mit dem betroffenen System und früheren Fällen des Kunden. Die Quellen lassen sich nach der Antwort aufklappen. Für die Suche ist keine Internetverbindung nötig.
+Die Anwendung sucht automatisch nach passenden [lokalen Fachnotizen](../data/wissen/wikipedia.json). Zu den Quellen gehören Wikipedia, das gematik-Fachportal und Herstellerdokumentation. Die Ticketberatung verbindet diese Hinweise mit dem betroffenen System und früheren Fällen des Kunden. Die Quellen lassen sich nach der Antwort aufklappen. Für die Suche ist keine Internetverbindung nötig.
 
 Standardmäßig beantwortet der unter `LLAMA_URL` konfigurierte Dienst auch die Beratungsfragen. Wer für die Formulierung ein zweites lokales Chatmodell betreibt, kann dessen Adresse in `BERATUNG_URL` und bei Bedarf den Modellnamen in `BERATUNG_MODEL` eintragen. `/api/status?modelldetails=true` zeigt die erreichbaren Dienste und die vom Server gemeldeten Modelldateien.
 

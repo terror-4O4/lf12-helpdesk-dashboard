@@ -57,8 +57,8 @@ export const api = {
   kunden: () => anfrage("GET", "/api/kunden"),
   kundendoku: (kunde) => anfrage("GET", `/api/kunden/${encodeURIComponent(kunde)}/doku`),
   ticketDoku: (id) => anfrage("GET", `/api/tickets/${id}/doku`),
-  frageTicket: (id, frage, vorherige_frage) =>
-    anfrage("POST", `/api/tickets/${id}/frage`, { frage, vorherige_frage }),
+  frageTicket: (id, frage, verlauf = []) =>
+    anfrage("POST", `/api/tickets/${id}/frage`, { frage, verlauf }),
   frageKundendoku: (kunde, frage) =>
     anfrage("POST", `/api/kunden/${encodeURIComponent(kunde)}/doku/suche`, { frage }),
   frage: (text) => anfrage("POST", "/api/ki/frage", { frage: text }),

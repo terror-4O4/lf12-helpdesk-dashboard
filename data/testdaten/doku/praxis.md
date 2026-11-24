@@ -20,6 +20,8 @@
 
 ## Software
 - Praxissoftware (Client auf allen Arbeitsplätzen, Datenbank auf `PX-SRV01`)
+
+## Hardware
 - Kartenlesegerät an Anmeldeplatz 1
 
 ## Zugangsdaten

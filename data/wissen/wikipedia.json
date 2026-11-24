@@ -102,6 +102,64 @@
     }
   },
   {
+    "titel": "Gesundheitskarte am Kartenterminal",
+    "anbieter": "gematik",
+    "artikel": "eHealth-Kartenterminal",
+    "url": "https://fachportal.gematik.de/telematikinfrastruktur/komponenten-dienste/ehealth-kartenterminal",
+    "begriffe": ["eHealth-Kartenterminal", "eGK", "Gesundheitskarte", "Gesundheitskarten", "Versichertenkarte", "Versichertenkarten", "Krankenkassenkarte", "Krankenkassenkarten"],
+    "symptome": [["Kartenlesegerät", "Kartenterminal", "Kartenleser"], ["Arztpraxis", "Praxissoftware", "Patientenaufnahme", "Versichertenkarte", "Versichertenkarten", "Gesundheitskarte", "Gesundheitskarten"]],
+    "text": "Das eHealth-Kartenterminal einer Praxis liest die elektronische Gesundheitskarte (eGK). Die Kartenerkennung am Gerät und die anschließende Verarbeitung in der Praxissoftware sind getrennte Stationen des Einlesevorgangs.",
+    "pruefung": {
+      "wenn": [["Kartenterminal", "Kartenlesegerät", "Kartenleser", "Lesegerät", "Terminal", "liest", "eingelesen", "einlesen", "erkannt"]],
+      "schritte": [
+        "Prüfe am betroffenen Kartenterminal, ob das Display leuchtet und eine Bereitschafts- oder Fehlermeldung anzeigt.",
+        "Beobachte beim nächsten regulären Einlesen, ob das Terminal die Gesundheitskarte erkennt. Vergleiche die Anzeige am Gerät mit der Meldung in der Praxissoftware."
+      ],
+      "dialog": {
+        "einstieg": "Schau zuerst am betroffenen Kartenlesegerät auf das Display. Ist es dunkel, zeigt es Bereitschaft oder steht dort eine Fehlermeldung?",
+        "konkret": "Beobachte beim nächsten regulären Einlesen die Anzeige direkt am Gerät. Achte darauf, ob beim Einstecken ein Kartensymbol oder ein Fehler erscheint. Schau dann, welche Meldung die Praxissoftware am PC zeigt.",
+        "eskalation": "Gib den Ausfall an die technische Praxisbetreuung weiter. Notiere den Arbeitsplatz, die Uhrzeit, die Anzeige am Terminal und den technischen Fehlertext der Praxissoftware. Lass Namen und Kartennummern aus dem Ticket.",
+        "befunde": [
+          {
+            "muster": "\\b(?:dunkel|schwarz|aus)\\b.{0,50}\\b(?:nach der sichtprüfung|stromversorgung (?:geprüft|kontrolliert)|kabel sitzt fest)\\b|\\b(?:stromversorgung (?:geprüft|kontrolliert)|kabel sitzt fest)\\b.{0,50}\\b(?:bleibt dunkel|bleibt aus)\\b",
+            "antwort": "Gib der technischen Praxisbetreuung den Arbeitsplatz und die Uhrzeit durch. Melde dazu, dass die Anzeige nach der Sichtprüfung der Stromversorgung dunkel bleibt.",
+            "konkret": "Ergänze im Ticket, welche Anzeige dunkel bleibt und wann zuletzt eine Karte gelesen wurde. Bitte die Praxis-IT um Prüfung vor Ort."
+          },
+          {
+            "muster": "\\b(?:praxissoftware|praxisprogramm|pvs|software|programm)\\b.{0,65}\\b(?:nicht gefunden|nicht verbunden|nicht erreichbar|offline|keine verbindung)\\b|\\b(?:praxissoftware|praxisprogramm|pvs|software|programm)\\b.{0,30}\\b(?:findet|erkennt|sieht|erreicht)\\b.{0,35}\\b(?:kein\\w*|nicht)\\b",
+            "antwort": "Prüfe in der Praxissoftware, welchen Verbindungsstatus sie für das Kartenterminal an diesem Arbeitsplatz anzeigt. Melde Arbeitsplatz, Uhrzeit und technischen Fehlerwortlaut an die Praxis-IT, damit sie die Anbindung prüfen kann.",
+            "konkret": "Schau am PC in die Statusanzeige für die Telematikanbindung. Ist dort ein konkreter Fehlertext oder Fehlercode zu sehen? Übernimm nur die technische Meldung ins Ticket."
+          },
+          {
+            "muster": "\\b(?:display|anzeige|bildschirm|gerät|es)\\s+(?:(?:ist|bleibt)\\s+)?(?:(?:immer noch|weiterhin|komplett|ganz|noch)\\s+)?(?:dunkel|schwarz|aus|leer|tot|ausgeschaltet|nicht an)\\b|\\b(?:display|anzeige|bildschirm|es)\\s+(?:leuchtet nicht|zeigt nichts|reagiert nicht)\\b|\\b(?:dunkles|schwarzes) display\\b|^\\s*(?:dunkel|schwarz)[.!\\s]*$",
+            "antwort": "Prüfe von außen, ob der vorhandene Anschluss für die Stromversorgung fest sitzt. Bleibt die Anzeige dunkel, gib diesen Befund an die technische Praxisbetreuung weiter.",
+            "konkret": "Folge dem vorhandenen Versorgungskabel vom Terminal bis zum Anschluss. Ist ein Stecker sichtbar lose oder sind beide Enden fest und das Display bleibt dunkel?"
+          },
+          {
+            "muster": "\\b(?:beim|nach dem)\\s+einstecken\\b.{0,32}\\b(?:tut sich nichts|passiert nichts|keine reaktion|kein kartensymbol)\\b|\\b(?:leuchtet|ist an|ist bereit|ist eingeschaltet|ist beleuchtet)\\b.{0,70}\\b(?:keine (?:karte|karten|reaktion)|karte nicht|kein kartensymbol)\\b|\\b(?:die )?karte (?:ist |steckt )(?:richtig|korrekt)\\b.{0,40}\\b(?:keine reaktion|nichts|nicht erkannt)\\b|\\b(?:karte|egk) wird am (?:gerät|terminal) nicht erkannt\\b|\\bam (?:terminal|gerät) wird die (?:karte|egk) nicht erkannt\\b|\\b(?:terminal|gerät) erkennt die (?:karte|egk) nicht\\b",
+            "antwort": "Prüfe anhand der Markierung am Gerät, ob die Gesundheitskarte richtig herum im vorgesehenen Schlitz steckt. Reagiert das Terminal beim regulären Einlesen weiterhin auf keine Karte, melde genau diesen Befund der technischen Praxisbetreuung.",
+            "konkret": "Vergleiche die Ausrichtung des Chips mit der Abbildung am Kartenfach. Sitzt die Karte richtig, gib die ausbleibende Reaktion des Terminals und den Zeitpunkt an die Praxis-IT weiter."
+          },
+          {
+            "muster": "\\b(?:terminal|lesegerät|kartenleser|gerät)\\s+(?:erkennt|liest)\\s+(?:die\\s+)?(?:gesundheitskarte|versichertenkarte|egk|karte)\\b(?![^.,;!?]{0,30}\\b(?:nicht|kein\\w*)\\b)|\\b(?:karte|egk)\\s+wird\\s+(?:am\\s+(?:gerät|terminal)\\s+)?erkannt\\b|\\bam (?:terminal|lesegerät|gerät)\\s+wird\\s+(?:die\\s+)?(?:karte|egk)\\s+erkannt\\b",
+            "antwort": "Die Karte wird am Gerät erkannt. Prüfe jetzt am PC, was die Praxissoftware beim Übernehmen der Daten meldet. Notiere nur den technischen Fehlertext und die Uhrzeit für die Praxis-IT.",
+            "konkret": "Lass dir am PC den Dialog zeigen, der unmittelbar nach der Kartenerkennung erscheint. Wie lautet dort der technische Fehlercode oder Fehlertext?"
+          },
+          {
+            "muster": "\\b(?:display|anzeige|bildschirm|gerät|terminal|es)\\s+(?:leuchtet(?!\\s+(?:nicht|kein\\w*))|an|ist (?:an|hell|beleuchtet|eingeschaltet)|zeigt was)\\b|\\b(?:gerät|terminal|lesegerät|display|es)\\s+(?:(?:meldet|zeigt|ist)\\s+)?(?:bereit|betriebsbereit)\\b|^\\s*(?:bereit|betriebsbereit)\\b",
+            "antwort": "Beobachte beim nächsten regulären Einlesen das Kartensymbol am Terminal. Steckt die Gesundheitskarte entsprechend der Markierung im vorgesehenen Schlitz? Halte fest, ob das Gerät die Karte erkennt oder einen Fehler zeigt.",
+            "konkret": "Schau vor und direkt nach dem Einstecken auf das Display. Erscheint ein Kartensymbol, bleibt die Anzeige gleich oder zeigt das Gerät einen Fehlercode?"
+          }
+        ]
+      },
+      "quellen": [
+        {"titel": "EPIKUR · Karte und Verbindungsstatus prüfen", "url": "https://hilfe.epikur.de/a/egk-kartenterminal-lesefehler--karte-ti-pruefen"},
+        {"titel": "KBV · Meldungen und technische Fehler beim Einlesen", "url": "https://www.kbv.de/media/sp/Praxisinformation_VSDM.pdf"},
+        {"titel": "CHERRY · Anschluss und Stromversorgung am Beispiel ST-1506", "url": "https://www.cherry.de/de-de/produkt/ehealth-terminal-st-1506"}
+      ]
+    }
+  },
+  {
     "titel": "Druckwarteschlange",
     "artikel": "Spooling",
     "url": "https://de.wikipedia.org/w/index.php?title=Spooling&oldid=243684708",
