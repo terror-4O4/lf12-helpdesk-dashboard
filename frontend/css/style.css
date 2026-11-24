@@ -227,7 +227,6 @@ body.assistent-offen .rahmen { margin-right: var(--assistent-breite); }
 .prio-mittel { color: var(--text); }
 .prio-niedrig { color: var(--text-3); }
 .prio-leer { color: var(--text-3); border-style: dashed; }
-.ki-zeichen { opacity: 0.85; }
 
 .ampel-wrap { display: inline-flex; align-items: center; gap: 6px; }
 .ampel { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
@@ -362,6 +361,8 @@ textarea { resize: vertical; width: 100%; }
 .blase p { margin: 0; white-space: pre-wrap; }
 .blase-ich { align-self: flex-end; background: var(--flaeche-2); border: 1px solid var(--rand); }
 .blase-ki { align-self: stretch; max-width: 100%; padding: 0; }
+.blase-ki > .md > ul { margin: 0; padding-left: 1.25rem; }
+.blase-ki > .md > ul > li + li { margin-top: 0.4rem; }
 .blase-info { display: block; margin-top: 4px; font-size: 11px; color: var(--text-3); }
 .blase-wartet { color: var(--ki); }
 .chat-quellen { margin-top: 8px; }

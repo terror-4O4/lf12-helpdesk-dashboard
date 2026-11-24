@@ -106,6 +106,28 @@ Beim Vergleich auf allen acht Tickets erhielten Qwen2.5‑3B und Qwen3‑4B‑In
 
 Beim ersten 4B-Lauf ergänzte das Modell die DNS-Anleitung um einen unbelegten Servernamen. Nach der Korrektur lieferte ein erneuter API-Lauf die Anleitung direkt aus der passenden Fachnotiz. Für die übrigen sieben Fälle wurden die gespeicherten echten Modellausgaben durch die endgültige Anzeigeverarbeitung erneut geprüft. Damit erfüllten vier von acht Antworten die vorab festgelegten Kriterien. Drei stammten vom Modell, eine aus der lokalen Wissensbasis. Mit 3B war nur der DNS-Fall brauchbar. Die acht ausgewählten Beispiele erlauben keine allgemeine Erfolgsquote für den Helpdesk.
 
+### Priorisierung am Schullaptop am 24.11.2026
+
+Die gespeicherte Einstufung des Dashboards wurde über die reguläre Ticket-API mit fiktiven Meldungen in separaten Arbeitskopien gemessen. Die Sollwerte standen vorab fest. In die Anfrage an das Modell gingen nur die Ticketangaben und die relevanten lokalen Kundenregeln. [Auswertungsskript](../scripts/auswertung_prioritaet.py) · [Vergleichsserie mit 20 Fällen](../data/testdaten/prioritaet_blindtest.json) · [Kontrollserie mit zwölf Fällen](../data/testdaten/prioritaet_kontrolle.json)
+
+Auf der bekannten Entwicklungsserie waren mit dem bisherigen Stand `7ea16e0` neun von 19 regulären Tickets zu niedrig eingestuft. Beim ersten überarbeiteten Stand stieg die Trefferzahl mit demselben Qwen2.5-0.5B von 10/19 auf 13/19. Das Modell vergab nun für alle fünf eingeschränkten, weiterführbaren Tätigkeiten die Stufe „Normal“, stufte allerdings vier planbare Anfragen zu hoch ein.
+
+Bei den 20 neu formulierten Fällen erzielte das bisherige Dashboard mit 0.5B nur 5/20. Die Überarbeitung mit 0.5B erreichte zunächst 6/20. Ein erster Versuch mit Qwen3-4B und derselben überarbeiteten Logik lieferte 11/20. Drei ungültige Modellbewertungen zählten als Fehler. Ein festes Antwortformat für jeden Aufruf lieferte 20 gültige Bewertungen, aber nur sieben fachlich richtige Prioritäten. Das Dashboard fordert dieses enge Format daher erst dann an, wenn sich die erste Antwort nicht als gültige Bewertung mit Ticketbeleg lesen lässt. Ein Vorversuch mit dem alten Code und 4B wurde wegen langer Ausgabe abgebrochen. Für diesen Vorversuch liegt keine vollständige Trefferquote vor.
+
+Für die lokale Ticketbewertung wurde der bereits vorhandene Qwen3-4B-Instruct-2507 aktiviert. Beim endgültigen Lauf auf der Vergleichsserie stimmten 13/20 Prioritäten (65 %). Derselbe Code mit dem kleineren Qwen2.5-0.5B erreichte 5/20. Nach Soll-Stufe waren mit 4B vier von fünf niedrigen, drei von fünf normalen, vier von fünf hohen und zwei von fünf sehr dringenden Tickets richtig. Alle 20 erhielten eine gültige Bewertung. Bei 18 kam die Priorität vom Modell und bei zwei aus einer Ticketregel. Der Median der API-Bearbeitungszeit lag bei 6,3 Sekunden. Die Werte beschreiben die gesamte Ticketbewertung einschließlich Regeln und Auswahl des Belegs.
+
+Die ausstehenden Tourenfreigaben einer ganzen Disposition wurden nur als hoch eingestuft. Eine Frage zur angekündigten Wochenendwartung wurde als aktueller Ausfall gewertet. Die 20 Fälle wurden zur Variantenwahl verwendet.
+
+Auf den zwölf zurückgehaltenen Kontrollfällen verbesserte sich die Trefferzahl von 3/12 beim bisherigen Dashboard auf 8/12 beim gewählten 4B-Stand (67 %). Das Modell lieferte für alle zwölf eine gültige Bewertung. Alle drei sehr dringenden Tickets wurden richtig erkannt. Zwei hohe Tickets stufte das Modell als normal ein, ein normales als hoch und einen planbaren Wunsch als normal. Die mediane Bearbeitungszeit betrug 6,5 Sekunden. Beide Serien liegen mit der gewählten Variante unter dem Ziel von 80 %. Eine unabhängige Abnahme auf dem Mac Pro erfordert erneut zurückgehaltene Tickets.
+
+### Ticketchat im lokalen Dashboard am 24.11.2026
+
+Bei #1025 lieferte die Frage „Wie ist das Wetter heute?“ ursprünglich nach rund 32 Sekunden die allgemeine Prüfhilfe zum gesperrten Konto. Nach der Änderung erhielt dieselbe Frage mit demselben Verlauf in 14 ms einen Hinweis auf den IT-Suchbereich, ohne Modellaufruf oder Kundenquellen. „Meine Wetter-App startet nicht“ ging an die allgemeine IT-Hilfe. Die Frage nach dem nächsten Schritt beim gesperrten Konto ergab zwei Stichpunkte zu Sperrstatus und fehlgeschlagenen Anmeldungen.
+
+Bei #1027 zeigte die Seitenleiste drei Listenpunkte für Gerätetest, Druckvorschau und Druckmaterial. Auf den Befund „Die Testseite direkt am Gerät bleibt leer“ folgte die Prüfung des Druckmaterials. In der Arbeitskopie kamen sechs Übungstickets hinzu. Die 34 vorhandenen Datensätze waren vor und nach dem Import inhaltlich identisch. Der Handscanner in #1035 ließ sich anhand eines leeren Textfelds außerhalb der Fachanwendung prüfen. Die Bannerwerbung in #1040 landete bereits beim Eingang im Werbefilter.
+
+Der freie Modellvorschlag für #1037 setzte eine unbelegte Gegenprobe voraus. Das Dashboard verwarf ihn. Die lokale Prüfhilfe leitete anschließend zur Auswahl des Mikrofons in der betroffenen Anwendung und zur Prüfung ihrer Zugriffsberechtigung. Dieser Live-Test belegt die angezeigte Hilfestellung. Er zählt nicht als selbstständig gelöster Modellfall.
+
 ## Messlauf auf dem Mac Pro
 
 1. Die autorisierte Umgebung mit Chat- und Embedding-Dienst einrichten, `KI_MOCK=false` setzen und das Backend neu starten. `/api/status` zeigt den Betriebsmodus sowie die Erreichbarkeit beider Dienste. Den verwendeten Commit und die Modellnamen mit den Berichten festhalten.

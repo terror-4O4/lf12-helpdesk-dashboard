@@ -125,21 +125,24 @@ async function pruefeKiStatus() {
     zustand.kiStatus = s;
     const chatname = s.chat_datei || s.ki_modell;
     const beratung = s.beratung_datei || s.beratung_modell;
+    const supportmodell = s.support_mit_beratungsmodell ? beratung : chatname;
     if (s.ki_modus === "mock") {
       el.textContent = "KI: Mock";
       el.className = "ki-status ki-mock";
       el.title = "Beispielantworten ohne KI-Server (KI_MOCK=true in der .env)";
       fuss.textContent = "KI im Mock-Modus";
-    } else if (s.ki_erreichbar && (s.embedding_erreichbar === false || s.beratung_erreichbar === false)) {
-      const aus = [s.embedding_erreichbar === false && "Fallsuche", s.beratung_erreichbar === false && "Beratungsmodell"].filter(Boolean);
+    } else if ((s.ki_erreichbar && (s.embedding_erreichbar === false || s.beratung_erreichbar === false))
+        || (!s.ki_erreichbar && s.support_mit_beratungsmodell && s.beratung_erreichbar)) {
+      const aus = [!s.ki_erreichbar && "Standardmodell", s.embedding_erreichbar === false && "Fallsuche",
+        s.beratung_erreichbar === false && (s.support_mit_beratungsmodell ? "Ticketbewertung und Beratung" : "Beratungsmodell")].filter(Boolean);
       el.textContent = "KI eingeschränkt";
       el.className = "ki-status ki-mock";
       el.title = `Zurzeit nicht erreichbar: ${aus.join(", ")}`;
-      fuss.textContent = chatname || "llama.cpp";
+      fuss.textContent = supportmodell || "llama.cpp";
     } else if (s.ki_erreichbar) {
       el.textContent = "KI online";
       el.className = "ki-status ki-online";
-      el.title = [chatname && `Ticketbewertung: ${chatname}`, beratung && `Beratung: ${beratung}`,
+      el.title = [supportmodell && `Ticketbewertung: ${supportmodell}`, beratung && `Beratung: ${beratung}`,
         s.embedding_datei && `Fallsuche: ${s.embedding_datei}`]
         .filter(Boolean).join("\n") || "Lokaler llama-server erreichbar";
       fuss.textContent = beratung ? `Beratung · ${beratung}` : chatname || "llama.cpp";

@@ -127,10 +127,11 @@ async function fragen(text) {
   if (!frage || wartend.has(id)) return;
   if (!verlaeufe.has(id)) verlaeufe.set(id, []);
   const verlauf = verlaeufe.get(id);
-  const vorherigeFragen = verlauf.filter(n => n.rolle === "ich").slice(-6).map(n => n.text);
+  const vorherigeFragen = verlauf.filter(n => n.rolle === "ich" && n.alsKontext).slice(-6).map(n => n.text);
   eingabe.value = "";
   entwuerfe.delete(id);
-  verlauf.push({ rolle: "ich", text: frage });
+  const nachricht = { rolle: "ich", text: frage, alsKontext: false };
+  verlauf.push(nachricht);
   wartend.add(id);
   zeichne();
 
@@ -142,6 +143,7 @@ async function fragen(text) {
 
   try {
     const r = id == null ? await api.frage(frage) : await api.frageTicket(id, frage, vorherigeFragen);
+    nachricht.alsKontext = !["themenfremd", "unklarer_bezug"].includes(r.modus);
     const info = ANTWORTHERKUNFT[r.modus] || "";
     verlauf.push({ rolle: "ki", text: r.antwort, info, quellen: r.quellen });
   } catch (e) {

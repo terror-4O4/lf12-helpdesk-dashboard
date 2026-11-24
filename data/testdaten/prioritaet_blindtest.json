@@ -1,0 +1,182 @@
+[
+  {
+    "id": 3201,
+    "kunde": "steuerbuero",
+    "titel": "Vorschau der Reisekosten bleibt weiß",
+    "beschreibung": "Die Vorschau zu meinen Reisekosten bleibt beim Öffnen weiß. Wenn ich den Beleg herunterlade, kann ich ihn lesen und die Abrechnung abschließen. Das muss ich zurzeit bei jedem Beleg machen.",
+    "erwartet": {
+      "prioritaet": "mittel"
+    }
+  },
+  {
+    "id": 3202,
+    "kunde": "bau",
+    "titel": "Kennung am Messplatz für weitere Jahresprüfung",
+    "beschreibung": "Unser Vermessungsgerät hat die Prüfung heute bestanden. Für die nächste Jahresprüfung hätten wir gern die Gerätenummer auf der Startseite stehen. Das können Sie beim nächsten regulären Termin mit erledigen.",
+    "erwartet": {
+      "prioritaet": "niedrig"
+    }
+  },
+  {
+    "id": 3203,
+    "kunde": "praxis",
+    "titel": "Ausgabe der Therapiepläne bricht bei einer Kollegin ab",
+    "beschreibung": "Unsere Therapeutin kann ihre heutigen Pläne an keinem unserer Geräte freigeben. Das betrifft nur ihre eigene Kennung. Für diesen Teil ihrer Arbeit gibt es hier keinen Ersatzweg, die anderen Behandelnden können ihre Pläne freigeben.",
+    "erwartet": {
+      "prioritaet": "hoch"
+    }
+  },
+  {
+    "id": 3204,
+    "kunde": "logistik",
+    "titel": "Touren lassen sich nicht an die Fahrer übergeben",
+    "beschreibung": "Bei jeder Tourfreigabe erscheint heute nur ein weißes Fenster. Die gesamte Disposition bekommt so keinen einzigen Fahrauftrag an die Fahrer, das übrige Büro arbeitet. Die Fahrzeuge müssen bis zur elektronischen Freigabe hierbleiben.",
+    "erwartet": {
+      "prioritaet": "sehr_hoch"
+    }
+  },
+  {
+    "id": 3205,
+    "kunde": "autohaus",
+    "titel": "Telefon zeigt alte Bezeichnung der Filiale",
+    "beschreibung": "Wenn wir telefonieren, steht im Display noch der frühere Filialname. Rein- und Rausrufen klappt einwandfrei. Uns wäre die neue Schreibweise lieber, bei Gelegenheit reicht.",
+    "erwartet": {
+      "prioritaet": "niedrig"
+    }
+  },
+  {
+    "id": 3206,
+    "kunde": "bau",
+    "titel": "Kostenplan einer Bauleiterin lässt sich nicht bearbeiten",
+    "beschreibung": "Die Bauleiterin bekommt ihren laufenden Kostenplan auch an einem zweiten Rechner ausschließlich zum Lesen geöffnet. Sie kann ihren heutigen Kostenabschluss deshalb nicht erstellen. Bei ihren Kollegen klappt das Bearbeiten; eine Stellvertretung für diesen Plan gibt es nicht.",
+    "erwartet": {
+      "prioritaet": "hoch"
+    }
+  },
+  {
+    "id": 3207,
+    "kunde": "autohaus",
+    "titel": "Katalog bleibt beim Klick auf das Fahrzeug hängen",
+    "beschreibung": "Unsere Teiletheke bekommt über die Fahrzeugsuche keine Teileliste mehr. Über die Artikelnummernsuche können wir die Teile weiterhin bestellen, müssen jede Nummer einzeln nachschlagen.",
+    "erwartet": {
+      "prioritaet": "mittel"
+    }
+  },
+  {
+    "id": 3208,
+    "kunde": "steuerbuero",
+    "titel": "Fristenkalender zeigt in der Sachbearbeitung nur eine leere Seite",
+    "beschreibung": "Jeder in unserer Fristenabteilung sieht gerade einen leeren Kalender. Die fälligen Mandantenfristen können wir so weder sehen noch bearbeiten. Ein Auszug auf Papier existiert nicht, die Fristenbearbeitung ruht komplett.",
+    "erwartet": {
+      "prioritaet": "sehr_hoch"
+    }
+  },
+  {
+    "id": 3209,
+    "kunde": "logistik",
+    "titel": "Auswertung für das nächste Quartal anpassen",
+    "beschreibung": "Ab dem nächsten Quartal möchten wir die Kostenstellen im Monatsbericht zusätzlich nach Fahrzeuggruppe aufteilen. Der aktuelle Bericht läuft korrekt und wird unverändert weiterverwendet.",
+    "erwartet": {
+      "prioritaet": "niedrig"
+    }
+  },
+  {
+    "id": 3210,
+    "kunde": "praxis",
+    "titel": "Diktat bleibt in der Eingangsmaske hängen",
+    "beschreibung": "Das Diktieren in die Briefmaske funktioniert für mich seit heute nicht mehr. Ich tippe die Arztbriefe inzwischen vollständig über die Tastatur und kann sie versenden; pro Brief dauert das länger.",
+    "erwartet": {
+      "prioritaet": "mittel"
+    }
+  },
+  {
+    "id": 3211,
+    "kunde": "steuerbuero",
+    "titel": "Zeitbuchung nur unter meinem Namen abgewiesen",
+    "beschreibung": "Ich kann die Stunden meiner Mandate weder im Browser noch am Bürorechner verbuchen. Die Buchungen der übrigen Sachbearbeiter gehen durch. Nur ich darf meine Stunden freigeben und heute bleibt meine Abrechnung deshalb liegen.",
+    "erwartet": {
+      "prioritaet": "hoch"
+    }
+  },
+  {
+    "id": 3212,
+    "kunde": "autohaus",
+    "titel": "Werkstattteam bekommt keine Arbeitsfreigaben",
+    "beschreibung": "Keiner unserer Techniker kann heute eine Arbeitskarte elektronisch freigeben. Ohne diese Freigabe darf kein Fahrzeug auf die Bühne, und Papierfreigaben sind ausgeschlossen. Sämtliche Werkstattaufträge warten.",
+    "erwartet": {
+      "prioritaet": "sehr_hoch"
+    }
+  },
+  {
+    "id": 3213,
+    "kunde": "logistik",
+    "titel": "Bildfreigabe bei Schäden verlangt ständig eine neue Anmeldung",
+    "beschreibung": "Nach jedem gespeicherten Schadensfoto lande ich erneut in der Anmeldemaske. Sobald ich mich wieder anmelde, kann ich das nächste Foto erfassen und den Vorgang am Ende abschließen. So brauche ich erheblich länger.",
+    "erwartet": {
+      "prioritaet": "mittel"
+    }
+  },
+  {
+    "id": 3214,
+    "kunde": "praxis",
+    "titel": "Bezeichnung im Auswahlfeld der Terminart ändern",
+    "beschreibung": "Im Kalender heißt eine Terminart noch „Beratung alt“. Das ist nur der Name, sämtliche Termine werden wie gewünscht gebucht. Können Sie das beim ohnehin geplanten Pflegetermin umbenennen?",
+    "erwartet": {
+      "prioritaet": "niedrig"
+    }
+  },
+  {
+    "id": 3215,
+    "kunde": "bau",
+    "titel": "Stundenfreigabe am Polierterminal ausgesetzt",
+    "beschreibung": "Auf unseren drei Baustellen wird jede Stundenfreigabe mit demselben Fehler quittiert. Keine der Kolonnen kann die Schicht abschließen. Die Zentrale darf keine Ersatzbuchung vornehmen; die komplette Schichtabrechnung wartet.",
+    "erwartet": {
+      "prioritaet": "sehr_hoch"
+    }
+  },
+  {
+    "id": 3216,
+    "kunde": "logistik",
+    "titel": "Ein Disponent bekommt keine Zollanmeldung mehr quittiert",
+    "beschreibung": "Nur mein persönliches Zertifikat wird beim Anmelden der Ausfuhr zurückgewiesen, an zwei Geräten gleich. Ich kann dadurch keine meiner Ausfuhranmeldungen bearbeiten. Die Kollegen arbeiten mit ihren eigenen Zertifikaten weiter und dürfen meinen Vorgang nicht vertreten.",
+    "erwartet": {
+      "prioritaet": "hoch"
+    }
+  },
+  {
+    "id": 3217,
+    "kunde": "steuerbuero",
+    "titel": "Informationswunsch zur Wartungsmeldung am Samstag",
+    "beschreibung": "Für Samstag wurde ein Ausfall des Archivdienstes angekündigt. Heute ist das Archiv an sämtlichen Plätzen erreichbar. Wir möchten für unsere Planung lediglich wissen, wie lange das Wartungsfenster dauern soll.",
+    "erwartet": {
+      "prioritaet": "niedrig"
+    }
+  },
+  {
+    "id": 3218,
+    "kunde": "bau",
+    "titel": "Freigabelink für Pläne lässt sich nicht auf dem Tablet öffnen",
+    "beschreibung": "Bei der Begehung öffnet sich der aktuelle Plan auf dem Tablet nicht über den Freigabelink. Über die Projektübersicht auf demselben Tablet finden und öffnen wir genau diesen Plan, brauchen dafür aber mehrere zusätzliche Schritte.",
+    "erwartet": {
+      "prioritaet": "mittel"
+    }
+  },
+  {
+    "id": 3219,
+    "kunde": "autohaus",
+    "titel": "Bewertung eines Gebrauchtwagens lässt sich bei mir nicht freigeben",
+    "beschreibung": "Nur mein Bewertungszugang meldet beim Freigeben jedes Fahrzeugs einen Fehler, auch auf dem Rechner einer Kollegin. Sie kann ihre eigenen Bewertungen freigeben. Für meine aktuellen Bewertungen habe ich keine andere Freigabemöglichkeit.",
+    "erwartet": {
+      "prioritaet": "hoch"
+    }
+  },
+  {
+    "id": 3220,
+    "kunde": "praxis",
+    "titel": "Terminvergabe in beiden Sprechstunden blockiert",
+    "beschreibung": "Alle vier Behandlungszimmer und die Anmeldung bekommen beim Buchen oder Umbuchen von Terminen denselben Speicherfehler. Wir können keinen einzigen Termin verbindlich vergeben, und es gibt keinen zweiten Kalender. Die Terminvergabe der ganzen Praxis liegt still.",
+    "erwartet": {
+      "prioritaet": "sehr_hoch"
+    }
+  }
+]

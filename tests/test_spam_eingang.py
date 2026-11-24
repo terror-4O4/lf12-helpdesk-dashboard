@@ -22,6 +22,9 @@ class SpamEingangTest(unittest.TestCase):
     def test_eingang_prueft_alle_demo_tickets_vor_der_analyse(self):
         tickets = self.client.get("/api/tickets").json()
         soll = {t["id"]: t["spam"] for t in app.lade_json(app.DATEN / "erwartet.json")}
+        uebung = app.lade_json(app.DATEN / "uebungstickets.json")
+        soll.update({t["id"]: t["id"] == 1040 for t in uebung})
+        self.assertCountEqual([t["id"] for t in tickets], list(soll))
         for t in tickets:
             with self.subTest(id=t["id"]):
                 self.assertEqual(t["spampruefung"]["verdaechtig"], soll[t["id"]])

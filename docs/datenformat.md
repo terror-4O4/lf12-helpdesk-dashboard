@@ -82,12 +82,14 @@ Alle Dateien liegen unter `data/testdaten/` und sind **frei erfunden**.
 
 ### Priorität
 
-| Code und Anzeige | Bezeichnung im Projektantrag V2.1 |
+| Code und Anzeige | Maßstab für die Sollbewertung |
 |---|---|
-| `niedrig` / Niedrig | niedrig |
-| `mittel` / Normal | normal |
-| `hoch` / Hoch | hoch |
-| `sehr_hoch` / Sehr dringend | sehr dringend |
+| `niedrig` / Niedrig | Frage, kosmetischer Fehler oder planbarer Auftrag. Die laufende Arbeit ist möglich. |
+| `mittel` / Normal | Die Arbeit ist beeinträchtigt. Ein nutzbarer Ausweichweg oder eine vorübergehende Unterbrechung erlaubt die Weiterarbeit. |
+| `hoch` / Hoch | Eine Person kann eine notwendige Arbeit nicht erledigen oder eine wichtige Funktion ist ausgefallen. |
+| `sehr_hoch` / Sehr dringend | Ein wesentlicher Geschäftsablauf steht oder mehrere Beschäftigte sind bei ihrer Arbeit blockiert. Ein wirksamer Ausweichweg fehlt. |
+
+Bei der Sollbewertung zählen die im Ticket geschilderten Folgen. „Alle sehen die Meldung“ sagt noch nichts darüber aus, ob alle weiterarbeiten können. Ein bestelltes Ersatzgerät hilft erst, wenn es sich tatsächlich einsetzen lässt. Eine dokumentierte Kundenregel gilt, wenn das Ticket die darin genannten Bedingungen erfüllt.
 
 ### KI-Block
 
@@ -197,7 +199,9 @@ In die Wissensbasis kommt jedes Ticket mit Status `geschlossen` und Lösungsweg,
 
 ## Testdaten und Arbeitskopie
 
-Das Backend verändert **nie** die Dateien in `data/testdaten/`. Beim ersten Start kopiert es `tickets.json` nach `data/laufzeit/tickets.json` und arbeitet nur noch mit dieser Kopie (z. B. speichert es dort KI-Analysen). `data/laufzeit/` steht in der `.gitignore` und landet nie im Repo.
+Beim ersten Laden erstellt das Backend aus `data/testdaten/tickets.json` und `data/testdaten/uebungstickets.json` die Arbeitskopie `data/laufzeit/tickets.json`. Dort speichert es auch neue Meldungen und KI-Analysen. Git ignoriert das Verzeichnis `data/laufzeit/`.
+
+`POST /api/testdaten/ergaenzen` ergänzt fehlende Übungsfälle in der Arbeitskopie. Das Feld `uebungsvorlage` merkt sich die Nummer der Vorlage, falls die lokale Ticketnummer bereits vergeben ist. So bleiben wiederholte Importe und spätere Bearbeitungen demselben Fall zugeordnet.
 
 Der Endpunkt `POST /api/testdaten/zuruecksetzen` ersetzt die Ticket-Arbeitskopie durch den Testdatenstand. Für eine reproduzierbare Demo lässt sich die Uhrzeit mit `?jetzt=2026-11-19T11:30` an die Testdaten anpassen.
 

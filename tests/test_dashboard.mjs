@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  alter, formatZeit, hatHandlungsbedarf, istDemoZeit, istImSpamfilter, jetzt, nachDringlichkeit, sla, spamOffen, wartezeit,
+  alter, formatZeit, hatHandlungsbedarf, istDemoZeit, istImSpamfilter, jetzt, markdown, nachDringlichkeit, sla, spamOffen, ticketPrioBadge, wartezeit,
 } from "../frontend/js/hilfen.js";
 import { ticketTabelle } from "../frontend/js/ansichten/tickets.js";
 import { spamAktionen, zeigeSpam } from "../frontend/js/ansichten/spam.js";
@@ -98,6 +98,7 @@ function testDokument(t) {
     focus() {}
     setAttribute(name, value) { this.attributes[name] = value; }
     addEventListener(name, handler) { this[name] = handler; }
+    get tagName() { return this.tag.toUpperCase(); }
     get textContent() { return this.text + this.children.map((child) => child.textContent).join(""); }
     set textContent(text) { this.text = text; this.children = []; }
   }
@@ -111,6 +112,21 @@ function testDokument(t) {
   });
 }
 
+test("Beratungspunkte erscheinen als Liste und Modellprioritäten tragen eine lesbare Kennzeichnung", t => {
+  testDokument(t);
+  const [liste] = markdown("- **Prüfe** den Gerätestatus.\n- Notiere die angezeigte Meldung.").children;
+  assert.equal(liste.tag, "ul");
+  assert.deepEqual(liste.children.map(el => el.tag), ["li", "li"]);
+  const basis = { prioritaet: "hoch", prioritaet_quelle: "ki" };
+  const bewertet = (quelle, t = basis) => ticketPrioBadge({ ...t, ki: { bewertungsquellen: { prioritaet: quelle } } });
+  assert.equal(bewertet("modell").textContent, "Hoch · KI");
+  assert.match(bewertet("modell").attributes.title, /Sprachmodell/);
+  assert.equal(bewertet("regel").textContent, "Hoch");
+  assert.equal(bewertet("regel").attributes.title, "Ticketregel");
+  assert.equal(bewertet("modell", { ...basis, prioritaet_quelle: "manuell" }).attributes.title, "Von Hand gesetzt");
+  assert.equal(ticketPrioBadge(basis).textContent, "Hoch");
+});
+
 test("der Assistent trennt offene Anfragen, Entwürfe und Folgefragen beim Ticketwechsel", async t => {
   testDokument(t);
   const panel = document.createElement("aside");
@@ -122,6 +138,7 @@ test("der Assistent trennt offene Anfragen, Entwürfe und Folgefragen beim Ticke
   t.mock.method(api, "frageTicket", async (id, frage, verlauf) => {
     aufrufe.push([id, frage, verlauf]);
     if (id === 1021) return new Promise(resolve => { antwortePraxis = resolve; });
+    if (frage === "Wie ist das Wetter?") return { antwort: "- Hier geht es um IT-Hilfe.", modus: "themenfremd" };
     return { antwort: "Datenbankdienst prüfen.", modus: "modellvorschlag" };
   });
   t.mock.method(api, "frage", async frage => ({ antwort: `Allgemeine Antwort auf ${frage}` }));
@@ -167,6 +184,12 @@ test("der Assistent trennt offene Anfragen, Entwürfe und Folgefragen beim Ticke
     await fertig();
   }
   assert.deepEqual(aufrufe.at(-1), [1017, weitereFragen[6], weitereFragen.slice(0, 6)]);
+  abschicken("Wie ist das Wetter?");
+  await fertig();
+  abschicken("Der Dienst läuft.");
+  await fertig();
+  assert.match(chat.textContent, /Wie ist das Wetter\?/);
+  assert.deepEqual(aufrufe.at(-1)[2], weitereFragen.slice(1));
   aktualisiereAssistent(praxis);
   assert.match(chat.textContent, /Postfachbelegung/);
   assert.equal(eingabe.value, "Entwurf der Praxis");

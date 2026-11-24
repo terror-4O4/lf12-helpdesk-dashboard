@@ -1,0 +1,44 @@
+[
+  {
+    "id": 1035,
+    "kunde": "autohaus",
+    "erstellt_am": "2026-11-19T10:56:00",
+    "titel": "Handscanner piept, im Ersatzteilauftrag fehlt die Teilenummer",
+    "beschreibung": "Unser Handscanner am Teiletresen piept beim Scannen, aber im offenen Auftrag erscheint keine Nummer. Tippen wir die Nummer vom Karton ab, wird das Teil gebucht. Die Ausgabe an die Werkstatt läuft so weiter, dauert aber länger."
+  },
+  {
+    "id": 1036,
+    "kunde": "logistik",
+    "erstellt_am": "2026-11-19T11:03:00",
+    "titel": "Pakete an beiden Verladerampen lassen sich nicht quittieren",
+    "beschreibung": "An beiden Rampen lesen die Handscanner den Paketcode und zeigen danach „Übergabe nicht gespeichert“. Auch eine von Hand eingegebene Paketnummer wird abgelehnt. Ohne Quittung nimmt der Fahrer die Sendungen nicht mit. Seit 10:50 Uhr geht kein Paket mehr raus."
+  },
+  {
+    "id": 1037,
+    "kunde": "steuerbuero",
+    "erstellt_am": "2026-11-19T11:06:00",
+    "titel": "Gesprächspartner hören mich nur im Teams-Anruf nicht",
+    "beschreibung": "Auf meinem Notebook höre ich die anderen in Teams. Mein eigenes Mikrofon bleibt im Testanruf stumm. Mit demselben Headset kann ich im Windows-Audiorekorder eine Aufnahme machen und anhören. Für den heutigen Rückruf nutze ich das Tischtelefon."
+  },
+  {
+    "id": 1038,
+    "kunde": "bau",
+    "erstellt_am": "2026-11-19T11:10:00",
+    "titel": "Bauplan auf dem Tablet hat noch den alten Revisionsstand",
+    "beschreibung": "Im Büro sehe ich im Projektordner die Zeichnung mit Revision C. Auf meinem Baustellen-Tablet steht im selben Auftrag weiterhin Revision B, obwohl die App „Synchronisierung abgeschlossen“ meldet. Bevor ich den Plan freigebe: Wie prüfe ich, an welcher Stelle die neue Fassung fehlt?"
+  },
+  {
+    "id": 1039,
+    "kunde": "praxis",
+    "erstellt_am": "2026-11-19T11:17:00",
+    "titel": "Leserechte für den Raumkalender ab Januar vorbereiten",
+    "beschreibung": "Ab Januar soll unsere neue Kollegin die Belegung des Besprechungsraums sehen können. Termine anlegen und ändern soll weiterhin nur die Anmeldung. Heute arbeiten alle mit den bisherigen Rechten. Könnt ihr uns sagen, welche Freigabe wir dafür einplanen?"
+  },
+  {
+    "id": 1040,
+    "kunde": null,
+    "erstellt_am": "2026-11-19T11:21:00",
+    "titel": "Ihr Banner im regionalen Azubi-Newsletter",
+    "beschreibung": "Guten Tag, wir bieten Ihnen einen Anzeigenplatz in der Dezemberausgabe unseres Azubi-Newsletters für 180 Euro an. Reservieren Sie Ihren Platz bis Freitag und senden Sie uns Ihr Firmenlogo für die Veröffentlichung."
+  }
+]

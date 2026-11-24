@@ -7,10 +7,13 @@
 | Datei | Inhalt |
 |---|---|
 | `tickets.json` | 34 Tickets (#1001 bis #1034) mit Eingangsnachricht, Bearbeitungsstand und gegebenenfalls dokumentierter Lösung |
+| `uebungstickets.json` | Sechs zusätzliche Eingangsmeldungen für die Arbeit im Dashboard, fünf Supportfälle und ein Werbeangebot |
 | `kunden.json` | 5 Testkunden |
 | `doku/<kunde>.md` | Kundendoku je Testkunde, Zugangsdaten nur als Verweis auf den Passwortmanager |
 | `erwartet.json` | Erwartete KI-Bewertung je Ticket (Priorität, Spam, Kategorie) für die Trefferquote |
 | `fragen_doku.json` | Freie Doku-Fragen und Ticketfälle mit Sollfundstellen, fehlenden Treffern und einem Passwortmanager-Verweis |
+| `prioritaet_blindtest.json` | 20 separat erstellte Supporttickets für den lokalen Vergleich der Dashboard-Priorisierung, fünf je Soll-Stufe |
+| `prioritaet_kontrolle.json` | Zwölf weitere Supporttickets zur Kontrolle der gewählten Modellvariante, drei je Stufe |
 
 Die Doku-Fälle lassen sich bei laufendem Backend mit `python scripts/auswertung_doku.py` prüfen. Die Auswertung trennt die Trefferquote für vorbereitete Fragen von Fällen ohne belegte Fundstelle und von der automatischen Suche zum Ticket.
 
@@ -36,6 +39,12 @@ Die Doku-Fälle lassen sich bei laufendem Backend mit `python scripts/auswertung
 - **Workaround vorhanden, daher nur mittel:** #1015, #1019, #1024
 
 Die zusätzlichen Fälle bilden Rückfragen und Arbeitsausfälle aus dem Supportalltag ab. In #1031 meldet die Werkstatt, dass der Kartenleser am Nachbarplatz funktioniert. In #1032 fragt ein externer Wartungspartner nach dem vereinbarten Zutritt zum Technikraum. In #1033 bittet eine Praxis um Prüfung einer empfangenen Mail. In #1034 blockiert ein Buchungsfehler alle vier Versandplätze. Die festgelegten Fälle für den Promptvergleich und die RAG-Abnahme stehen in eigenen Dateien.
+
+### Übungstickets im Dashboard
+
+Eine neue Arbeitskopie enthält zusätzlich #1035 bis #1040. Die ersten beiden Fälle vergleichen einen Scanfehler mit nutzbarer manueller Eingabe und einen vollständigen Versandstillstand trotz manueller Eingabe. Weitere Meldungen betreffen ein stummes Teams-Mikrofon, den veralteten Planstand auf einem Baustellen-Tablet, eine geplante Kalenderfreigabe und eine unerbetene Bannerwerbung. Diese sechs Vorlagen werden separat von den Datensätzen für die Auswertung gepflegt.
+
+In einer bereits bearbeiteten Arbeitskopie ergänzt `POST /api/testdaten/ergaenzen` die fehlenden Übungsfälle. Belegte Ticketnummern bleiben beim bisherigen Vorgang, die neue Vorlage erhält dann eine freie Nummer. Die Antwort enthält die neu vergebenen Ticketnummern.
 
 **Paare für den Lösungsvorschlag (RAG):** Zu diesen offenen Tickets gibt es ein ähnliches gelöstes Ticket, meist vom selben Kunden.
 

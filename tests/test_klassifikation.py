@@ -90,16 +90,86 @@ class SupportklassifikationTest(unittest.TestCase):
         def modell(zahl):
             return json.dumps({"kategorie": "Software", "prioritaet": "mittel", "beleg": zahl}), 15
         with patch.object(app, "frage_llama", return_value=modell(1)) as anfrage:
-            ist, _ = app.analysiere_llama(t, nur_support=True)
+            ist, tokens = app.analysiere_llama(t, nur_support=True)
+        anfrage.assert_called_once()
+        self.assertEqual(tokens, 15)
         self.assertEqual(ist["beleg"], t["beschreibung"])
         self.assertNotIn("Baustellen", anfrage.call_args.args[0][1]["content"])
+        self.assertEqual(anfrage.call_args.kwargs["max_tokens"], 96)
         schema = anfrage.call_args.kwargs["antwortformat"]["json_schema"]["schema"]
-        self.assertNotIn("spam", schema["properties"])
+        self.assertEqual(list(schema["properties"]), ["kategorie", "prioritaet", "beleg"])
         self.assertNotIn("Spam", schema["properties"]["kategorie"]["enum"])
+        self.assertEqual(schema["properties"]["beleg"]["enum"], [0, 1])
+        self.assertNotIn("grammatik", anfrage.call_args.kwargs)
         for index in (True, 8, -1):
             with self.subTest(index=index), patch.object(app, "frage_llama", return_value=modell(index)):
                 with self.assertRaises(HTTPException):
                     app.analysiere_llama(t, nur_support=True)
+        with patch.object(app, "frage_llama", return_value=('{"prioritaet":"niedrig"', 96)) as anfrage:
+            with self.assertRaises(HTTPException) as fehler:
+                app.analysiere_llama(t, nur_support=True)
+            self.assertEqual(fehler.exception.status_code, 502)
+            self.assertEqual(anfrage.call_count, 2)
+
+    def test_nur_bei_formatfehler_einen_kompakten_zweitversuch(self):
+        t = {"kunde": "bau", "titel": "Zugang ausgefallen", "beschreibung": "Ich kann nicht arbeiten."}
+        gueltig = '{"prioritaet":"hoch","kategorie":"Netzwerk","beleg":1}'
+        for erster in (96, None):
+            with self.subTest(erster=erster), patch.object(app, "SUPPORT_MIT_BERATUNGSMODELL", True), \
+                    patch.object(app, "frage_llama", side_effect=[("{}", erster), (gueltig, 20)]) as anfrage:
+                ergebnis, tokens = app.analysiere_llama(t, nur_support=True)
+            self.assertEqual(ergebnis["beleg"], t["beschreibung"])
+            self.assertEqual(tokens, 116 if erster is not None else None)
+            a, b = anfrage.call_args_list
+            self.assertIn("antwortformat", a.kwargs)
+            self.assertIn('beleg ::= "0" | "1"', b.kwargs["grammatik"])
+            self.assertNotIn("antwortformat", b.kwargs)
+            self.assertTrue(a.kwargs["beratung"] and b.kwargs["beratung"])
+            self.assertEqual((a.kwargs["max_tokens"], b.kwargs["max_tokens"]), (96, 96))
+        for status in (502, 504):
+            with self.subTest(status=status), patch.object(app, "frage_llama", side_effect=HTTPException(status)) as anfrage:
+                with self.assertRaises(HTTPException) as fehler:
+                    app.analysiere_llama(t, nur_support=True)
+                self.assertEqual(fehler.exception.status_code, status)
+                anfrage.assert_called_once()
+
+    def test_betriebsausfall_braucht_einen_aktuellen_befund(self):
+        for beschreibung in (
+            "Falls die Produktion steht, wen muss ich anrufen? Im Moment ist alles in Ordnung.",
+            "Am Montag stand die Fertigung. Damals hieß es: Die Produktion steht. Inzwischen läuft der Betrieb wieder normal.",
+            "Das Team kann keine Sonderfarbe einstellen. Alle Vorgänge lassen sich normal abschließen.",
+        ):
+            with self.subTest(beschreibung=beschreibung):
+                wert = self.bewerte("Hinweis für das nächste Update", beschreibung, modell_prio="niedrig")
+                self.assertEqual(wert["prioritaet"], "niedrig")
+
+    def test_auswirkung_von_anderen_beobachtungen_trennen(self):
+        text = ("Die Auftragsannahme ist an allen drei Stationen ausgefallen. "
+                "Die Kaffeemaschine nebenan läuft weiter.")
+        kritisch = self.bewerte("Störung in der Frühschicht", text, modell_prio="niedrig")
+        self.assertEqual(kritisch["prioritaet"], "sehr_hoch")
+        self.assertIn("an allen drei Stationen ausgefallen", kritisch["begruendung"])
+        einzel = self.bewerte("Zugriff nicht möglich", "Ich kann nicht mehr arbeiten. "
+                             "Alle Sachbearbeiter haben eine Rundmail erhalten. Die Telefonanlage läuft weiter.")
+        self.assertEqual(einzel["prioritaet"], "hoch")
+
+    def test_nur_ein_brauchbarer_ersatzweg_mindert_den_ausfall(self):
+        for ersatz in ("Vielleicht könnte ich mit dem Ersatzgerät weiterarbeiten.",
+                       "Der Ersatzplatz funktioniert ebenfalls nicht."):
+            with self.subTest(ersatz=ersatz):
+                wert = self.bewerte("Freigabe", "Ich kann nicht mehr arbeiten. " + ersatz, modell_prio="niedrig")
+                self.assertEqual(wert["prioritaet"], "hoch")
+        arbeitet = self.bewerte("Fehler beim Abgleich", "Die Synchronisation ist ausgefallen. "
+                                "Wir können die Buchungen vorübergehend manuell übertragen.",
+                                modell_prio="niedrig")
+        self.assertEqual(arbeitet["prioritaet"], "mittel")
+        self.assertEqual(arbeitet["bewertungsquellen"]["prioritaet"], "regel")
+
+    def test_auf_wunsch_im_fehlerbericht_ist_keine_beschaffung(self):
+        wert = self.bewerte("Bilder fehlen", "Der Kollege schickt sie auf Wunsch per Mail.",
+                            modell_prio="mittel")
+        self.assertEqual(wert["prioritaet"], "mittel")
+        self.assertEqual(wert["bewertungsquellen"]["prioritaet"], "modell")
 
     def test_reiner_modellvergleich_uebernimmt_rohe_klassen(self):
         t = {"kunde": "bau", "titel": "Wunsch: neuer Monitor", "beschreibung": "Die Auswahl ist offen."}

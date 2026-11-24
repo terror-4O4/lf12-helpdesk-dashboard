@@ -27,7 +27,7 @@ Der Spam-Zähler und die Warteschlange berücksichtigen offene Verdachtsfälle b
 ## Gestaltung
 
 - Neutral, Farbe nur für Status, Priorität, SLA-Ampel und KI-Inhalte
-- Im Ticket steht neben Priorität und Kategorie, ob die Einschätzung vom Sprachmodell, einer Ticketregel oder aus dem Demo-Modus stammt. Ein Stern kennzeichnet vom Sprachmodell vorgeschlagene Prioritäten.
+- In der Liste kennzeichnet „· KI“ eine vom lokalen Sprachmodell vorgeschlagene Priorität. Im Ticket steht die Herkunft im Klartext neben Priorität und Kategorie. Von Hand gesetzte Prioritäten haben Vorrang.
 - Hell- und Dunkelmodus folgen der Systemeinstellung
 
 ## SLA-Ampel

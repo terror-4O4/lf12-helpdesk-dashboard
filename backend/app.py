@@ -28,7 +28,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi_offline import FastAPIOffline
 from pydantic import BaseModel, Field
 
-from backend import doku, eingang, klassifikation, rag, ticketfragen, wiki
+from backend import doku, eingang, gespraech, klassifikation, rag, ticketfragen, wiki
 from backend.speicher import schreibe_atomar
 
 # --- Pfade und Konfiguration ---------------------------------------------
@@ -49,6 +49,7 @@ LLAMA_API_KEY = os.getenv("LLAMA_API_KEY", "")
 LLAMA_MODEL = os.getenv("LLAMA_MODEL", "").strip()
 BERATUNG_URL = os.getenv("BERATUNG_URL", "").strip().rstrip("/")
 BERATUNG_MODEL = os.getenv("BERATUNG_MODEL", "").strip()
+SUPPORT_MIT_BERATUNGSMODELL = os.getenv("SUPPORT_MIT_BERATUNGSMODELL", "false").lower() == "true"
 KI_MOCK = os.getenv("KI_MOCK", "true").lower() == "true"
 KI_TIMEOUT = float(os.getenv("KI_TIMEOUT", "120"))
 
@@ -129,6 +130,8 @@ def lade_tickets() -> list:
     with TICKET_LOCK:
         neu = not LAUFZEIT_TICKETS.exists()
         liste = lade_json(DATEN / "tickets.json" if neu else LAUFZEIT_TICKETS)
+        if neu:
+            ergaenze_uebungstickets(liste)
         geaendert = neu
         for t in liste:
             befund = eingang.pruefe(t)
@@ -271,7 +274,8 @@ def llama_stream_lesen(r: httpx.Response, start: float, messung: dict) -> tuple[
 
 def frage_llama(nachrichten: list, antwortformat: dict | None = None,
                 temperatur: float = 0.3, *, messung: dict | None = None,
-                max_tokens: int | None = None, beratung: bool = False) -> tuple[str, int | None]:
+                max_tokens: int | None = None, beratung: bool = False,
+                grammatik: str | None = None) -> tuple[str, int | None]:
     """Schickt Nachrichten an den llama-server. Gibt (Text, Anzahl Tokens) zurück."""
     kopfzeilen = {"Authorization": f"Bearer {LLAMA_API_KEY}"} if LLAMA_API_KEY else {}
     anfrage = {"messages": nachrichten, "temperature": temperatur}
@@ -281,6 +285,8 @@ def frage_llama(nachrichten: list, antwortformat: dict | None = None,
         anfrage["model"] = modell
     if antwortformat:
         anfrage["response_format"] = antwortformat
+    if grammatik:
+        anfrage["grammar"] = grammatik
     if max_tokens is not None:
         anfrage["max_tokens"] = max_tokens
 
@@ -345,6 +351,7 @@ def status(modelldetails: bool = False):
                 "ki_modell": LLAMA_MODEL or None, "embedding_erreichbar": gesund(EMBED_URL)}
     if BERATUNG_URL:
         ergebnis.update(beratung_erreichbar=gesund(BERATUNG_URL), beratung_modell=BERATUNG_MODEL or None)
+    ergebnis["support_mit_beratungsmodell"] = bool(BERATUNG_URL and SUPPORT_MIT_BERATUNGSMODELL)
     if modelldetails:
         for feld, url, alias, erreichbar in (
             ("chat_datei", LLAMA_URL, LLAMA_MODEL, ergebnis["ki_erreichbar"]),
@@ -404,6 +411,52 @@ class NeuesTicket(BaseModel):
                               examples=["Seit heute früh kommt beim Drucken nur ein leeres Blatt."])
 
 
+def erstelle_ticket(eingabe: NeuesTicket, nummer: int, zeit: str) -> dict:
+    t = {
+        "id": nummer,
+        "kunde": eingabe.kunde,
+        "titel": eingabe.titel.strip(),
+        "beschreibung": eingabe.beschreibung.strip(),
+        "status": "neu",
+        "prioritaet": None,
+        "prioritaet_quelle": None,
+        "zugewiesen_an": None,
+        "erstellt_am": zeit,
+        "statushistorie": [{"status": "neu", "seit": zeit}],
+        "ki": None,
+        "spam_entscheidung": None,
+        "ursache": None,
+        "loesungsweg": None,
+        "geschlossen_am": None,
+    }
+    t["spampruefung"] = eingang.pruefe(t)
+    return t
+
+
+def ergaenze_uebungstickets(liste: list) -> list[int]:
+    """Ergänzt fehlende Vorlagen und behält bereits vergebene Ticketnummern bei."""
+    vorlagen = lade_json(DATEN / "uebungstickets.json")
+    importiert = {t.get("uebungsvorlage") for t in liste}
+    belegt = {t["id"] for t in liste}
+    reserviert = {v["id"] for v in vorlagen}
+    ausweichnummer = max(belegt | reserviert, default=1000) + 1
+    neu = []
+    for vorlage in vorlagen:
+        vorlagen_id = vorlage["id"]
+        if vorlagen_id in importiert:
+            continue
+        nummer = vorlagen_id
+        if nummer in belegt:
+            nummer = ausweichnummer
+            ausweichnummer += 1
+        t = erstelle_ticket(NeuesTicket(**vorlage), nummer, vorlage["erstellt_am"])
+        t["uebungsvorlage"] = vorlagen_id
+        liste.append(t)
+        importiert.add(vorlagen_id)
+        neu.append(nummer)
+    return neu
+
+
 @app.post("/api/tickets", tags=["Tickets"], status_code=201)
 def ticket_anlegen(eingabe: NeuesTicket):
     """Legt ein neues Ticket mit Status "neu" an (Nummer = höchste vorhandene + 1).
@@ -414,25 +467,7 @@ def ticket_anlegen(eingabe: NeuesTicket):
         raise HTTPException(422, f"Kunde '{eingabe.kunde}' nicht gefunden")
 
     with ticket_aktualisierung() as liste:
-        zeit = jetzt()
-        t = {
-            "id": max((x["id"] for x in liste), default=1000) + 1,
-            "kunde": eingabe.kunde,
-            "titel": eingabe.titel.strip(),
-            "beschreibung": eingabe.beschreibung.strip(),
-            "status": "neu",
-            "prioritaet": None,
-            "prioritaet_quelle": None,
-            "zugewiesen_an": None,
-            "erstellt_am": zeit,
-            "statushistorie": [{"status": "neu", "seit": zeit}],
-            "ki": None,
-            "spam_entscheidung": None,
-            "ursache": None,
-            "loesungsweg": None,
-            "geschlossen_am": None,
-        }
-        t["spampruefung"] = eingang.pruefe(t)
+        t = erstelle_ticket(eingabe, max((x["id"] for x in liste), default=1000) + 1, jetzt())
         liste.append(t)
     return t
 
@@ -511,12 +546,24 @@ def ticket_aendern(ticket_id: int, aenderung: TicketAenderung):
     return t
 
 
+@app.post("/api/testdaten/ergaenzen", tags=["Tickets"])
+def testdaten_ergaenzen():
+    """Fügt neue Übungstickets zur aktuellen Arbeitskopie hinzu."""
+    with TICKET_LOCK:
+        liste = lade_tickets()
+        neu = ergaenze_uebungstickets(liste)
+        if neu:
+            speichere_tickets(liste)
+    return {"hinzugefuegt": neu}
+
+
 @app.post("/api/testdaten/zuruecksetzen", tags=["Tickets"])
 def testdaten_zuruecksetzen():
     """Verwirft alle Änderungen (z. B. KI-Analysen) und lädt die Testtickets neu."""
     global tickets_generation
     with TICKET_LOCK:
         testtickets = lade_json(DATEN / "tickets.json")
+        ergaenze_uebungstickets(testtickets)
         speichere_tickets(testtickets)
         tickets_generation += 1
     return {"zurueckgesetzt": True, "tickets": len(testtickets)}
@@ -565,9 +612,11 @@ def ticket_doku(ticket_id: int):
 # --- KI: freie Frage -----------------------------------------------------
 
 SYSTEMPROMPT_FRAGE = (
-    "Du bist ein Assistent im IT-Support. Antworte auf Deutsch, kurz und "
-    "praxisnah in höchstens 5 Stichpunkten. Wenn du etwas nicht sicher weißt, "
-    "sag das, statt zu raten."
+    "Du bist ein Assistent im IT-Support. Antworte auf Deutsch in einem bis drei kurzen "
+    "Stichpunkten. Pro Punkt genau eine Aussage, höchstens 18 Wörter. Beginne direkt mit "
+    "der Antwort oder einem konkreten ersten Prüfschritt. Nenne bei Störungen anschließend, "
+    "wie ein beobachtbares Ergebnis das weitere Vorgehen bestimmt. Frage nur nach einer "
+    "fehlenden Angabe. Erfinde keine bereits durchgeführten Tests oder erfolgreichen Ergebnisse."
 )
 
 
@@ -585,6 +634,12 @@ class Frage(BaseModel):
 class Ticketfrage(Frage):
     vorherige_frage: str | None = Field(default=None, max_length=2000)
     verlauf: list[Annotated[str, Field(min_length=1, max_length=2000)]] = Field(default_factory=list, max_length=6)
+
+
+def gespraechshinweis(bezug: str, frage: str, start: float, *, im_ticket: bool):
+    return {"antwort": "- " + gespraech.hinweis(bezug, frage, im_ticket=im_ticket), "quellen": [],
+            "modus": "themenfremd" if bezug == "fachfremd" else "unklarer_bezug", "tokens": None,
+            "dauer_ms": round((time.perf_counter() - start) * 1000)}
 
 
 def waehle_doku_fundstelle(frage: str, treffer: list[doku.Abschnitt],
@@ -685,6 +740,13 @@ def ki_frage(eingabe: Frage):
     if not frage:
         raise HTTPException(422, "Bitte eine Frage eingeben")
 
+    bezug = gespraech.themenbezug(frage, modell=None if KI_MOCK else frage_beratungsmodell)
+    if bezug in {"unklar", "fachfremd"}:
+        return gespraechshinweis(bezug, frage, start, im_ticket=False)
+    return allgemeine_it_antwort(frage, start)
+
+
+def allgemeine_it_antwort(frage: str, start: float):
     quellen, tokens, modus = [], None, "suche"
     if doku.ist_zugangsfrage(frage):
         antwort = doku.PASSWORT_HINWEIS
@@ -709,7 +771,7 @@ def ki_frage(eingabe: Frage):
             {"role": "user", "content": frage},
         ], max_tokens=420)
         modus = "llama"
-    return {"antwort": antwort, "quellen": quellen, "modus": modus, "tokens": tokens,
+    return {"antwort": ticketfragen.stichpunkte(antwort), "quellen": quellen, "modus": modus, "tokens": tokens,
             "dauer_ms": round((time.perf_counter() - start) * 1000)}
 
 
@@ -790,11 +852,51 @@ SUPPORT_KATEGORIEN = [k for k in KATEGORIEN if k != "Spam"]
 SUPPORT_PROMPT = """Ordne diese bereits freigegebene IT-Supportanfrage ein.
 Der Betreff beschreibt das Anliegen. Zahlen vor Betreff und Sätzen sind Belegnummern.
 Kategorie: Welches Gerät, welcher Dienst oder welche Leistung ist Gegenstand der Anfrage?
-Priorität: Planbare Beschaffung oder Frage = niedrig. Warnung oder Einschränkung bei
-weiter möglicher Arbeit = mittel. Einzelner Arbeitsplatz oder wichtige Funktion
-ausgefallen = hoch. Stillstand für den Betrieb oder eine Abteilung = sehr_hoch.
+Priorität: Entscheide nach der aktuell möglichen Arbeit.
+sehr_hoch = ein Team oder Geschäftsablauf fällt aus, kein brauchbarer Ersatz.
+hoch = ein Arbeitsplatz oder eine wesentliche Funktion fällt ohne Ersatz aus.
+mittel = die Arbeit geht eingeschränkt, langsamer oder auf einem Ersatzweg weiter.
+niedrig = reine Auskunft, kosmetischer Wunsch oder planbarer Auftrag ohne aktuelle Störung.
+Ein intakter anderer Dienst ist kein Ersatzweg für den betroffenen Vorgang.
+Eine Frage kann einen akuten Ausfall melden. Ein bloß denkbarer Ausfall ist kein Befund.
 Kundenregeln gelten nur bei exakt dem darin beschriebenen Ausfall.
-Beleg: Wähle die Nummer der Ticketangabe, die das Anliegen oder die Auswirkung belegt."""
+Beleg: Wähle die Nummer der Ticketangabe, die die Auswirkung auf die Arbeit belegt."""
+
+
+def support_format(anzahl_stellen: int) -> dict:
+    return {"type": "json_schema", "json_schema": {"name": "support_einstufung", "schema": {
+        "type": "object",
+        "properties": {
+            "kategorie": {"type": "string", "enum": SUPPORT_KATEGORIEN},
+            "prioritaet": {"type": "string", "enum": PRIORITAETEN},
+            "beleg": {"type": "integer", "enum": list(range(anzahl_stellen))},
+        },
+        "required": ["kategorie", "prioritaet", "beleg"], "additionalProperties": False,
+    }}}
+
+
+def support_grammatik(anzahl_stellen: int) -> str:
+    """GBNF für ein einzelnes kompaktes JSON-Objekt mit drei begrenzten Werten."""
+    def auswahl(werte):
+        return " | ".join(json.dumps(str(wert), ensure_ascii=False) for wert in werte)
+
+    return "\n".join([
+        r'root ::= "{\"prioritaet\":\"" prioritaet "\",\"kategorie\":\"" kategorie "\",\"beleg\":" beleg "}"',
+        "prioritaet ::= " + auswahl(PRIORITAETEN),
+        "kategorie ::= " + auswahl(SUPPORT_KATEGORIEN),
+        "beleg ::= " + auswahl(range(anzahl_stellen)),
+    ])
+
+
+def supportantwort(text: str, stellen: list[str], kundenregel: bool) -> dict:
+    ergebnis = json.loads(text)
+    if not isinstance(ergebnis, dict) or set(ergebnis) != {"prioritaet", "kategorie", "beleg"}:
+        raise ValueError("Unvollständige Modellbewertung")
+    index = ergebnis["beleg"]
+    if (ergebnis["prioritaet"] not in PRIORITAETEN or ergebnis["kategorie"] not in SUPPORT_KATEGORIEN
+            or type(index) is not int or not 0 <= index < len(stellen)):
+        raise ValueError("Unzulässige Einstufung oder Belegnummer")
+    return {**ergebnis, "spam": False, "beleg": stellen[index], "begruendung": "", "kundenregel": kundenregel}
 
 
 def analysiere_llama(t: dict, *, systemprompt: str = SYSTEMPROMPT_ANALYSE,
@@ -807,42 +909,45 @@ def analysiere_llama(t: dict, *, systemprompt: str = SYSTEMPROMPT_ANALYSE,
     if regeln:
         ticket_text += "\nKundenregel für den genannten Ausfall:\n" + "\n".join(regeln)
 
-    formatvorgabe = ANALYSE_FORMAT
+    nachrichten = [{"role": "system", "content": SUPPORT_PROMPT if nur_support else systemprompt},
+                   {"role": "user", "content": ticket_text}]
+    optionen = {"temperatur": 0}
+    if messung is not None:
+        optionen["messung"] = messung
     if nur_support:
-        systemprompt = SUPPORT_PROMPT
-        formatvorgabe = {"type": "json_schema", "json_schema": {
-            "name": "support_einstufung", "schema": {
-                "type": "object",
-                "properties": {
-                    "kategorie": {"type": "string", "enum": SUPPORT_KATEGORIEN},
-                    "prioritaet": {"type": "string", "enum": PRIORITAETEN},
-                    "beleg": {"type": "integer", "enum": list(range(len(stellen)))},
-                },
-                "required": ["kategorie", "prioritaet", "beleg"],
-                "additionalProperties": False,
-            },
-        }}
-    text, tokens = frage_llama(
-        [{"role": "system", "content": systemprompt},
-         {"role": "user", "content": ticket_text}],
-        antwortformat=formatvorgabe,
-        temperatur=0,
-        **({"messung": messung} if messung is not None else {}),
-    )
+        optionen.update(max_tokens=96, beratung=SUPPORT_MIT_BERATUNGSMODELL)
+        text, tokens = frage_llama(nachrichten, antwortformat=support_format(len(stellen)), **optionen)
+        try:
+            return supportantwort(text, stellen, bool(regeln)), tokens
+        except (ValueError, TypeError):
+            # Eine zweite Formatausgabe nur bei unlesbarer/ungültiger Einstufung.
+            # Transport- und Dienstfehler aus frage_llama gehen direkt an den Aufrufer.
+            pass
+        erste_messung = dict(messung or {})
+        ersatzprompt = (SUPPORT_PROMPT +
+                        "\nGib genau ein kompaktes JSON-Objekt mit prioritaet, kategorie und beleg aus."
+                        "\nKategorien: " + ", ".join(SUPPORT_KATEGORIEN) + ".")
+        ersatzanfrage = [{"role": "system", "content": ersatzprompt}, nachrichten[1]]
+        text, weitere = frage_llama(ersatzanfrage, grammatik=support_grammatik(len(stellen)), **optionen)
+        gesamt = tokens + weitere if tokens is not None and weitere is not None else None
+        if messung is not None:
+            zeit1, zeit2 = erste_messung.get("antwortzeit_s"), messung.get("antwortzeit_s")
+            messung.update(tokens=gesamt, zeit_bis_erster_token_s=erste_messung.get("zeit_bis_erster_token_s"),
+                           antwortzeit_s=zeit1 + zeit2 if zeit1 is not None and zeit2 is not None else None,
+                           tokens_pro_s=None)
+        try:
+            return supportantwort(text, stellen, bool(regeln)), gesamt
+        except (ValueError, TypeError):
+            raise HTTPException(502, "Die KI hat eine ungültige Ticketbewertung geliefert.")
+
+    text, tokens = frage_llama(nachrichten, antwortformat=ANALYSE_FORMAT, **optionen)
 
     # Doppelt prüfen: Auch wenn das Format erzwungen ist, nichts ungeprüft übernehmen
     try:
         ergebnis = json.loads(text)
         if ergebnis["prioritaet"] not in PRIORITAETEN or ergebnis["kategorie"] not in KATEGORIEN:
             raise ValueError
-        if nur_support:
-            index = ergebnis["beleg"]
-            if ergebnis["kategorie"] == "Spam" or type(index) is not int or not 0 <= index < len(stellen):
-                raise ValueError
-            ergebnis = {"prioritaet": ergebnis["prioritaet"], "kategorie": ergebnis["kategorie"],
-                        "spam": False, "beleg": stellen[index], "begruendung": "",
-                        "kundenregel": bool(regeln)}
-        elif type(ergebnis["spam"]) is not bool or not isinstance(ergebnis["begruendung"], str):
+        if type(ergebnis["spam"]) is not bool or not isinstance(ergebnis["begruendung"], str):
             raise ValueError
     except (ValueError, KeyError, TypeError):
         raise HTTPException(502, "Die KI hat eine ungültige Ticketbewertung geliefert.")
@@ -1095,15 +1200,14 @@ def berate_zum_ticket(ticket: dict, bestand: list[dict], dokument: list[doku.Abs
         return ("Zu diesem Ticket kann ich keine aktuellen Betriebswerte abrufen. "
                 "Erfasse den Messwert am betroffenen System und ergänze ihn im Ticket.", [], "ticket", None)
 
-    wissen = wiki.hintergrund(meldung, frage)
     if anleitung:
         if historie or ticketfragen.passt_zur_frage(anleitung, frage):
-            grund = next((q for q in wissen if q.get("pruefschritte")), None) if not historie else None
-            antwort, quellen = ticketfragen.aus_anleitung(anleitung, ticket, bestand, frage, grund)
+            antwort, quellen = ticketfragen.aus_anleitung(anleitung, ticket, bestand, frage)
             return antwort, quellen, "ticket", None
         return ("Die Arbeitsanleitung im Ticket belegt für diese Frage keinen nächsten Schritt. "
                 "Welche Funktion oder Meldung möchtest du genauer prüfen?", [], "ticket", None)
 
+    wissen = wiki.hintergrund(meldung, frage)
     fakten = ticketfragen.aktenfakten(dokument, meldung, ticket["titel"])
     fall = ticketfragen.dokumentierter_fall(ticket, bestand, fakten)
     tokens = None
@@ -1141,15 +1245,30 @@ def ticket_frage(ticket_id: int, eingabe: Ticketfrage):
         raise HTTPException(422, "Bitte eine Frage eingeben")
     _, bestand, ticket = ki_arbeitsstand(ticket_id)
     if ticketfragen.unverstaendlich(frage, rag.ticket_text(ticket)):
-        return {"antwort": "Ich kann deine Eingabe nicht zuordnen. Beschreibe kurz, was du beobachtest, "
+        return {"antwort": "- Ich kann deine Eingabe nicht zuordnen. Beschreibe kurz, was du beobachtest, "
                            "oder frag nach einem konkreten Prüfschritt.",
                 "quellen": [], "modus": "rueckfrage", "tokens": None,
                 "dauer_ms": round((time.perf_counter() - start) * 1000)}
     verlauf = eingabe.verlauf or ([eingabe.vorherige_frage] if eingabe.vorherige_frage else [])
-    if verlauf and ticketfragen.anschlussfrage(frage) and (
-            ticketfragen.faktenfrage(verlauf[-1]) or ticketfragen.ist_begriffsfrage(verlauf[-1])
-            or ticketfragen.fragt_nach_historie(verlauf[-1])):
-        frage = verlauf[-1].strip()
+    verlauf = [v for v in verlauf if not gespraech.offensichtlich_fremd(v)]
+    bezug = gespraech.themenbezug(frage, rag.ticket_text(ticket), verlauf,
+                                  None if KI_MOCK else frage_beratungsmodell)
+    if bezug in {"unklar", "fachfremd"}:
+        return gespraechshinweis(bezug, frage, start, im_ticket=True)
+    if bezug == "it":
+        return allgemeine_it_antwort(frage, start)
+    if verlauf and ticketfragen.anschlussfrage(frage):
+        # Auch ältere Clients können einen vorherigen Themenwechsel mitschicken.
+        letzte = verlauf[-1].strip()
+        letzter_bezug = gespraech.themenbezug(letzte, rag.ticket_text(ticket), verlauf[:-1],
+                                              None if KI_MOCK else frage_beratungsmodell)
+        if letzter_bezug in {"unklar", "fachfremd"}:
+            verlauf = verlauf[:-1]
+        elif letzter_bezug == "it":
+            return allgemeine_it_antwort(f"{letzte}\nRückfrage: {frage}", start)
+        elif (ticketfragen.faktenfrage(letzte) or ticketfragen.ist_begriffsfrage(letzte)
+                or ticketfragen.fragt_nach_historie(letzte)):
+            frage = letzte
     kunde = ticket.get("kunde")
     dokument = doku.abschnitte(kundendoku_pfad(kunde)) if kunde else []
     modus, tokens = "ticket", None
@@ -1165,7 +1284,7 @@ def ticket_frage(ticket_id: int, eingabe: Ticketfrage):
         if quellen:
             modus = "wikipedia"
         else:
-            return ki_frage(Frage(frage=frage))
+            return allgemeine_it_antwort(frage, start)
     elif ticketfragen.faktenfrage(frage) and not (
             ticketfragen.fragt_nach_messwert(frage) or ticketfragen.fragt_nach_historie(frage)
     ) and kunde:
@@ -1175,7 +1294,7 @@ def ticket_frage(ticket_id: int, eingabe: Ticketfrage):
             antwort = doku.kurzbeleg(frage, quellen[0]["text"])
     else:
         antwort, quellen, modus, tokens = berate_zum_ticket(ticket, bestand, dokument, frage, verlauf)
-    return {"antwort": antwort, "quellen": quellen, "modus": modus, "tokens": tokens,
+    return {"antwort": ticketfragen.stichpunkte(antwort), "quellen": quellen, "modus": modus, "tokens": tokens,
             "dauer_ms": round((time.perf_counter() - start) * 1000)}
 
 

@@ -27,25 +27,45 @@ POSTFACH_WARNUNG = (r"\b(?:fast voll|nahezu voll|beinahe voll|speicherwarnung)\b
 MAIL_AUSFALL = (r"\b(?:nicht mehr|keine?\b.{0,24}\bmehr|kein (?:versand|empfang)|"
                 r"abgewiesen|unzustellbar|fehlgeschlagen|(?:versand|empfang) gestört)\b")
 FLEXIBEL = r"\b(?:flexibel|kein zeitdruck|ohne zeitdruck|keine eile|kein fester termin)\b"
-BETRIEBSSTOPP = (r"\b(?:warenausgang|versand|produktion|betrieb|abteilung) (?:steht(?=[.!?,;:]|$)|steht still|liegt still)\b|"
-                 r"\b(?:niemand|keiner) kann (?:mehr |hier )?(?:arbeiten|buchen|abrechnen)\b|"
-                 r"\b(?:wir|alle) können (?:alle |gar )?nicht (?:mehr )?arbeiten\b")
+BETRIEBSSTOPP = (r"\b(?:warenausgang|versand|produktion|betrieb|abteilung|betriebsteil) (?:steht(?=[.!?,;:]|$)|steht still|liegt still)\b|"
+                 r"\b(?:betriebsstillstand|produktionsstillstand|betriebsausfall)\b")
+GRUPPE_BLOCKIERT = (r"\b(?:niemand kann|keiner kann|kann niemand|kann keiner)\b.{0,55}\b(?:arbeiten|buchen|abrechnen|anmelden|aufträge bearbeiten)\b|"
+                    r"\b(?:wir|alle) können (?:alle |gar )?nicht (?:mehr )?arbeiten\b|"
+                    r"\b(?:die (?:schicht|abteilung|filiale)|das team) kann\b.{0,40}\bkeine?\w*\b.{0,55}"
+                    r"\b(?:annehmen|ausliefern|bearbeiten|abschließen|freigeben|versenden|abrechnen|verbuchen)\b")
 UMGEHUNG = (r"\b(?:weiterarbeiten|damit arbeiten|weich[te]\w* .{0,55} aus|"
             r"(?:am nachbarplatz|am ersatzplatz)\b.{0,50}\b(?:klappt|geht|funktioniert)|"
             r"(?:klappt|geht|funktioniert)\b.{0,45}\bam nachbarplatz|"
             r"(?:auf|über) usb(?:-stick)? (?:geht|funktioniert) (?:noch|weiterhin)|"
-            r"(?:ersatzplatz|ersatzgerät|ausweichplatz) (?:funktioniert|steht zur verfügung))\b")
+            r"(?:ersatzplatz|ersatzgerät|ausweichplatz) (?:funktioniert|steht zur verfügung)|"
+            r"(?:läuft|geht) (?:damit|dort) weiter|"
+            r"(?:kann|können|lassen sich|lässt sich)\b.{0,90}\b(?:weiter \w+en|von hand|per hand|manuell)|"
+            r"(?:ersatzweise|behelfsweise|stattdessen)\s+(?:nutzen|verwenden|arbeiten|kann|können)|"
+            r"(?:arbeiten|kommen)\b.{0,35}\blangsamer (?:weiter|voran))\b")
 EINZELAUSFALL = r"\b(?:ich|er|sie) kann (?:gerade |gar |derzeit )*(?:nicht (?:mehr )?arbeiten|nicht weiterarbeiten)\b"
-FUNKTIONS_AUSFALL = (r"\b(?:kein(?:e[ns]?)? (?:internet|netz|verbindung|zugriff|empfang)|"
+FUNKTIONS_AUSFALL = (r"\b(?:kein(?:e[ns]?)? (?:internet|wlan|netz|verbindung|zugriff|empfang)|"
                      r"(?:startet|verbinde[nt]\w*|anmelden|einschalten|starten|geht|funktioniert) (?:sich )?nicht|"
                      r"nicht (?:mehr )?(?:anmelden|einschalten|starten)|nicht (?:mehr )?erreichbar|"
                      r"konto gesperrt|stürzt (?:\w+ ){0,5}ab|schließt sich (?:sofort )?wieder|"
                      r"(?:anmeldung|zugriff) (?:nicht möglich|fehlgeschlagen)|"
                      r"(?:fehler|buchung)\b.{0,25}\b(?:fehlgeschlagen|bricht)\b|"
-                     r"(?:fällt|fallen) aus|ausgefallen|ausfall)\b")
+                     r"(?:wird|werden|wurde|wurden)\b.{0,50}\b(?:abgewiesen|zurückgewiesen|abgelehnt|blockiert)|"
+                     r"(?:frier\w*)\b.{0,60}\bein|(?:fällt|fallen) aus|ausgefallen|ausfall)\b")
 BREITER_AUSFALL = (r"\b(?:ganzen (?:büro|betrieb|standort)|gesamte[nr]? (?:büro|abteilung|filiale)|"
-                   r"alle[nr]? (?:\w+ )?(?:arbeitsplätze[n]?|mitarbeitenden|versandplätzen|plätze)|"
+                   r"(?:alle[nr]?|sämtliche[nr]?|mehrere[nr]?) (?!anderen?\b|übrigen?\b)(?:\w+ )?"
+                   r"(?:arbeitsplätz\w*|mitarbeiter\w*|mitarbeitenden|beschäftigten|personen|nutzer\w*|"
+                   r"sachbearbeiter\w*|\w*stationen|\w*plätzen?|plätze)|"
                    r"kein(?:em|er) (?:der )?\w+ arbeitsplät\w*)\b")
+
+# Eine erwartete oder inzwischen behobene Störung beschreibt keine gegenwärtige Auswirkung.
+HYPOTHETISCH = r"\b(?:falls|angenommen|möglicherweise|vielleicht|könnte[n]?|würde[n]?|im falle|für den fall)\b"
+VERNEINT = r"\b(?:kein(?:en|e)?|geplante[nr]?|befürchtete[nr]?) (?:betriebs)?(?:ausfall|stillstand)\b"
+WIEDER_HERGESTELLT = (r"\b(?:inzwischen|mittlerweile|jetzt|wieder)\b.{0,50}\b(?:alles|betrieb|versand|arbeit|system)\b"
+                       r".{0,45}\b(?:wieder normal|störungsfrei|einwandfrei|in ordnung)\b|"
+                       r"\b(?:störung|ausfall|problem) (?:ist|wurde) (?:inzwischen |bereits )?(?:behoben|beseitigt)\b")
+KEIN_ERSATZ = (r"\b(?:nicht|kein\w*|unmöglich|fehlt|fehlen|gesperrt|scheitert|ohne zugang)\b|"
+               r"\b(?:damit|um)\b.{0,45}\bwieder weiterarbeiten\b|"
+               r"\b(?:die |alle )?(?:anderen|übrigen)\b.{0,40}\b(?:arbeiten|weiterarbeiten|läuft|geht)\b")
 
 
 def ticketstellen(ticket: dict) -> list[str]:
@@ -98,26 +118,41 @@ def thema(stellen: list[str]) -> str | None:
     return None
 
 
-def auswirkung(stellen: list[str], kundenregel: bool) -> tuple[str, str, str] | None:
+def auswirkung(stellen: list[str], kundenregel: bool, modellprioritaet: str) -> tuple[str, str, str] | None:
     """Nur ausdrücklich beschriebene Arbeitsfolgen begründen eine Prioritätsregel."""
-    stopp = textstelle(stellen, BETRIEBSSTOPP)
+    aktuell = []
+    for stelle in stellen:
+        if re.search(WIEDER_HERGESTELLT, stelle.casefold()):
+            aktuell.clear()
+        elif not stelle.endswith("?") and not re.search(HYPOTHETISCH + "|" + VERNEINT, stelle.casefold()):
+            aktuell.append(stelle)
+    stopp = textstelle(aktuell, BETRIEBSSTOPP)
     if stopp:
         return "sehr_hoch", "Der gemeldete Ausfall stoppt einen Geschäftsbereich.", stopp
-    # Freitext-Kundenregeln können mehrere Bedingungen enthalten. Der bloße
-    # Treffer eines Gerätenamens belegt noch keine vertragliche Eskalation.
-    if kundenregel:
-        return None
-    ausfall = next((s for s in stellen if re.search(FUNKTIONS_AUSFALL, s.casefold())
-                    and not re.search(r"\b(?:kein(?:en)?|geplante[nr]?) ausfall\b|\b(?:falls|angenommen)\b",
-                                      s.casefold())), None)
-    umgehung = textstelle(stellen, UMGEHUNG)
-    if umgehung and not re.search(r"\b(?:nicht|kein\w*)\b.{0,24}\b(?:weiterarbeiten|damit arbeiten|ersatzplatz|ersatzgerät)\b",
-                                  umgehung.casefold()):
+    ausfall = textstelle(aktuell, FUNKTIONS_AUSFALL)
+    # Den erfolgreichen Ersatzweg im eigenen Teilsatz prüfen. Ein funktionierender
+    # anderer Geschäftsbereich oder ein erst erbetenes Ersatzgerät ist kein Ersatzweg.
+    stoerung = ausfall or textstelle(aktuell, STOERUNG + r"|\b(?:störung|eingeschränkt|langsamer|fehlt|nicht (?:mehr )?erkannt)\b")
+    umgehung = next((teil for s in aktuell for teil in re.split(r",\s*|\s+aber\s+", s)
+                     if re.search(UMGEHUNG, teil.casefold()) and not re.search(KEIN_ERSATZ, teil.casefold())), None)
+    if stoerung and umgehung and not (kundenregel and modellprioritaet in ("hoch", "sehr_hoch")):
         return "mittel", "Die Meldung beschreibt, wie die Arbeit weitergehen kann.", umgehung
-    umfang = textstelle(stellen, BREITER_AUSFALL)
-    if umfang and ausfall:
-        return "sehr_hoch", "Die Störung betrifft einen ganzen Bereich oder mehrere Arbeitsplätze.", umfang
-    einzeln = textstelle(stellen, EINZELAUSFALL)
+    gruppenausfall = textstelle(aktuell, GRUPPE_BLOCKIERT)
+    if not gruppenausfall and ausfall:
+        for stelle in aktuell:
+            satz = stelle.casefold()
+            if (re.search(BREITER_AUSFALL, satz)
+                    and re.search(FUNKTIONS_AUSFALL + r"|\b(?:betroffen|betrifft)\b", satz)
+                    and not re.search(r"\b(?:nicht|niemand) betroffen\b", satz)):
+                gruppenausfall = stelle
+                break
+    if gruppenausfall:
+        return "sehr_hoch", "Die Meldung beschreibt einen gemeinsamen Arbeitsausfall.", gruppenausfall
+    # Bei einer möglichen kundenspezifischen Eskalation die höhere Modellstufe
+    # erhalten. Ein bloßes gemeinsames Schlagwort darf eine klare Störung nicht herabstufen.
+    if kundenregel and modellprioritaet in ("hoch", "sehr_hoch"):
+        return None
+    einzeln = textstelle(aktuell, EINZELAUSFALL)
     if einzeln:
         return "hoch", "Eine Person meldet, dass sie nicht arbeiten kann.", einzeln
     if ausfall:
@@ -130,11 +165,11 @@ def supportbewertung(ticket: dict, modell: dict) -> dict:
     stellen = ticketstellen(ticket)
     titel = stellen[0].casefold()
     gesamt = " ".join(stellen).casefold()
-    wunsch = textstelle(stellen, WUNSCH + "|" + ANGEBOT)
+    wunsch = textstelle(stellen[:1], WUNSCH) or textstelle(stellen, ANGEBOT)
     stoerung = re.search(STOERUNG, gesamt)
     umzug = re.search(UMZUG, titel) and not stoerung
     fach = "Sonstiges" if umzug else thema(stellen)
-    regel = auswirkung(stellen, bool(modell.get("kundenregel")))
+    regel = auswirkung(stellen, bool(modell.get("kundenregel")), modell["prioritaet"])
     mail_pruefen = (ticket.get("spampruefung") or {}).get("anliegen") == "mail_pruefen"
     if mail_pruefen:
         fach = "E-Mail"
@@ -161,6 +196,8 @@ def supportbewertung(ticket: dict, modell: dict) -> dict:
     elif mail_pruefen:
         grund = "Der Absender bittet um Prüfung einer erhaltenen E-Mail."
         beleg = textstelle(stellen, r"\b(?:e-?mail|mail)\b") or stellen[0]
+    elif modell.get("beleg") in stellen:
+        grund = "Das Sprachmodell stützt die Priorität auf die folgende Ticketangabe."
     elif fach:
         grund = f"Das Ticket nennt ein Thema aus dem Bereich {fach}."
         beleg = stellen[0] if umzug else (textstelle(stellen, FACHTHEMEN[fach]) or stellen[0])

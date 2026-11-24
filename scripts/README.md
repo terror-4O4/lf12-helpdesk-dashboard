@@ -7,6 +7,7 @@ Skripte für Windows als `.ps1`, für macOS/Linux als `.sh`.
 | `start-backend.sh` / `.ps1` | Backend starten | Entwickler-Rechner |
 | `auswertung.py` | Ticketpriorisierung und Laufzeit messen, Modell- oder Promptvergleich | Rechner mit lokalem Chat-Dienst |
 | `auswertung_eingang.py` | Spam-Warteschlange, Freigabe, Kategorie und Priorität über die laufende Anwendung prüfen | Rechner mit lokalem Dashboard |
+| `auswertung_prioritaet.py` | Gespeicherte Dashboard-Prioritäten für neue Tickets mit vorab vergebenen Sollwerten prüfen | Rechner mit lokalem Chat-Dienst |
 | `auswertung_rag.py` | Ähnliche Tickets mit und ohne Historie prüfen, Suchschwelle bestimmen | Rechner mit lokalem Chat- und Embedding-Dienst oder Mock |
 | `auswertung_doku.py` | Fundstellen, fehlende Treffer und Ticketbezug der Kundendoku-Suche prüfen | Rechner mit laufendem Backend |
 | `auswertung_ticketberatung.py` | Neue Tickets über die API anlegen und den sichtbaren Beitrag des Beratungsmodells messen | Rechner mit lokalen Modell- und Embedding-Diensten |
@@ -31,6 +32,14 @@ python scripts/auswertung.py --vergleich --mock # Auswertungsablauf mit Platzhal
 ## auswertung_eingang.py
 
 Bei laufendem Dashboard prüft `python scripts/auswertung_eingang.py` die gesamte Verarbeitung der Demotickets über HTTP. Das Skript testet die Sperre für Verdachtsfälle und ruft für Supporttickets die Bewertung mit `speichern=false` auf. Es meldet Spamtreffer, durchgelassene Supportmeldungen sowie korrekte Kategorien und Prioritäten. Manuell entschiedene, fehlende oder geänderte Beispielfälle werden als ausgelassen ausgewiesen. Der Einzelbericht liegt unter `data/laufzeit/auswertung/eingangspruefung-*.json`.
+
+## auswertung_prioritaet.py
+
+```bash
+python scripts/auswertung_prioritaet.py --faelle data/testdaten/prioritaet_blindtest.json --bericht data/laufzeit/auswertung/prioritaeten.json
+```
+
+Das Skript legt die Supportfälle über die Dashboard-API in einer isolierten Arbeitskopie an und liest die gespeicherte Priorität nach der KI-Analyse wieder aus. Die Sollwerte bleiben außerhalb der Anwendung. Als Spam gekennzeichnete Testfälle werden ausgenommen. Ein regulärer Fall, den der Eingang blockiert, zählt als verfehlte Priorität. Der Bericht enthält Treffer pro Stufe, zu hohe und zu niedrige Einstufungen, die Herkunft des Vorschlags und die mediane Antwortzeit erfolgreicher Analysen. Für einen Vorher-Nachher-Vergleich zweimal denselben Datensatz und Modellserver verwenden. `--projektstand` wählt einen lokalen Checkout, `--bericht` jeweils eine neue Ergebnisdatei.
 
 ## auswertung_ticketberatung.py
 

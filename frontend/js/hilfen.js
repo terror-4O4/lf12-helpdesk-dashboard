@@ -171,17 +171,18 @@ export const BEWERTUNGSQUELLEN = {
 
 export function ticketPrioBadge(t) {
   const quelle = t.prioritaet_quelle === "ki" ? t.ki?.bewertungsquellen?.prioritaet : t.prioritaet_quelle;
-  return prioBadge(t.prioritaet, quelle);
+  return prioBadge(t.prioritaet, quelle, true);
 }
 
-export function prioBadge(prio, quelle) {
+export function prioBadge(prio, quelle, mitModellhinweis = false) {
   if (!prio) return h("span", { class: "badge prio-leer", title: "Noch nicht bewertet" }, "offen");
-  const ki = quelle === "modell";
+  const herkunft = quelle === "modell" ? "Vom lokalen Sprachmodell vorgeschlagene Priorität"
+    : BEWERTUNGSQUELLEN[quelle] || "Herkunft der bisherigen Priorität unbekannt";
   return h(
     "span",
-    { class: `badge prio-${prio}`, title: BEWERTUNGSQUELLEN[quelle] || "Bisherige Einschätzung" },
+    { class: `badge prio-${prio}`, title: herkunft },
     PRIORITAET[prio] || prio,
-    ki ? h("span", { class: "ki-zeichen", "aria-label": "KI" }, " ✦") : null,
+    mitModellhinweis && quelle === "modell" ? " · KI" : null,
   );
 }
 

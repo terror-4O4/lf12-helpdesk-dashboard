@@ -35,12 +35,12 @@ class TicketfragenTest(unittest.TestCase):
         self.assertIn("Prüfe zeitnah die Belegung", r["antwort"])
         self.assertIn("archiviert", r["antwort"])
         self.assertNotIn("Arbeitsplätze", r["antwort"])
-        self.assertIn("Im früheren Ticket #1020", r["antwort"])
-        self.assertEqual(r["quellen"][1]["ticket_id"], 1020)
+        self.assertNotIn("Im früheren Ticket", r["antwort"])
+        self.assertEqual(len(r["quellen"]), 1)
         self.assertIn("vorgehen", r["quellen"][0]["quelle"])
         self.assertTrue(r["quellen"][0]["links"][0]["url"].startswith("https://learn.microsoft.com/"))
         r = self.frage(1021, "Wie viel Speicher ist aktuell frei?")
-        self.assertTrue(r["antwort"].startswith("Der Assistent hat keinen Zugriff auf aktuelle Messwerte"))
+        self.assertTrue(r["antwort"].startswith("- Der Assistent hat keinen Zugriff auf aktuelle Messwerte"))
 
     def test_anleitung_bei_anderer_nummer_und_fremder_fall_geschuetzt(self):
         t = next(t for t in self.tickets if t["id"] == 1021)
@@ -52,7 +52,7 @@ class TicketfragenTest(unittest.TestCase):
         self.assertNotIn("1020", r["antwort"])
         self.assertFalse(any(q.get("ticket_id") for q in r["quellen"]))
         self.assertIn("vorgehen", r["quellen"][0]["quelle"])
-        self.assertIn("Wikipedia", r["quellen"][1]["quelle"])
+        self.assertEqual(len(r["quellen"]), 1)
         self.assertNotIn("damals", self.frage(9999, "Welcher frühere Fall passt?")["antwort"])
 
     def test_historie_anschlussfrage_und_andere_themen(self):
@@ -82,7 +82,7 @@ class TicketfragenTest(unittest.TestCase):
             "modus": "llama", "tokens": 8, "ergebnis": {"vorschlaege": []}
         }) as suche:
             r = self.frage(1023, "Was soll ich tun?")
-            self.assertIn("keinen belegten Lösungsweg", r["antwort"])
+            self.assertIn("Ausstattung, Menge und das Budget", r["antwort"])
             self.assertEqual(r["quellen"], [])
             self.assertTrue(suche.call_args.kwargs["nur_ticketkunde"])
 
@@ -100,8 +100,7 @@ class TicketfragenTest(unittest.TestCase):
                 r = self.frage(1017, frage)
                 self.assertIn("STB-SRV01", r["antwort"])
                 self.assertIn("protokoll", r["antwort"].lower())
-                self.assertIn("Damaliger Lösungsweg", r["antwort"])
-                self.assertIn("Ob dieselbe Ursache vorliegt", r["antwort"])
+                self.assertIn("Im früheren Ticket #1016 war die Ursache", r["antwort"])
                 self.assertEqual({q["ticket_id"] for q in r["quellen"] if "ticket_id" in q}, {1016})
                 self.assertTrue(any(q["quelle"].startswith("doku/steuerbuero") for q in r["quellen"]))
                 self.assertTrue(any(q.get("pruefschritte") for q in r["quellen"]))
@@ -155,11 +154,9 @@ class TicketfragenTest(unittest.TestCase):
                         json.dumps({"rueckfrage": frage}), 25)):
                     r = self.frage(1027, "Die Etiketten bleiben leer, was ist der nächste Schritt?")
                     self.assertIn("Testseite", r["antwort"])
-                    self.assertIn("Ursache ist offen", r["antwort"])
+                    self.assertIn("Druckvorschau", r["antwort"])
                     self.assertEqual(r["tokens"], 25)
                     self.assertNotIn("Passwort", r["antwort"])
-                    if frage == text:
-                        self.assertIn(text, r["antwort"])
 
     def test_angefragte_erstpruefung_konkretisierung_und_neuer_befund(self):
         fragen = ["Was ist der nächste Schritt?", "Was soll ich machen?"]
@@ -196,7 +193,8 @@ class TicketfragenTest(unittest.TestCase):
     def test_wissensluecke_mit_geraetepruefung_statt_erledigtem_vergleich(self):
         r = self.frage(1031, "Was soll ich machen?")
         self.assertIn("Geräteübersicht", r["antwort"])
-        self.assertIn("funktioniert laut Meldung am anderen Arbeitsplatz", r["antwort"])
+        self.assertIn("Fehlercode", r["antwort"])
+        self.assertNotIn("Nachbarplatz", r["antwort"])
         self.assertNotIn("Kartenterminal", r["antwort"])
         self.assertNotIn("Praxis", r["antwort"])
         monitor = self.frage(1007, "Was soll ich machen?")
@@ -210,7 +208,7 @@ class TicketfragenTest(unittest.TestCase):
                 "modus": "llama", "tokens": 0, "ergebnis": {"vorschlaege": []}}), patch.object(
                 app, "frage_beratungsmodell", return_value=(json.dumps({"pruefung": schritt, "rueckfrage": ""}), 18)):
             antwort = self.frage(1031, "Was soll ich machen?")
-            self.assertTrue(antwort["antwort"].startswith(schritt))
+            self.assertTrue(antwort["antwort"].startswith("- " + schritt))
             self.assertEqual(antwort["modus"], "modellvorschlag")
 
     def test_offener_modellvorschlag_mit_neuem_fachbegriff_und_gueltiger_herkunft(self):
@@ -238,7 +236,7 @@ class TicketfragenTest(unittest.TestCase):
                     self.assertIn(schritt, r["antwort"])
                     self.assertIn(rfrage, r["antwort"])
                 elif modus == "modellrueckfrage":
-                    self.assertEqual(rfrage, r["antwort"])
+                    self.assertEqual("- " + rfrage, r["antwort"])
                 else:
                     self.assertNotIn(vorschlag, r["antwort"])
 
@@ -262,9 +260,9 @@ class TicketfragenTest(unittest.TestCase):
         with patch.object(app, "KI_MOCK", False), patch.object(app, "erzeuge_vorschlag", return_value={
                 "ergebnis": {"vorschlaege": []}, "tokens": 0}), patch.object(
                     app, "frage_beratungsmodell", return_value=(json.dumps(plan), 70)):
-            r = self.frage(1027, "Was kann ich prüfen?")
+            r = self.frage(1027, "Welche Ursache könnte der Abstand haben und was kann ich prüfen?")
         self.assertEqual(r["modus"], "modellvorschlag")
-        self.assertIn(plan["pruefung"], r["antwort"])
+        self.assertIn(plan["pruefung"].split(". ")[0] + ".", r["antwort"])
         self.assertIn("Mögliche Erklärung", r["antwort"])
         self.assertIn(plan["hypothese"], r["antwort"])
 
@@ -326,7 +324,7 @@ class TicketfragenTest(unittest.TestCase):
             with self.subTest(modus=modus, pruefung=pruefung), patch.object(app, "KI_MOCK", False), patch.object(
                     app, "erzeuge_vorschlag", return_value={"ergebnis": {"vorschlaege": []}, "tokens": 0}), \
                     patch.object(app, "frage_beratungsmodell", return_value=(json.dumps(plan), 120)):
-                r = self.frage(1027, "Was kann ich prüfen?")
+                r = self.frage(1027, "Welche Ursache könnten die leeren Etiketten haben und was kann ich prüfen?")
             self.assertEqual(modus, r["modus"])
             self.assertNotIn("untersc", r["antwort"])
             self.assertNotIn("Wenn dagegen", r["antwort"])
@@ -336,10 +334,66 @@ class TicketfragenTest(unittest.TestCase):
                 if rueckfrage:
                     self.assertIn(frage, r["antwort"])
             elif modus == "modellrueckfrage":
-                self.assertEqual(frage, r["antwort"])
+                self.assertEqual("- " + frage, r["antwort"])
 
     def test_vollstaendiger_satz_genau_am_limit(self):
         satz = "Vergleiche die Vorschau, z. B. mit dem Ergebnis am anderen Arbeitsplatz."
         self.assertEqual(app.ticketfragen.vollstaendiges_feld(satz, len(satz)), satz)
         fragment = "Prüfe den Wert, z. B."
         self.assertEqual(app.ticketfragen.vollstaendiges_feld(fragment, len(fragment)), "")
+
+    def test_erster_schritt_und_gemeldetes_ergebnis_ohne_erfundene_gegenprobe(self):
+        # Neues Gerät bei einem anderen Kunden. Beide Ausgänge werden am selben Prüfpunkt getrennt.
+        t = next(t for t in self.tickets if t["id"] == 1027)
+        t.update(id=8950, kunde="bau", titel="Baustellendrucker liefert blankes Papier",
+                 beschreibung="Die Lieferscheine bleiben unbedruckt.")
+        frage = "Was ist der nächste Schritt?"
+        antwort = self.frage(8950, frage)["antwort"]
+        punkte = antwort.splitlines()
+        self.assertEqual(len(punkte), 3)
+        self.assertTrue(all(p.startswith("- ") for p in punkte))
+        self.assertIn("direkt am Drucker", punkte[0])
+        self.assertNotIn("erfolgreich", antwort)
+        for befund, ziel in [("Die Testseite bleibt leer.", "Ausrichtung"),
+                             ("Die Testseite ist nicht mehr leer.", "Druckvorschau")]:
+            with self.subTest(befund=befund):
+                r = self.frage(8950, befund, verlauf=[frage])
+                self.assertIn(ziel, r["antwort"])
+                self.assertNotIn("direkt am Drucker", r["antwort"])
+
+    def test_offene_modellpruefung_verwirft_unbelegten_erfolg(self):
+        ticket = {"titel": "Export einer Grafik", "beschreibung": "Im Dokument erscheint nur ein graues Feld."}
+        detail = "Vergleiche die Grafik mit der beim ersten erfolgreichen Export verwendeten Datei."
+        for zitat in ("", "Der Export hat gestern funktioniert."):
+            def modell(*args, **kwargs):
+                return json.dumps({"pruefung": detail, "erfolgreiche_gegenprobe": zitat}), 50
+            with self.subTest(zitat=zitat):
+                antwort, quellen, _, modus = app.ticketfragen.offene_diagnose(
+                    ticket, "Was ist der nächste Schritt?", [], modell)
+                self.assertEqual(modus, "standardpruefung")
+                self.assertNotIn("erfolgreich", antwort)
+                self.assertEqual(quellen, [])
+
+    def test_format_erhaelt_ordnungszahlen_abkuerzungen_und_wiederholte_schritte(self):
+        text = ("1. Prüfe die 2. Zeile vom 19. November. 2. Lies z. B. die Adresse 10.20.0.52 ab.\n"
+                "3. Prüfe die 2. Zeile vom 19. November.")
+        punkte = app.ticketfragen.stichpunkte(text).splitlines()
+        self.assertEqual(punkte, ["- Prüfe die 2. Zeile vom 19. November.",
+                                  "- Lies z. B. die Adresse 10.20.0.52 ab.", "- Prüfe die 2. Zeile vom 19. November."])
+
+    def test_eingabequelle_in_der_anwendung_auch_bei_unbrauchbarem_modellvorschlag(self):
+        for beschreibung, geraet in [
+                ("Im Browser bleibt das Videobild schwarz. In der Kamera-App sehe ich ein Bild.", "Kamera"),
+                ("Im Testanruf ist das Mikrofon stumm. Eine Aufnahme im Audiorekorder funktioniert.", "Mikrofon")]:
+            ticket = {"titel": "Eingabe in der Besprechung fehlt", "beschreibung": beschreibung}
+            plan = {"pruefung": "Prüfe den Anschluss anhand des früheren Tests.",
+                    "erfolgreiche_gegenprobe": "Das Kabel wurde vollständig geprüft."}
+            with self.subTest(geraet=geraet):
+                antwort, quellen, _, modus = app.ticketfragen.offene_diagnose(
+                    ticket, "Was ist der nächste Schritt?", [], lambda *a, **kw: (json.dumps(plan), 20))
+                self.assertEqual(modus, "standardpruefung")
+                self.assertIn(geraet, antwort)
+                self.assertIn("Eingabequelle", antwort)
+                self.assertIn("Zugriffsberechtigung", antwort)
+                self.assertNotIn("Anschluss", antwort)
+                self.assertEqual(quellen, [])

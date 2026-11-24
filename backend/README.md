@@ -49,6 +49,7 @@ Beenden mit `Strg + C`.
 | GET | `/api/wissensbasis` | Anzahl der gelösten Tickets in der Wissensbasis, Schwelle, Modell |
 | POST | `/api/wissen/wikipedia` | Beantwortet allgemeine IT-Begriffsfragen aus den lokalen Fachnotizen und liefert die jeweilige Originalquelle. |
 | POST | `/api/testdaten/zuruecksetzen` | Verwirft alle Änderungen und lädt die Testtickets neu |
+| POST | `/api/testdaten/ergaenzen` | Ergänzt fehlende Übungstickets und liefert die neu angelegten Ticketnummern |
 
 Das Backend arbeitet mit einer Arbeitskopie der Tickets in `data/laufzeit/` (nicht im Repo). Details in [`docs/datenformat.md`](../docs/datenformat.md#testdaten-und-arbeitskopie).
 
@@ -86,6 +87,8 @@ Passwortmanager-Verweise.
 Die Anwendung sucht automatisch nach passenden [lokalen Fachnotizen](../data/wissen/wikipedia.json). Zu den Quellen gehören Wikipedia, das gematik-Fachportal und Herstellerdokumentation. Die Ticketberatung verbindet diese Hinweise mit dem betroffenen System und früheren Fällen des Kunden. Die Quellen lassen sich nach der Antwort aufklappen. Für die Suche ist keine Internetverbindung nötig.
 
 Standardmäßig beantwortet der unter `LLAMA_URL` konfigurierte Dienst auch die Beratungsfragen. Wer für die Formulierung ein zweites lokales Chatmodell betreibt, kann dessen Adresse in `BERATUNG_URL` und bei Bedarf den Modellnamen in `BERATUNG_MODEL` eintragen. `/api/status?modelldetails=true` zeigt die erreichbaren Dienste und die vom Server gemeldeten Modelldateien.
+
+Mit `SUPPORT_MIT_BERATUNGSMODELL=true` verwendet die Ticketbewertung ebenfalls den unter `BERATUNG_URL` eingerichteten Dienst. Der reine Promptvergleich verwendet weiterhin das ausgewählte Vergleichsmodell an `LLAMA_URL`. Die Dienste lassen sich am KI-Status im Dashboard ablesen.
 
 ## Ähnliche Tickets (RAG)
 
