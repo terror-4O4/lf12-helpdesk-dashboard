@@ -9,6 +9,7 @@ Skripte für Windows als `.ps1`, für macOS/Linux als `.sh`.
 | `auswertung_eingang.py` | Spam-Warteschlange, Freigabe, Kategorie und Priorität über die laufende Anwendung prüfen | Rechner mit lokalem Dashboard |
 | `auswertung_rag.py` | Ähnliche Tickets mit und ohne Historie prüfen, Suchschwelle bestimmen | Rechner mit lokalem Chat- und Embedding-Dienst oder Mock |
 | `auswertung_doku.py` | Fundstellen, fehlende Treffer und Ticketbezug der Kundendoku-Suche prüfen | Rechner mit laufendem Backend |
+| `auswertung_ticketberatung.py` | Neue Tickets über die API anlegen und den sichtbaren Beitrag des Beratungsmodells messen | Rechner mit lokalen Modell- und Embedding-Diensten |
 | `macpro/install-llama-dienst.sh` | llama-server als Dienst auf dem Mac Pro einrichten | Mac Pro, nur Marlon |
 
 ## auswertung.py
@@ -30,6 +31,10 @@ python scripts/auswertung.py --vergleich --mock # Auswertungsablauf mit Platzhal
 ## auswertung_eingang.py
 
 Bei laufendem Dashboard prüft `python scripts/auswertung_eingang.py` die gesamte Verarbeitung der Demotickets über HTTP. Das Skript testet die Sperre für Verdachtsfälle und ruft für Supporttickets die Bewertung mit `speichern=false` auf. Es meldet Spamtreffer, durchgelassene Supportmeldungen sowie korrekte Kategorien und Prioritäten. Manuell entschiedene, fehlende oder geänderte Beispielfälle werden als ausgelassen ausgewiesen. Der Einzelbericht liegt unter `data/laufzeit/auswertung/eingangspruefung-*.json`.
+
+## auswertung_ticketberatung.py
+
+`python scripts/auswertung_ticketberatung.py` legt fünf neue Fälle und drei weitere Kontrollfälle in einer temporären Ticketdatei an. Mit `--faelle` lassen sich einzelne Testdateien auswählen. An die Dashboard-API gehen nur Kundenkürzel, Meldung und Frage. Die Erwartungen dienen der anschließenden fachlichen Bewertung. Der JSON-Bericht in `data/laufzeit/auswertung/` enthält die Modell-Rohantwort, die angezeigte Antwort sowie zum Vergleich den Text bei identischen Quellen ohne Beratungsmodell. Der Vergleich schaltet nur die Formulierung ab. Die Fallsuche bleibt gleich.
 
 ## auswertung_rag.py
 

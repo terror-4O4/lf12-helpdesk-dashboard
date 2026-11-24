@@ -1,0 +1,52 @@
+[
+  {
+    "id": 9101,
+    "kunde": "logistik",
+    "titel": "Lieferliste steht komplett in einer Spalte",
+    "beschreibung": "Beim Öffnen der CSV-Datei vom Lieferanten stehen Artikelnummer, Menge und Preis zusammen in Spalte A. In der ersten Zeile sehe ich zwischen den Werten jeweils ein Semikolon. Ich möchte die Originaldatei behalten.",
+    "typ": "neues Fachthema",
+    "akzeptanz": "Ein praktisch ausführbarer, die Originaldatei schonender Test unterscheidet CSV-Inhalt und Einleseeinstellungen, etwa Trennzeichen in der Importvorschau wählen und die Spalten kontrollieren. Eine gleichwertige Beobachtung oder Gegenprobe zählt.",
+    "ausschluss": "Kein bloßes Wiederholen der gemeldeten Darstellung oder der bereits bekannten Semikolons. Nicht zum Überschreiben des Originals auffordern oder Datenverlust als feststehend behaupten.",
+    "frage": "Was ist der nächste sinnvolle Prüfschritt?"
+  },
+  {
+    "id": 9102,
+    "kunde": "bau",
+    "titel": "Videobesprechung zeigt nur eine graue Fläche",
+    "beschreibung": "Im Besprechungsprogramm sehen die anderen Leute nur eine graue Fläche von mir. Direkt danach liefert die Kamera-App auf demselben Notebook ein klares Livebild. Das Kamerakabel habe ich dafür nicht umgesteckt.",
+    "typ": "neues Fachthema mit durchgeführter Gegenprobe",
+    "akzeptanz": "Ein konkreter nächster Test grenzt die Besprechungsanwendung oder ihre Berechtigung/Videoquelle ein und nutzt dabei das bereits erfolgreiche Kamerabild als Ausgangspunkt. Vergleichbare sinnvolle Tests wie eigene Vorschau außerhalb eines Anrufs zählen.",
+    "ausschluss": "Die Kamera-App nur noch einmal testen lassen oder bereits einen allgemeinen Kameradefekt behaupten reicht nicht.",
+    "frage": "Was ist der nächste sinnvolle Prüfschritt?"
+  },
+  {
+    "id": 9103,
+    "kunde": "autohaus",
+    "titel": "Beim Schreiben sind Y und Z vertauscht",
+    "beschreibung": "Seit heute erscheinen an meinem Rechner in der Auftragsmaske und in einem einfachen Texteditor Y und Z vertauscht. Die Buchstaben auf den Tasten stimmen. Bei meiner Kollegin am Tresen ist die Eingabe normal.",
+    "typ": "neues Fachthema",
+    "akzeptanz": "Konkrete, beobachtbare Prüfung der aktiven Eingabesprache, Tastaturbelegung oder Zuordnung von physischer zu dargestellter Tastatur (auch ein gezielter Kontrolltest). Keine endgültige Ursache erforderlich.",
+    "ausschluss": "Umbau/Ersetzen der Tastatur oder Wiederholung des bereits erfolgten Vergleichs zwischen Eingabefeldern als alleinige Maßnahme. Keine bloße Aufforderung, die schon beschriebenen vertauschten Tasten zu notieren.",
+    "frage": "Was ist der nächste sinnvolle Prüfschritt?"
+  },
+  {
+    "id": 9104,
+    "kunde": "steuerbuero",
+    "titel": "Beim Abschluss komme ich nicht weiter",
+    "beschreibung": "Beim Abschluss klappt es wieder nicht. Könnt ihr euch das ansehen? Ich bin bis zum Mittag erreichbar.",
+    "typ": "Angaben unzureichend",
+    "akzeptanz": "Kurze gezielte Rückfrage nach dem betroffenen Programm oder Vorgang und dem beobachteten Verhalten bzw. konkreten Fehlerwortlaut. Ein Auffordern zur Beobachtung zählt, wenn es diese zentralen Lücken tatsächlich adressiert.",
+    "ausschluss": "Kein bestimmtes Gerät, Programm, Altfall oder eine Ursache ohne Hinweis festlegen. Ein bloßes 'Was ist anders?' ohne Einordnung des betroffenen Vorgangs reicht nicht.",
+    "frage": "Was ist der nächste sinnvolle Prüfschritt?"
+  },
+  {
+    "id": 9105,
+    "kunde": "praxis",
+    "titel": "Raumbuchung öffnet sich nur mit der Zahlenadresse",
+    "beschreibung": "Am Empfang erreiche ich die interne Raumbuchung per IP. Rufe ich sie über den vollständigen Hostnamen auf, meldet der Browser eine unbekannte Adresse. Im Büro nebenan öffnet derselbe Name die Raumbuchung.",
+    "typ": "Transferkontrolle mit bekannter DNS-Fachnotiz",
+    "akzeptanz": "Namensauflösung am betroffenen Gerät prüfen (z.B. Ergebnis für denselben Hostnamen oder benutzten DNS-Server mit dem funktionierenden Arbeitsplatz vergleichen). Ein konkreter gleichwertiger Test zählt.",
+    "ausschluss": "Keinen globalen Ausfall des Raumbuchungsdienstes behaupten. Internetverbindung prüfen oder den bereits berichteten Browseraufruf am Nachbarplatz wiederholen genügt allein nicht.",
+    "frage": "Was ist der nächste sinnvolle Prüfschritt?"
+  }
+]

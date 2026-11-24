@@ -1,0 +1,32 @@
+[
+  {
+    "id": 9201,
+    "kunde": "steuerbuero",
+    "titel": "Suche findet im eingescannten Vertrag keinen Begriff",
+    "beschreibung": "In einem eingescannten Vertrag kann ich das Wort „Übergabe“ auf Seite drei deutlich lesen. Die Suche im PDF-Betrachter meldet null Treffer. Im gleichen Betrachter findet die Suche Wörter in einem als PDF gespeicherten Brief problemlos.",
+    "typ": "unbekanntes Dateiformat-Problem",
+    "akzeptanz": "Eine aussagekräftige, praktisch umsetzbare Prüfung trennt Bildscan und vorhandenen durchsuchbaren Text: etwa ein einzelnes sichtbares Wort markieren/kopieren, eine Textschicht prüfen oder einen Suchtest mit einer per Texterkennung erstellten Kopie machen. Eine sachlich gleichwertige Prüfung zählt.",
+    "ausschluss": "Nur erneut dasselbe Wort suchen, nur einen nicht verfügbaren Bildschirmfehler erfragen, einen bestimmten PDF-Betrachter oder einen Defekt als gegeben voraussetzen. Keine irreversiblen Änderungen am Original.",
+    "frage": "Was ist der nächste sinnvolle Prüfschritt?"
+  },
+  {
+    "id": 9202,
+    "kunde": "autohaus",
+    "titel": "Nach dem Einlesen der Teilenummer springt die Eingabe nicht weiter",
+    "beschreibung": "Der Barcodescanner an der Teiletheke trägt die richtige Nummer ins Eingabefeld ein. Seit gestern bleibt der Cursor dort stehen. Drücke ich auf der Tastatur die Eingabetaste, öffnet sich wie gewohnt die nächste Position.",
+    "typ": "unbekannte Gerätefunktion mit erfolgter Eingrenzung",
+    "akzeptanz": "Der vorgeschlagene Test grenzt Scannerabschluss und Formularverarbeitung voneinander ab: z.B. in einem neutralen Textfeld zwei Codes einlesen und beobachten, ob ein Zeilenwechsel folgt, oder die konfigurierte Abschlusssequenz lesend vergleichen. Gleichwertige gezielte Prüfungen zählen.",
+    "ausschluss": "Die richtige Nummer oder den manuellen Enter-Tastendruck nur erneut prüfen genügt nicht. Kein Kartenleser- oder Druckerfehler, keine voreilige Neuprogrammierung des Scanners.",
+    "frage": "Was ist der nächste sinnvolle Prüfschritt?"
+  },
+  {
+    "id": 9203,
+    "kunde": "bau",
+    "titel": "Im Projektordner auf dem Laptop fehlt die letzte Planänderung",
+    "beschreibung": "Im Browser sehe ich im freigegebenen Projektordner den neuen Hallenplan von heute. Die Kollegin sieht ihn dort ebenfalls. Im gleichnamigen synchronisierten Ordner auf meinem Laptop liegt nur die Fassung von Montag. Ich habe das Fenster schon geschlossen und neu geöffnet.",
+    "typ": "unbekannter lokaler Abgleich mit erfolgreicher Web-Gegenprobe",
+    "akzeptanz": "Eine konkrete Prüfung lokalisiert das Problem beim Abgleich oder bei der Ordnerzuordnung, etwa Status/Fehler/ausstehende Dateien im Synchronisationsprogramm prüfen oder Konto und Pfad des lokalen Ordners mit dem freigegebenen Webordner abgleichen. Sonstige gleichwertige risikoarme Eingrenzungen zählen.",
+    "ausschluss": "Den bereits belegten Browseraufruf oder das Fensteröffnen als einzige Maßnahme wiederholen, gelöschte Cloud-Daten vermuten oder Dateien voreilig überschreiben/löschen. Kein bestimmter Anbieter ist vorgegeben.",
+    "frage": "Was ist der nächste sinnvolle Prüfschritt?"
+  }
+]
