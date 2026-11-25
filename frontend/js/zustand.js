@@ -12,14 +12,19 @@ export const zustand = {
   mitarbeiter: lokalLesen("mitarbeiter", ""),
 };
 
+let ticketVersion = 0;
+
 export async function ladeDaten() {
+  const versionBeimStart = ticketVersion;
   const [tickets, kunden] = await Promise.all([api.tickets(), api.kunden()]);
-  zustand.tickets = tickets;
+  // Ein jüngeres Ergebnis aus einer eigenen Ticketänderung hat Vorrang.
+  if (versionBeimStart === ticketVersion) zustand.tickets = tickets;
   zustand.kunden = kunden;
 }
 
 // Ersetzt ein Ticket in der Liste, ohne alles neu zu laden
 export function ticketErsetzen(neu) {
+  ticketVersion += 1;
   const i = zustand.tickets.findIndex((t) => t.id === neu.id);
   if (i >= 0) zustand.tickets[i] = neu;
   else zustand.tickets.push(neu);

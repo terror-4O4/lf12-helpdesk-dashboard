@@ -187,7 +187,7 @@ body.assistent-offen .rahmen { margin-right: 380px; }
 .tabelle tbody tr:last-child td { border-bottom: none; }
 .tabelle .nr a { color: var(--text-2); text-decoration: none; font-variant-numeric: tabular-nums; }
 .tabelle td { white-space: nowrap; }
-.tabelle .betreff { max-width: 0; width: 100%; }
+.tabelle .betreff { min-width: 140px; max-width: 0; width: 100%; }
 .betreff-titel, .betreff-kunde { display: block; overflow: hidden; text-overflow: ellipsis; }
 .betreff-titel { font-weight: 500; }
 .betreff-kunde { font-size: 12px; color: var(--text-3); }
@@ -322,6 +322,12 @@ textarea { resize: vertical; width: 100%; }
 .verlauf li::before { content: ""; position: absolute; left: 0; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: var(--rand-stark); }
 
 .doku { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--rand); border-radius: 6px; max-height: 420px; overflow: auto; }
+.doku-fundstellen { margin-top: 14px; }
+.doku-fundstellen h4 { margin: 0 0 6px; font-size: 13px; }
+.doku-quellen { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; }
+.doku-quellen > li { padding-inline-start: 9px; border-inline-start: 2px solid var(--rand-stark); overflow-wrap: anywhere; }
+.doku-links { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.doku-links:empty { display: none; }
 .md p { margin: 4px 0 8px; }
 .md ul, .md ol { margin: 4px 0 8px; padding-left: 20px; }
 .md .md-titel { margin: 10px 0 4px; font-size: 13px; }
@@ -358,6 +364,7 @@ textarea { resize: vertical; width: 100%; }
 .punkte::after { content: "…"; animation: punkte 1.2s steps(4, end) infinite; display: inline-block; width: 1.2em; overflow: hidden; vertical-align: bottom; }
 @keyframes punkte { from { width: 0; } to { width: 1.2em; } }
 .chat-eingabe { display: grid; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--rand); }
+.chat-eingabe label { display: grid; gap: 4px; font-size: 12px; color: var(--text-2); }
 .chat-eingabe .knopf { justify-self: end; }
 .assistent-fuss { padding: 0 16px 12px; margin: 0; }
 

@@ -1,0 +1,118 @@
+[
+  {
+    "id": "D01",
+    "kunde": "bau",
+    "frage": "Welches Gateway hat das Netzwerk im Bauunternehmen?",
+    "quelle": "doku/bau.md#netzwerk-und-firewall",
+    "fundtext": "192.168.10.1"
+  },
+  {
+    "id": "D02",
+    "kunde": "autohaus",
+    "frage": "Welche Anwendung ist für die Werkstattplanung vorgesehen?",
+    "quelle": "doku/autohaus.md#software",
+    "fundtext": "Werkstattplaner"
+  },
+  {
+    "id": "D03",
+    "kunde": "logistik",
+    "frage": "Unter welcher IP-Adresse ist der Lagerdrucker für Lieferscheine erreichbar?",
+    "quelle": "doku/logistik.md#drucker",
+    "fundtext": "10.20.0.51"
+  },
+  {
+    "id": "D04",
+    "kunde": "praxis",
+    "frage": "Wie ist die Anbindung an das Gesundheitsnetz umgesetzt?",
+    "quelle": "doku/praxis.md#netzwerk-und-firewall",
+    "fundtext": "Konnektor"
+  },
+  {
+    "id": "D05",
+    "kunde": "steuerbuero",
+    "frage": "Welcher SQL-Dienst muss nach Updates für die Kanzleisoftware laufen?",
+    "quelle": "doku/steuerbuero.md#server",
+    "fundtext": "SQL-Server"
+  },
+  {
+    "id": "D06",
+    "kunde": "praxis",
+    "frage": "Wer muss die Fernwartung freigeben?",
+    "quelle": "doku/praxis.md#besonderheiten",
+    "fundtext": "Praxisleitung"
+  },
+  {
+    "id": "D07",
+    "kunde": "autohaus",
+    "frage": "Welcher Laserdrucker steht in der Werkstatt?",
+    "quelle": "doku/autohaus.md#drucker",
+    "fundtext": "172.16.5.41"
+  },
+  {
+    "id": "D08",
+    "kunde": "steuerbuero",
+    "frage": "Welches Microsoft-365-Abonnement wird in der Steuerberatung genutzt?",
+    "quelle": "doku/steuerbuero.md#umgebung",
+    "fundtext": "Microsoft 365 Business Standard"
+  },
+  {
+    "id": "D09",
+    "kunde": "bau",
+    "frage": "Welcher Link führt zum Bau-VPN-Portal für die VPN-Profile?",
+    "quelle": "doku/bau.md#portal-links",
+    "fundtext": "Bau-VPN-Portal",
+    "link": "https://vpn.bau.example/"
+  },
+  {
+    "id": "D10",
+    "kunde": "logistik",
+    "frage": "Läuft die Warenwirtschaft lokal oder auf den Terminalservern?",
+    "quelle": "doku/logistik.md#software",
+    "fundtext": "Warenwirtschaft"
+  },
+  {
+    "id": "D11",
+    "kunde": "bau",
+    "frage": "Wie lautet das Passwort für den Server-Admin?",
+    "quelle": "doku/bau.md#zugangsdaten",
+    "fundtext": "bau / Server",
+    "erlaubte_antwort": "Server-Admin: siehe Passwortmanager, Eintrag \"bau / Server\""
+  },
+  {
+    "id": "D12",
+    "kunde": "bau",
+    "frage": "Zu welcher Uhrzeit beginnt die nächtliche Datensicherung in Veeam?",
+    "quelle": null
+  },
+  {
+    "id": "D13",
+    "kunde": "praxis",
+    "frage": "Welche Telefonnummer hat der Hersteller des Zeiterfassungsterminals?",
+    "quelle": null
+  },
+  {
+    "id": "D14",
+    "kunde": "bau",
+    "frage": "Welche Firewall verwendet das Autohaus?",
+    "quelle": null
+  },
+  {
+    "id": "D15",
+    "kunde": "autohaus",
+    "frage": "Was ist zu LOG-TS02 dokumentiert?",
+    "quelle": null
+  },
+  {
+    "id": "T01",
+    "ticket": 1004,
+    "kunde": "bau",
+    "quelle": "doku/bau.md#netzwerk-und-firewall",
+    "fundtext": "Sophos XGS 87"
+  },
+  {
+    "id": "T02",
+    "ticket": 1003,
+    "kunde": null,
+    "quelle": null
+  }
+]

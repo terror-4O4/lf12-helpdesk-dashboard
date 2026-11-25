@@ -4,7 +4,7 @@
 import { api } from "../api.js";
 import { STATUS } from "../config.js";
 import {
-  alter, fuege, h, istOffen, istSpamVerdacht, kiMarke, leeren, nachDringlichkeit, prioBadge, sla,
+  alter, fuege, h, hatHandlungsbedarf, istOffen, istSpamVerdacht, jetzt, kiMarke, leeren, nachDringlichkeit, prioBadge, sla,
   slaAmpel, spamOffen, ticketNr,
 } from "../hilfen.js";
 import {
@@ -14,14 +14,15 @@ import { ticketTabelle } from "./tickets.js";
 
 export function zeigeUebersicht(ziel) {
   const alle = zustand.tickets;
+  const bezugszeit = jetzt();
   const offen = alle.filter((t) => istOffen(t) && !istSpamVerdacht(t));
   const handlungsbedarf = offen
-    .filter((t) => t.status === "neu" || t.status === "antwort_erhalten")
-    .sort(nachDringlichkeit);
+    .filter(hatHandlungsbedarf)
+    .sort((a, b) => nachDringlichkeit(a, b, bezugszeit));
   const unbewertet = alle.filter((t) => istOffen(t) && !t.ki?.prioritaet);
 
   fuege(ziel,
-    kennzahlen(alle, offen),
+    kennzahlen(alle, offen, bezugszeit),
     unbewertet.length ? hinweisUnbewertet(unbewertet) : null,
     h("div", { class: "raster-uebersicht" },
       h("section", { class: "karte", "aria-labelledby": "t-handlung" },
@@ -29,23 +30,23 @@ export function zeigeUebersicht(ziel) {
           h("h2", { id: "t-handlung" }, "Handlungsbedarf"),
           h("span", { class: "hinweis" }, "Neu und Antwort erhalten, dringendste zuerst")),
         handlungsbedarf.length
-          ? ticketTabelle(handlungsbedarf, { kompakt: true })
+          ? ticketTabelle(handlungsbedarf, { kompakt: true, bezugszeit })
           : h("p", { class: "leer" }, "Nichts offen. 🎉")),
       h("div", { class: "spalte" },
-        meineTickets(offen),
+        meineTickets(offen, bezugszeit),
         todos())),
   );
 }
 
 // --- Kennzahlen -----------------------------------------------------------
-function kennzahlen(alle, offen) {
+function kennzahlen(alle, offen, bezugszeit) {
   const kachel = (titel, wert, link, art = "") =>
     h("a", { class: `kachel ${art}`, href: link },
       h("span", { class: "kachel-wert" }, String(wert)),
       h("span", { class: "kachel-titel" }, titel));
 
   const zaehle = (fn) => offen.filter(fn).length;
-  const slaRot = zaehle((t) => sla(t).zustand === "rot");
+  const slaRot = zaehle((t) => sla(t, bezugszeit).zustand === "rot");
   const sehrHoch = zaehle((t) => t.prioritaet === "sehr_hoch");
   const spam = alle.filter(spamOffen).length;
 
@@ -53,7 +54,7 @@ function kennzahlen(alle, offen) {
     kachel("Neu", zaehle((t) => t.status === "neu"), "#/tickets?status=neu"),
     kachel("Antwort erhalten", zaehle((t) => t.status === "antwort_erhalten"), "#/tickets?status=antwort_erhalten"),
     kachel("In Bearbeitung", zaehle((t) => t.status === "in_bearbeitung"), "#/tickets?status=in_bearbeitung"),
-    kachel("Sehr hoch", sehrHoch, "#/tickets?prioritaet=sehr_hoch", sehrHoch ? "kachel-warn" : ""),
+    kachel("Sehr dringend", sehrHoch, "#/tickets?prioritaet=sehr_hoch", sehrHoch ? "kachel-warn" : ""),
     kachel("SLA überschritten", slaRot, "#/tickets?sla=rot", slaRot ? "kachel-rot" : ""),
     kachel("Spam-Verdacht", spam, "#/spam", spam ? "kachel-ki" : ""),
   );
@@ -87,7 +88,7 @@ function hinweisUnbewertet(liste) {
 }
 
 // --- Meine Tickets --------------------------------------------------------
-function meineTickets(offen) {
+function meineTickets(offen, bezugszeit) {
   const ich = zustand.mitarbeiter;
   const karte = h("section", { class: "karte", "aria-labelledby": "t-meine" },
     h("div", { class: "karte-kopf" },
@@ -98,7 +99,8 @@ function meineTickets(offen) {
     return karte;
   }
 
-  const meine = offen.filter((t) => t.zugewiesen_an === ich).sort(nachDringlichkeit);
+  const meine = offen.filter((t) => t.zugewiesen_an === ich)
+    .sort((a, b) => nachDringlichkeit(a, b, bezugszeit));
   if (!meine.length) {
     karte.append(h("p", { class: "leer" }, "Dir ist gerade nichts zugewiesen."));
     return karte;
@@ -107,11 +109,11 @@ function meineTickets(offen) {
   karte.append(h("ul", { class: "liste-kurz" },
     meine.map((t) => h("li", {},
       h("a", { href: `#/ticket/${t.id}`, class: "zeile-link" },
-        slaAmpel(t),
+        slaAmpel(t, false, bezugszeit),
         h("span", { class: "nr" }, ticketNr(t.id)),
         h("span", { class: "titel-kurz" }, t.titel),
         prioBadge(t.prioritaet, t.prioritaet_quelle)),
-      h("span", { class: "unterzeile" }, `${kundeName(t.kunde)} · ${STATUS[t.status]} · ${alter(t.erstellt_am)}`)))));
+      h("span", { class: "unterzeile" }, `${kundeName(t.kunde)} · ${STATUS[t.status]} · ${alter(t.erstellt_am, bezugszeit)}`)))));
   return karte;
 }
 

@@ -6,8 +6,9 @@ Messziele laut Projektantrag V2.1:
   2. Gibt es keinen ähnlichen Fall, soll die KI in mindestens 80 % der Fälle
      nichts erfinden, sondern das kenntlich machen.
 
-Welches gelöste Ticket passt, steht im Feld "aehnlich" in
-data/testdaten/erwartet.json ([] = kein passender Fall, null = nicht Teil des Tests).
+Welches gelöste Ticket passt, steht im Feld "aehnlich" ([] = kein passender
+Fall). Die Entwicklung nutzt erwartet.json, die Abnahme rag_abnahme.json.
+Die Abnahmefälle sind eigenständige Anfragen und werden nicht indexiert.
 
 Zusätzlich:
   - Ähnlichkeitswerte aller Fälle und eine Empfehlung für RAG_SCHWELLE
@@ -22,7 +23,7 @@ das Dashboard wird also nicht verändert.
 Aufruf aus dem Repo-Hauptordner mit aktivierter .venv:
     python scripts/auswertung_rag.py                 Suche und KI-Vorschläge
     python scripts/auswertung_rag.py --nur-suche     nur Suche, ohne Chat-KI (schnell)
-    python scripts/auswertung_rag.py --vergleich     zusätzlich ohne/mit Historie
+    python scripts/auswertung_rag.py --datensatz abnahme --vergleich
 
 Ergebnis in der Konsole sowie als Markdown und JSON unter data/laufzeit/auswertung/.
 """
@@ -48,8 +49,17 @@ DATEN = REPO / "data" / "testdaten"
 ZIELWERT = 0.8
 
 
-def lade_testdaten():
+def lade_testdaten(datensatz: str = "entwicklung"):
     tickets = json.loads((DATEN / "tickets.json").read_text(encoding="utf-8"))
+    if datensatz == "abnahme":
+        tests = json.loads((DATEN / "rag_abnahme.json").read_text(encoding="utf-8"))
+        erwartete_ids = {t["id"] for t in tickets if rag.ist_fall(t)}
+        test_ids = {t["id"] for t in tests}
+        if (not tests or len(test_ids) != len(tests)
+                or test_ids & {t["id"] for t in tickets}
+                or any(set(t["aehnlich"]) - erwartete_ids for t in tests)):
+            raise ValueError("Die Abnahmefälle oder ihre Verweise auf gelöste Tickets sind ungültig.")
+        return tickets, {t["id"]: t for t in tests}, tests
     erwartet = {e["id"]: e for e in json.loads((DATEN / "erwartet.json").read_text(encoding="utf-8"))}
     tests = [t for t in tickets if erwartet.get(t["id"], {}).get("aehnlich") is not None]
     return tickets, erwartet, tests
@@ -81,15 +91,29 @@ def empfehle_schwelle(zeilen: list[dict]) -> tuple[float, int]:
     return beste, beste_punkte
 
 
-def vorschlag_ohne_historie(t: dict) -> tuple[str, float]:
+def vorschlag_ohne_historie(t: dict) -> dict:
     """Gleiche Frage an das Modell, aber ohne gelöste Tickets (für den Vergleich)."""
-    start = time.perf_counter()
-    text, _ = app.frage_llama([
-        {"role": "system", "content": app.SYSTEMPROMPT_FRAGE},
-        {"role": "user", "content": f"Nenne bis zu drei mögliche Ursachen mit Lösungsweg für dieses Ticket:\n"
-                                    f"{t['titel']}. {t['beschreibung']}"},
-    ], temperatur=0)
-    return text, time.perf_counter() - start
+    messung = {}
+    try:
+        text, _ = app.frage_llama([
+            {"role": "system", "content": (
+                "Du unterstützt den IT-Support eines Systemhauses. "
+                "Nenne bis zu drei mögliche Ursachen mit Lösungsweg für das Ticket. "
+                "Schreibe je Ursache und Lösungsweg höchstens einen kurzen Satz. "
+                "Kennzeichne ungesicherte Vermutungen und fehlende Informationen."
+            )},
+            {"role": "user", "content": (
+                f"Neues Ticket (Kunde: {t.get('kunde') or 'unbekannt'})\n"
+                f"Problem: {t['titel']}. {t['beschreibung']}"
+            )},
+        ], temperatur=0, messung=messung, max_tokens=app.LOESUNG_MAX_TOKENS)
+    except HTTPException as fehler:
+        return {"fehler": str(fehler.detail)}
+    return {"antwort": text, **messung}
+
+
+def zeit_text(wert: float | None) -> str:
+    return f"{wert:.2f} s" if wert is not None else "–"
 
 
 def pruefe_wachstum(tickets: list, wb: rag.Wissensbasis) -> dict:
@@ -109,11 +133,19 @@ def pruefe_wachstum(tickets: list, wb: rag.Wissensbasis) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--nur-suche", action="store_true", help="ohne Chat-KI, nur die Suche messen")
-    parser.add_argument("--vergleich", action="store_true", help="zusätzlich Vorschläge ohne Ticket-Historie")
+    parser.add_argument("--datensatz", choices=("entwicklung", "abnahme"), default="entwicklung",
+                        help="Entwicklungsdaten mit Schwellenempfehlung oder getrennte Abnahmefälle")
+    modus = parser.add_mutually_exclusive_group()
+    modus.add_argument("--nur-suche", action="store_true", help="ohne Chat-KI, nur die Suche messen")
+    modus.add_argument("--vergleich", action="store_true", help="zusätzlich Vorschläge ohne Ticket-Historie")
     args = parser.parse_args()
 
-    tickets, erwartet, tests = lade_testdaten()
+    try:
+        tickets, erwartet, tests = lade_testdaten(args.datensatz)
+    except (OSError, ValueError) as fehler:
+        parser.exit(2, f"Datensatz konnte nicht geladen werden: {fehler}\n")
+    if not tests:
+        parser.exit(2, "Der Datensatz enthält keine RAG-Testfälle.\n")
     ZIEL.mkdir(parents=True, exist_ok=True)
     wb = rag.Wissensbasis(ZIEL / "wissensbasis-test.json")
     faelle = [t for t in tickets if rag.ist_fall(t)]
@@ -122,7 +154,8 @@ def main():
           f"Chat: {app.LLAMA_URL} {app.LLAMA_MODEL}")
     print(f"Wissensbasis: {len(faelle)} gelöste Tickets | Schwelle {app.aktuelle_schwelle()} | "
           f"Kundenbonus {app.RAG_KUNDENBONUS}")
-    print(f"Testtickets: {len(tests)} ({sum(bool(erwartet[t['id']]['aehnlich']) for t in tests)} mit passendem Fall)\n")
+    print(f"Datensatz {args.datensatz}: {len(tests)} Testtickets "
+          f"({sum(bool(erwartet[t['id']]['aehnlich']) for t in tests)} mit passendem Fall)\n")
 
     start = time.perf_counter()
     try:
@@ -141,38 +174,41 @@ def main():
 
         if args.nur_suche:
             top3 = [x for x in alle if x["wert"] >= app.aktuelle_schwelle()][:3]
-            z.update(top3=[x["id"] for x in top3], passender_fall=bool(top3), ki_tickets=[x["id"] for x in top3],
-                     dauer_s=None, tokens=None, fehler=None)
+            z.update(top3=[x["id"] for x in top3], passender_fall=None, ki_tickets=[],
+                     dauer_s=None, tokens=None, fehler=None, modus="suche")
         else:
             try:
-                v = app.erzeuge_vorschlag(t, tickets, wb=wb)
+                messung = {} if not app.KI_MOCK else None
+                v = app.erzeuge_vorschlag(t, tickets, wb=wb, messung=messung)
                 e = v["ergebnis"]
                 z.update(top3=[x["id"] for x in v["treffer"]], passender_fall=e["passender_fall"],
                          ki_tickets=sorted({n for s in e["vorschlaege"] for n in s["tickets"]}),
                          vorschlaege=e["vorschlaege"], ki_hinweis=e["hinweis"], modus=v["modus"],
                          dauer_s=round(v["dauer_ms"] / 1000, 2), dauer_suche_ms=v["dauer_suche_ms"],
-                         tokens=v["tokens"], fehler=None)
+                         tokens=v["tokens"], modellmessung=messung or None, fehler=None)
             except HTTPException as fehler:
                 z.update(top3=[], passender_fall=None, ki_tickets=[], dauer_s=None, tokens=None,
                          fehler=str(fehler.detail))
 
         if soll:
             z["suche_ok"] = any(x in soll for x in z["top3"])
-            z["ki_ok"] = bool(z["passender_fall"]) and any(x in soll for x in z["ki_tickets"])
+            z["ki_ok"] = (bool(z["passender_fall"]) and any(x in soll for x in z["ki_tickets"])
+                          if not args.nur_suche else None)
         else:
             z["suche_ok"] = not z["top3"]
-            z["ki_ok"] = z["passender_fall"] is False
+            z["ki_ok"] = z["passender_fall"] is False if not args.nur_suche else None
 
-        if args.vergleich and soll and not app.KI_MOCK:
-            z["ohne_historie"], z["ohne_historie_s"] = vorschlag_ohne_historie(t)
+        if args.vergleich and not app.KI_MOCK:
+            z["ohne_historie"] = vorschlag_ohne_historie(t)
 
         zeilen.append(z)
         bester = alle[0] if alle else {"id": "-", "wert": 0}
-        status = "ok    " if z["ki_ok"] else "FEHLER"
+        status = "ok    " if (z["suche_ok"] if args.nur_suche else z["ki_ok"]) else "FEHLER"
         soll_text = ", ".join(f"#{x}" for x in soll) or "kein Fall"
-        ki_text = ", ".join(f"#{x}" for x in z["ki_tickets"]) if z["passender_fall"] else "kein Fall"
+        ist_ids = z["top3"] if args.nur_suche else z["ki_tickets"]
+        ist_text = ", ".join(f"#{x}" for x in ist_ids) or "kein Fall"
         print(f"  [{i:2}/{len(tests)}] #{t['id']} {status} erwartet {soll_text:<9} "
-              f"KI {ki_text:<18} "
+              f"{'Suche' if args.nur_suche else 'KI'} {ist_text:<18} "
               f"(bester #{bester['id']} {bester['wert']:.2f})  {t['titel'][:40]}")
         if z.get("fehler"):
             print(f"         Fehler: {z['fehler']}")
@@ -180,9 +216,8 @@ def main():
     mit = [z for z in zeilen if z["erwartet"]]
     ohne = [z for z in zeilen if not z["erwartet"]]
     m1_suche = sum(z["suche_ok"] for z in mit)
-    m1_ki = sum(z["ki_ok"] for z in mit)
-    m2 = sum(z["ki_ok"] for z in ohne)
-    schwelle, punkte = empfehle_schwelle(zeilen)
+    m1_ki = sum(z["ki_ok"] is True for z in mit)
+    m2 = sum(z["ki_ok"] is True for z in ohne)
     wachstum = pruefe_wachstum(tickets, wb)
     dauer = [z["dauer_s"] for z in zeilen if z.get("dauer_s") is not None]
 
@@ -191,20 +226,32 @@ def main():
 
     zusammenfassung = [
         f"Messziel 1, passender Fall unter den Top 3 (Suche): {prozent(m1_suche, len(mit))}",
-        f"Messziel 1, KI verweist auf den passenden Fall:       {prozent(m1_ki, len(mit))} ({bewertung(m1_ki, len(mit))})",
-        f"Messziel 2, ohne passenden Fall nichts erfunden:      {prozent(m2, len(ohne))} ({bewertung(m2, len(ohne))})",
         f"Wissensbasis wächst (#1022 nach Schließen gefunden):   {'ja' if wachstum['gefunden'] else 'NEIN'}",
-        f"Empfohlene RAG_SCHWELLE (nur Suche): {schwelle:.2f} ({punkte}/{len(zeilen)} Testfälle richtig), "
-        f"eingestellt: {app.aktuelle_schwelle()}",
     ]
+    if args.nur_suche:
+        zusammenfassung.append(f"Trefferlos bei Fällen ohne Referenz (Suche): {prozent(sum(z['suche_ok'] for z in ohne), len(ohne))}")
+    else:
+        zusammenfassung += [
+            f"Messziel 1, Lösung mit Referenz: {prozent(m1_ki, len(mit))} ({bewertung(m1_ki, len(mit))})",
+            f"Messziel 2, kein Vorschlag ohne Referenz: {prozent(m2, len(ohne))} ({bewertung(m2, len(ohne))})",
+        ]
+    if args.datensatz == "entwicklung":
+        schwelle, punkte = empfehle_schwelle(zeilen)
+        zusammenfassung.append(
+            f"Schwellenempfehlung aus den Entwicklungsdaten: {schwelle:.2f} ({punkte}/{len(zeilen)} richtig)"
+        )
+    if args.vergleich and app.KI_MOCK:
+        zusammenfassung.append("Der Modellvergleich ohne und mit Ticket-Historie erfordert KI_MOCK=false.")
     if dauer:
         zusammenfassung.append(f"Dauer je Ticket: Ø {sum(dauer) / len(dauer):.1f} s, max. {max(dauer):.1f} s")
     print("\n" + "\n".join(zusammenfassung))
 
     # --- Speichern ---------------------------------------------------------------
-    stempel = datetime.now().strftime("%Y-%m-%d_%H%M")
-    lauf = {"zeit": stempel, "modus": "mock" if app.KI_MOCK else "llama", "chat_modell": app.LLAMA_MODEL,
+    stempel = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+    lauf = {"zeit": stempel, "datensatz": args.datensatz,
+            "modus": "mock" if app.KI_MOCK else "llama", "chat_modell": app.LLAMA_MODEL,
             "embedding": app.einbetter.kennung, "schwelle": app.aktuelle_schwelle(),
+            "ausgabelimit_tokens": app.LOESUNG_MAX_TOKENS,
             "kundenbonus": app.RAG_KUNDENBONUS, "nur_suche": args.nur_suche,
             "aufbau_s": round(aufbau, 2), "zusammenfassung": zusammenfassung,
             "wachstum": wachstum, "tickets": zeilen}
@@ -212,6 +259,8 @@ def main():
 
     md = [f"# RAG-Auswertung {stempel}", "",
           f"- Modus: {lauf['modus']}, Chat-Modell: {app.LLAMA_MODEL or '-'}, Embeddings: {app.einbetter.kennung}",
+          f"- Datensatz: {args.datensatz}",
+          f"- Ausgabelimit für beide Modellvarianten: {app.LOESUNG_MAX_TOKENS} Tokens",
           f"- Wissensbasis: {len(faelle)} gelöste Tickets, Aufbau {aufbau:.1f} s",
           f"- Schwelle {app.aktuelle_schwelle()}, Kundenbonus {app.RAG_KUNDENBONUS}", "",
           *[f"- {s}" for s in zusammenfassung], "",
@@ -219,18 +268,25 @@ def main():
           "|---|---|---|---|---|---|---|"]
     for z in zeilen:
         bester = z["alle"][0] if z["alle"] else {"id": "-", "wert": 0}
+        ergebnis_ok = z["suche_ok"] if args.nur_suche else z["ki_ok"]
+        bericht_ki = "–" if args.nur_suche else ", ".join(f"#{x}" for x in z["ki_tickets"]) or "kein Fall"
         md.append(f"| #{z['id']} {z['titel']} | {', '.join(f'#{x}' for x in z['erwartet']) or 'kein Fall'} | "
                   f"{', '.join(f'#{x}' for x in z['top3']) or '–'} | "
-                  f"{', '.join(f'#{x}' for x in z['ki_tickets']) if z['passender_fall'] else 'kein Fall'} | "
-                  f"#{bester['id']} {bester['wert']:.2f} | {'ok' if z['ki_ok'] else 'Fehler'} | "
-                  f"{z['dauer_s'] if z.get('dauer_s') is not None else '–'} s |")
+                  f"{bericht_ki} | #{bester['id']} {bester['wert']:.2f} | {'ok' if ergebnis_ok else 'Fehler'} | "
+                  f"{zeit_text(z.get('dauer_s'))} |")
     if args.vergleich and not app.KI_MOCK:
         md += ["", "## Vergleich ohne und mit Ticket-Historie", ""]
-        for z in mit:
-            md += [f"### #{z['id']} {z['titel']}", "", f"**Ohne Historie** ({z.get('ohne_historie_s', 0):.1f} s):", "",
-                   z.get("ohne_historie", "–"), "", f"**Mit Historie** ({z.get('dauer_s') or 0} s):", ""]
+        md.append("Die Antworten ohne Historie dienen der fachlichen Sichtung. Die Quellenquote bezieht sich auf die Variante mit Historie.")
+        for z in zeilen:
+            basis = z["ohne_historie"]
+            md += [f"### #{z['id']} {z['titel']}", "",
+                   f"**Ohne Historie** · {zeit_text(basis.get('antwortzeit_s'))}", "",
+                   basis.get("antwort") or basis.get("fehler") or "–", "",
+                   f"**Mit Historie** · {zeit_text(z.get('dauer_s'))} inklusive Suche", ""]
+            if basis.get("abschlussgrund") == "length":
+                md[-2:-2] = ["*Die Antwort ohne Historie hat das Ausgabelimit erreicht.*", ""]
             md += [f"{n}. {v['ursache']}: {v['loesungsweg']} (#{', #'.join(map(str, v['tickets']))})"
-                   for n, v in enumerate(z.get("vorschlaege", []), 1)] or ["kein Fall"]
+                   for n, v in enumerate(z.get("vorschlaege", []), 1)] or [z.get("fehler") or "kein Fall"]
             md.append("")
     (ZIEL / f"rag_{stempel}.md").write_text("\n".join(md) + "\n", encoding="utf-8")
     print(f"\nGespeichert: data/laufzeit/auswertung/rag_{stempel}.md und .json")

@@ -1,0 +1,86 @@
+[
+  {
+    "id": 3001,
+    "kunde": "bau",
+    "titel": "Mailprogramm schließt sich sofort",
+    "beschreibung": "Seit der neuen Version unserer Bauzeiten-Software erscheint das Outlook-Fenster nur für einen Moment. Ohne das Termin-Add-In im abgesicherten Start kann die Bauleitung ihre Nachrichten öffnen.",
+    "aehnlich": [1001]
+  },
+  {
+    "id": 3002,
+    "kunde": "bau",
+    "titel": "Einwahl aus dem Homeoffice schlägt fehl",
+    "beschreibung": "Nach einem Windows-Update kommt das Bauleiter-Notebook mit dem Sophos-VPN-Client nicht mehr ins Firmennetz. Das bisherige Verbindungsprofil fehlt in der Auswahl.",
+    "aehnlich": [1004]
+  },
+  {
+    "id": 3003,
+    "kunde": "logistik",
+    "titel": "Versandpapiere kommen nicht am Drucker an",
+    "beschreibung": "Der Lagerdrucker ist erreichbar. Der vorderste Lieferschein steht mit Fehler in der Druckwarteschlange. Alle danach eingereihten Druckaufträge warten ebenfalls.",
+    "aehnlich": [1005]
+  },
+  {
+    "id": 3004,
+    "kunde": "autohaus",
+    "titel": "Scan kann nicht auf den Server geschrieben werden",
+    "beschreibung": "Der Kopierer meldet einen Anmeldefehler beim Speichern im Scan-Ordner. Auf einen USB-Stick lässt sich weiterhin scannen. Das Kennwort des Scan-Benutzers wurde kürzlich geändert.",
+    "aehnlich": [1019]
+  },
+  {
+    "id": 3005,
+    "kunde": "steuerbuero",
+    "titel": "Kanzleisoftware kann keine Daten laden",
+    "beschreibung": "Nach dem Neustart des Servers über Nacht erscheint bei allen Mitarbeitenden eine Meldung zur fehlenden Datenbankverbindung. Die übrigen Anwendungen funktionieren.",
+    "aehnlich": [1016]
+  },
+  {
+    "id": 3006,
+    "kunde": "praxis",
+    "titel": "Bestätigung landet auf dem ausgemusterten Diensthandy",
+    "beschreibung": "Die Ärztin kann sich seit dem Gerätewechsel nicht mehr bei Microsoft 365 anmelden. Die Authenticator-Bestätigung hängt am alten Telefon, das schon zurückgegeben wurde.",
+    "aehnlich": [1028]
+  },
+  {
+    "id": 3007,
+    "kunde": "bau",
+    "titel": "Termine werden in Outlook mit falscher Uhrzeit angezeigt",
+    "beschreibung": "Outlook öffnet sich und versendet E-Mails. Bei externen Kalendereinladungen beginnt der Termin aber immer eine Stunde zu früh.",
+    "aehnlich": []
+  },
+  {
+    "id": 3008,
+    "kunde": "autohaus",
+    "titel": "Externer Bildschirm bleibt dunkel",
+    "beschreibung": "Das Notebook ist eingeschaltet und das eingebaute Display funktioniert. Ein externer Bildschirm zeigt nach dem Umstecken über HDMI kein Signal mehr.",
+    "aehnlich": []
+  },
+  {
+    "id": 3009,
+    "kunde": "logistik",
+    "titel": "Versandetiketten haben einen weißen Streifen",
+    "beschreibung": "Alle Druckaufträge werden abgearbeitet. Auf den Etiketten fehlt immer dieselbe schmale Spalte, sodass der Strichcode nicht lesbar ist.",
+    "aehnlich": []
+  },
+  {
+    "id": 3010,
+    "kunde": "praxis",
+    "titel": "Kein Mikrofon im Besprechungsraum",
+    "beschreibung": "Das neue USB-Headset gibt den Ton wieder, lässt sich für Spracheingaben aber in keiner Anwendung auswählen.",
+    "aehnlich": []
+  },
+  {
+    "id": 3011,
+    "kunde": "steuerbuero",
+    "titel": "Neue Unterschriftenkarte als Zertifikat einrichten",
+    "beschreibung": "Der Zertifikatsassistent erkennt die eingesteckte Signaturkarte. Für die Zuordnung zum richtigen Benutzer wird Unterstützung benötigt.",
+    "aehnlich": []
+  },
+  {
+    "id": 3012,
+    "kunde": "logistik",
+    "titel": "Lageruhr geht regelmäßig nach",
+    "beschreibung": "Die digitale Anzeige am Tor verliert nach jedem Wochenende mehrere Minuten. Die Zeitanzeige am Rechner im Lager stimmt.",
+    "aehnlich": []
+  }
+]

@@ -61,6 +61,12 @@ In der `.env`:
 
 Nach einer Änderung an der `.env` das Backend neu starten.
 
+## Kundendokumentation und Arbeitskopie
+
+Im Ticket erscheinen passende Abschnitte aus der Akte des zugeordneten Kunden. Eine gezielte Frage im Assistenten liefert den Belegtext und die Fundstelle. Das Messziel liegt bei 80 % der vorbereiteten Fragen. Bei laufendem Backend prüft `python scripts/auswertung_doku.py` die Ergebnisse.
+
+Ticketänderungen und der lokale Suchindex werden atomar gespeichert. Ein einzelner Uvicorn-Worker koordiniert die Schreibzugriffe. Der Support kann parallel zur Modellberechnung weiterarbeiten.
+
 ## Ähnliche Tickets (RAG)
 
 1. **Wissensbasis:** alle geschlossenen Tickets mit Lösungsweg (ohne Spam). Für jedes wird einmal ein Embedding berechnet (Zahlenvektor, der die Bedeutung abbildet) und in `data/laufzeit/wissensbasis.json` gespeichert. Neu geschlossene Tickets kommen beim nächsten Suchen automatisch dazu.

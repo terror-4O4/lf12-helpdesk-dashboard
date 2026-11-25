@@ -42,7 +42,7 @@ Browser (Dashboard)  ──►  Backend (Python)  ──►  llama-server (llama
 ### Voraussetzungen
 
 - [Git](https://git-scm.com/downloads)
-- **Python 3.10 oder neuer**
+- **Python 3.11 oder neuer**
   - Windows: [python.org](https://www.python.org/downloads/), bei der Installation **„Add python.exe to PATH“** anhaken
   - macOS: `brew install python@3.13`. ⚠️ Das vorinstallierte `python3` von Apple ist 3.9 und zu alt. Die Umgebung daher mit `python3.13 -m venv .venv` anlegen
 - Editor, z. B. [VS Code](https://code.visualstudio.com/)
