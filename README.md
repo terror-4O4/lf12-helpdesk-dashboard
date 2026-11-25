@@ -109,3 +109,5 @@ Kurzfassung, Details in [CONTRIBUTING.md](CONTRIBUTING.md):
 |---|---|
 | Abgabe Dateien | 11.12.2026 |
 | Präsentation | spätestens 16.12.2026 |
+
+Den Projektverlauf, die technischen Entscheidungen und die Ergebnisse der Prüfläufe hält die Gruppe in der [gemeinsamen Projektdokumentation](docs/projektdokumentation.md) fest.
