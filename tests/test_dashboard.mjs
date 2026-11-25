@@ -5,6 +5,7 @@ import {
   alter, formatZeit, hatHandlungsbedarf, istDemoZeit, istImSpamfilter, jetzt, markdown, nachDringlichkeit, sla, spamOffen, ticketPrioBadge, wartezeit,
 } from "../frontend/js/hilfen.js";
 import { ticketTabelle } from "../frontend/js/ansichten/tickets.js";
+import { zeigeTicket } from "../frontend/js/ansichten/ticket.js";
 import { spamAktionen, zeigeSpam } from "../frontend/js/ansichten/spam.js";
 import { aktualisiereAssistent, initAssistent, oeffneAssistent } from "../frontend/js/ansichten/assistent.js";
 import { api, ApiFehler } from "../frontend/js/api.js";
@@ -63,7 +64,7 @@ test("Neu und Antwort erhalten haben Vorrang, bei Gleichstand entscheidet das ta
   const frueherErstellt = ticket({ id: 2, seit: 15, alterInMinuten: 140 });
   const wartend = ticket({ id: 3, status: "warten_auf_kunde", seit: 80 });
   const ueberfaellig = ticket({ id: 4, status: "antwort_erhalten", seit: 45 });
-  const spam = { ...ticket({ id: 5, seit: 75 }), spampruefung: { verdaechtig: true } };
+  const spam = { ...ticket({ id: 5, seit: 75 }), ki: { spam: true } };
   assert.equal(hatHandlungsbedarf(spam), false);
   assert.equal(hatHandlungsbedarf({ ...spam, spam_entscheidung: "kein_spam" }), true);
 
@@ -97,6 +98,8 @@ function testDokument(t) {
     replaceChildren(...children) { this.text = ""; this.children = children; }
     focus() {}
     setAttribute(name, value) { this.attributes[name] = value; }
+    getAttribute(name) { return this.attributes[name]; }
+    get childNodes() { return this.children; }
     addEventListener(name, handler) { this[name] = handler; }
     get tagName() { return this.tag.toUpperCase(); }
     get textContent() { return this.text + this.children.map((child) => child.textContent).join(""); }
@@ -118,13 +121,13 @@ test("Beratungspunkte erscheinen als Liste und Modellprioritäten tragen eine le
   assert.equal(liste.tag, "ul");
   assert.deepEqual(liste.children.map(el => el.tag), ["li", "li"]);
   const basis = { prioritaet: "hoch", prioritaet_quelle: "ki" };
-  const bewertet = (quelle, t = basis) => ticketPrioBadge({ ...t, ki: { bewertungsquellen: { prioritaet: quelle } } });
-  assert.equal(bewertet("modell").textContent, "Hoch · KI");
-  assert.match(bewertet("modell").attributes.title, /Sprachmodell/);
-  assert.equal(bewertet("regel").textContent, "Hoch");
-  assert.equal(bewertet("regel").attributes.title, "Ticketregel");
-  assert.equal(bewertet("modell", { ...basis, prioritaet_quelle: "manuell" }).attributes.title, "Von Hand gesetzt");
-  assert.equal(ticketPrioBadge(basis).textContent, "Hoch");
+  const bewertet = (modus, t = basis) => ticketPrioBadge({ ...t, ki: { modus } });
+  assert.equal(bewertet("llama").textContent, "Hoch ✦");
+  assert.match(bewertet("llama").attributes.title, /Sprachmodell/);
+  assert.equal(bewertet("mock").textContent, "Hoch");
+  assert.match(bewertet("mock").attributes.title, /Demo/);
+  assert.equal(bewertet("llama", { ...basis, prioritaet_quelle: "manuell" }).attributes.title, "Von Hand gesetzt");
+  assert.equal(ticketPrioBadge(basis).textContent, "Hoch ✦");
 });
 
 test("der Assistent trennt offene Anfragen, Entwürfe und Folgefragen beim Ticketwechsel", async t => {
@@ -166,7 +169,7 @@ test("der Assistent trennt offene Anfragen, Entwürfe und Folgefragen beim Ticke
   antwortePraxis({ antwort: "Postfachbelegung prüfen." });
   await fertig();
   assert.match(chat.textContent, /Datenbankdienst/);
-  assert.match(chat.textContent, /Prüfschritt vom lokalen Modell/);
+  assert.match(chat.textContent, /✦ Prüfschritt vom lokalen Modell/);
   assert.doesNotMatch(chat.textContent, /Postfach/);
   abschicken("Und danach?");
   await fertig();
@@ -186,6 +189,8 @@ test("der Assistent trennt offene Anfragen, Entwürfe und Folgefragen beim Ticke
   assert.deepEqual(aufrufe.at(-1), [1017, weitereFragen[6], weitereFragen.slice(0, 6)]);
   abschicken("Wie ist das Wetter?");
   await fertig();
+  assert.match(chat.textContent, /Hinweis zum Themenbereich/);
+  assert.doesNotMatch(chat.textContent, /✦ Hinweis zum Themenbereich/);
   abschicken("Der Dienst läuft.");
   await fertig();
   assert.match(chat.textContent, /Wie ist das Wetter\?/);
@@ -214,15 +219,15 @@ test("in der Ticketliste stehen Alter und Wartezeit in getrennten Spalten", (t) 
   assert.equal(wartezeitZelle.attributes.title, "Wartezeit auf Kunde");
 });
 
-test("Eingangsfilter sortiert vor der KI-Bewertung, Freigaben und Abschlüsse haben Vorrang", () => {
-  const offen = { ...ticket(), spampruefung: { verdaechtig: true } };
+test("Modellverdacht steuert die Spamprüfung, Freigaben und Abschlüsse haben Vorrang", () => {
+  const offen = { ...ticket(), ki: { spam: true } };
   const freigegeben = { ...offen, spam_entscheidung: "kein_spam", ki: { spam: true } };
   const bestaetigt = { ...offen, spam_entscheidung: "spam", status: "geschlossen" };
-  const alt = { ...offen, ki: { spam: true }, spampruefung: { verdaechtig: false } };
+  const regelhinweis = { ...ticket(), regelhinweise: ["Werbesprache erkannt."], spampruefung: { verdaechtig: true } };
   assert.equal(spamOffen(offen), true);
   assert.equal(hatHandlungsbedarf(offen), false);
   assert.equal(sla(offen, jetztImTest).zustand, "keine");
-  for (const frei of [freigegeben, alt]) {
+  for (const frei of [freigegeben, regelhinweis, { ...regelhinweis, ki: { spam: false } }]) {
     assert.equal(spamOffen(frei), false);
     assert.equal(hatHandlungsbedarf(frei), true);
     assert.equal(sla(frei, jetztImTest).zustand, "gelb");
@@ -233,18 +238,18 @@ test("Eingangsfilter sortiert vor der KI-Bewertung, Freigaben und Abschlüsse ha
   assert.equal(spamOffen(archivierterVerdacht), false);
 });
 
-test("Spam-Prüfung zeigt nur offene Eingangsverdachte und den tatsächlichen Prüfgrund", (t) => {
+test("Spam-Prüfung zeigt offene Modellverdachte und deren Modellbegründung", (t) => {
   testDokument(t);
   browserGlobal(t, "location", { search: "" });
   const vorher = zustand.tickets;
   t.after(() => { zustand.tickets = vorher; });
-  const filter = { verdaechtig: true, begruendung: "Unaufgeforderte Verkaufsnachricht." };
+  const ki = { spam: true, begruendung: "Unaufgeforderte Verkaufsnachricht." };
   zustand.tickets = [
-    { ...ticket({ id: 11 }), titel: "Werbesendung", spampruefung: filter },
-    { ...ticket({ id: 12 }), titel: "Monitor anfordern", ki: { spam: true }, spampruefung: { verdaechtig: false } },
-    { ...ticket({ id: 13 }), titel: "Freigegeben", spam_entscheidung: "kein_spam", spampruefung: filter },
-    { ...ticket({ id: 14, status: "geschlossen" }), titel: "Bestätigte Werbung", spam_entscheidung: "spam", spampruefung: filter },
-    { ...ticket({ id: 15 }), titel: "Manuelle Korrektur", spam_entscheidung: "kein_spam", spampruefung: { verdaechtig: false } },
+    { ...ticket({ id: 11 }), titel: "Werbesendung", ki },
+    { ...ticket({ id: 12 }), titel: "Monitor anfordern", ki: { spam: false }, regelhinweise: ["Werbehinweis"] },
+    { ...ticket({ id: 13 }), titel: "Freigegeben", spam_entscheidung: "kein_spam", ki },
+    { ...ticket({ id: 14, status: "geschlossen" }), titel: "Bestätigte Werbung", spam_entscheidung: "spam", ki },
+    { ...ticket({ id: 15 }), titel: "Manuelle Korrektur", spam_entscheidung: "kein_spam", ki: { spam: false } },
   ];
   const ziel = document.createElement("main");
   zeigeSpam(ziel);
@@ -252,10 +257,72 @@ test("Spam-Prüfung zeigt nur offene Eingangsverdachte und den tatsächlichen Pr
   assert.match(kopf.textContent, /Bestätigt: 1/);
   assert.match(queue.textContent, /#11 Werbesendung/);
   assert.match(queue.textContent, /Unaufgeforderte Verkaufsnachricht/);
+  assert.match(queue.textContent, /✦ Spam-Verdacht/);
   assert.doesNotMatch(queue.textContent, /#12|#13|#14|#15/);
   assert.equal(freigegeben.tag, "details");
   assert.match(freigegeben.textContent, /Vom Support freigegeben \(1\)/);
   assert.match(freigegeben.textContent, /#13 Freigegeben/);
+});
+
+test("Detailansicht hält Modellwerte, Regelhinweis und manuelle Entscheidungen auseinander", t => {
+  testDokument(t);
+  browserGlobal(t, "location", { search: "" });
+  const vorher = zustand.tickets;
+  t.after(() => { zustand.tickets = vorher; });
+  const fall = {
+    ...ticket(), prioritaet_quelle: "manuell", ki: {
+      modus: "llama", prioritaet: "mittel", kategorie: "Software", spam: true, begruendung: "Modellbegründung",
+    }, regelhinweise: ["Separater Hinweis"],
+  };
+  for (const entscheidung of [null, "kein_spam", "spam"]) {
+    zustand.tickets = [{ ...fall, spam_entscheidung: entscheidung }];
+    const ziel = document.createElement("main");
+    zeigeTicket(ziel, { teile: [String(fall.id)] });
+    const karten = ziel.children[2].children[1].children;
+    const analyse = karten.find(el => el.attributes["aria-labelledby"] === "t-ki");
+    assert.match(analyse.textContent, /✦ KI-EinschätzungPrioritätMittel ✦KategorieSoftwareSpamJa/);
+    assert.match(analyse.textContent, /„Sehr hoch“/);
+    assert.match(analyse.textContent, /Modellbegründung/);
+    assert.doesNotMatch(analyse.textContent, /Separater Hinweis/);
+    assert.equal(karten.find(el => el.textContent === "RegelhinweiseSeparater Hinweis").className, "karte");
+    if (entscheidung === "kein_spam") {
+      assert.doesNotMatch(ziel.children[1].textContent, /Spam-Verdacht/);
+      assert.match(ziel.children[1].textContent, /Sehr hoch/);
+    } else if (entscheidung === null) {
+      assert.match(ziel.children[1].textContent, /✦ Spam-Verdacht/);
+      assert.match(analyse.textContent, /✦ Neu bewerten/);
+    } else {
+      assert.match(ziel.children[1].textContent, /Spam bestätigt/);
+      assert.doesNotMatch(analyse.textContent, /Neu bewerten/);
+    }
+  }
+});
+
+test("im Kundenticket öffnet die direkte Aktensuche und zeigt die genaue Fundstelle", async t => {
+  testDokument(t);
+  browserGlobal(t, "location", { search: "" });
+  const { tickets, kunden } = zustand;
+  t.after(() => { Object.assign(zustand, { tickets, kunden }); });
+  zustand.tickets = [{ ...ticket({ id: 1021 }), kunde: "praxis" }];
+  zustand.kunden = [{ kunde: "praxis", name: "Praxis" }];
+  t.mock.method(api, "kundendoku", async () => ({ markdown: "# Praxis" }));
+  t.mock.method(api, "ticketDoku", async () => ({ quellen: [] }));
+  const suche = t.mock.method(api, "frageKundendoku", async () => ({
+    antwort: "Postfach Praxis", modus: "doku",
+    quellen: [{ titel: "Software", quelle: "doku/praxis.md#software", text: "Postfach Praxis" }],
+  }));
+  const ziel = document.createElement("main");
+  zeigeTicket(ziel, { teile: ["1021"] });
+  const karte = ziel.children[2].children[1].children.at(-1);
+  const finde = (el, passt) => passt(el) ? el : el.children.map(kind => finde(kind, passt)).find(Boolean);
+  const oeffnen = finde(karte, el => el.tag === "button" && el.textContent === "Kundendoku anzeigen");
+  await oeffnen.click();
+  const feld = finde(karte, el => el.tag === "input" && el.attributes.type === "search");
+  feld.value = "Wie heißt das gemeinsame Postfach?";
+  await finde(karte, el => el.className === "aktensuche").submit({ preventDefault() {} });
+  assert.deepEqual(suche.mock.calls[0].arguments, ["praxis", feld.value]);
+  assert.match(karte.textContent, /Postfach Praxis/);
+  assert.match(karte.textContent, /Fundstelle doku\/praxis.md#software/);
 });
 
 test("eine Hintergrundabfrage darf eine jüngere Ticketänderung nicht überschreiben", async (t) => {
@@ -280,7 +347,7 @@ test("eine überholte Spam-Freigabe lädt die aktuelle Entscheidung, auch wenn d
   t.mock.method(globalThis, "setTimeout", () => 0);
   const vorher = zustand.tickets;
   t.after(() => { zustand.tickets = vorher; });
-  const alt = { ...ticket(), spampruefung: { verdaechtig: true } };
+  const alt = { ...ticket(), ki: { spam: true } };
   const aktuell = { ...alt, status: "geschlossen", spam_entscheidung: "spam" };
   zustand.tickets = [alt];
   const patch = t.mock.method(api, "ticketAendern", async () => { throw new ApiFehler("Überholt", 409); });
@@ -296,16 +363,16 @@ test("eine überholte Spam-Freigabe lädt die aktuelle Entscheidung, auch wenn d
   assert.equal(spamOffen(zustand.tickets[0]), false);
 });
 
-test("Eingang erneut prüfen gibt die manuelle Entscheidung gezielt an den Filter zurück", async (t) => {
+test("Freigabe aufheben aktiviert den gespeicherten Modellverdacht wieder", async (t) => {
   testDokument(t);
   t.mock.method(globalThis, "setTimeout", () => 0);
   const vorher = zustand.tickets;
   t.after(() => { zustand.tickets = vorher; });
-  const frei = { ...ticket(), spam_entscheidung: "kein_spam", spampruefung: { verdaechtig: true, art: "werbung" } };
+  const frei = { ...ticket(), spam_entscheidung: "kein_spam", ki: { spam: true } };
   const erneut = { ...frei, spam_entscheidung: null };
   zustand.tickets = [frei];
   const patch = t.mock.method(api, "ticketAendern", async () => erneut);
-  const aktion = spamAktionen(frei).children.find((k) => k.textContent === "Eingang erneut prüfen");
+  const aktion = spamAktionen(frei).children.find((k) => k.textContent === "Freigabe aufheben");
   await aktion.click();
   assert.deepEqual(patch.mock.calls[0].arguments, [frei.id, {
     spam_entscheidung: null, erwartete_spam_entscheidung: "kein_spam", erwarteter_status: "neu",

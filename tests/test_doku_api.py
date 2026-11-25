@@ -40,7 +40,7 @@ class DokuApiTest(unittest.TestCase):
                                        json={"frage": "Welches Gateway hat das Netzwerk?"})
         self.assertEqual(antwort.status_code, 200, antwort.text)
         r = antwort.json()
-        self.assertEqual(r["modus"], "llama")
+        self.assertEqual(r["modus"], "doku")
         self.assertEqual(r["tokens"], 5)
         self.assertEqual(r["quellen"][0]["quelle"], "doku/bau.md#netzwerk-und-firewall")
         self.assertEqual(r["antwort"], r["quellen"][0]["text"])
@@ -55,6 +55,7 @@ class DokuApiTest(unittest.TestCase):
                                        json={"frage": "Welches Gateway nutzt das Testnetz mit Glasfaser?"})
         self.assertEqual(antwort.status_code, 200, antwort.text)
         self.assertEqual(antwort.json()["quellen"], [])
+        self.assertEqual(antwort.json()["modus"], "suche")
         self.assertEqual(antwort.json()["antwort"], auswertung_doku.KEINE_FUNDSTELLE)
         modell.assert_called_once()
 

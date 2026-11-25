@@ -6,7 +6,7 @@ Alle Dateien liegen unter `data/testdaten/` und sind **frei erfunden**.
 
 | Datei | Inhalt |
 |---|---|
-| `tickets.json` | Liste aller Tickets |
+| `tickets.json` | 30 ursprüngliche Testtickets |
 | `kunden.json` | Liste aller Kunden |
 | `doku/<kunde>.md` | Kundendokumentation, eine Datei pro Kunde |
 | `erwartet.json` | Erwartete KI-Bewertung je Ticket, nur für Tests |
@@ -58,12 +58,12 @@ Alle Dateien liegen unter `data/testdaten/` und sind **frei erfunden**.
 | `beschreibung` | Text | Problembeschreibung, wie sie vom Kunden kommt |
 | `status` | Text | Aktueller Status, siehe unten |
 | `prioritaet` | Text oder `null` | Gültige Priorität, siehe unten. Wird zuerst von der KI gesetzt, kann von Hand geändert werden |
-| `prioritaet_quelle` | Text oder `null` | `"ki"` bezeichnet eine automatisch übernommene Einstufung, `"manuell"` die Entscheidung eines Mitarbeiters. Die genaue Herkunft des Vorschlags steht unter `ki.bewertungsquellen`. |
+| `prioritaet_quelle` | Text oder `null` | `ki` bezeichnet die automatisch übernommene Einstufung, `manuell` die Entscheidung des Supports. |
 | `zugewiesen_an` | Text oder `null` | Kürzel des zuständigen Mitarbeiters |
 | `erstellt_am` | Zeitstempel | Wann das Ticket angelegt wurde |
 | `statushistorie` | Liste | Jeder Statuswechsel mit Zeitpunkt, älteste zuerst. Daraus berechnet das Dashboard Ticketalter, Wartezeiten und SLA |
 | `ki` | Objekt oder `null` | Ergebnis der KI-Auswertung, siehe unten. `null`, solange die KI das Ticket noch nicht bewertet hat |
-| `spampruefung` | Objekt | Automatischer Eingangsbefund mit `verdaechtig` (boolescher Wert) und `begruendung` (Text). Bei einer erkannten Bitte um Prüfung einer E-Mail wird zusätzlich `anliegen: "mail_pruefen"` gesetzt. |
+| `regelhinweise` | Liste von Texten | Ergänzende Hinweise aus Textmustern. Sie ändern weder KI-Ergebnis noch Warteschlange. |
 | `spam_entscheidung` | Text oder `null` | Entscheidung des Supports. `"spam"` bestätigt Spam, `"kein_spam"` gibt das Ticket frei. Der manuelle Entscheid hat Vorrang. |
 | `ursache` | Text oder `null` | Ursache des Problems, wird beim Schließen eingetragen (laut Antrag „Ursache und Lösung erfassen“) |
 | `loesungsweg` | Text oder `null` | Wird beim Schließen eingetragen, Pflicht zum Schließen (außer bestätigter Spam). Mit der Ursache die Grundlage für ähnliche Fälle |
@@ -85,9 +85,9 @@ Alle Dateien liegen unter `data/testdaten/` und sind **frei erfunden**.
 | Code und Anzeige | Maßstab für die Sollbewertung |
 |---|---|
 | `niedrig` / Niedrig | Frage, kosmetischer Fehler oder planbarer Auftrag. Die laufende Arbeit ist möglich. |
-| `mittel` / Normal | Die Arbeit ist beeinträchtigt. Ein nutzbarer Ausweichweg oder eine vorübergehende Unterbrechung erlaubt die Weiterarbeit. |
+| `mittel` / Mittel | Die Arbeit ist beeinträchtigt. Ein nutzbarer Ausweichweg oder eine vorübergehende Unterbrechung erlaubt die Weiterarbeit. |
 | `hoch` / Hoch | Eine Person kann eine notwendige Arbeit nicht erledigen oder eine wichtige Funktion ist ausgefallen. |
-| `sehr_hoch` / Sehr dringend | Ein wesentlicher Geschäftsablauf steht oder mehrere Beschäftigte sind bei ihrer Arbeit blockiert. Ein wirksamer Ausweichweg fehlt. |
+| `sehr_hoch` / Sehr hoch | Ein wesentlicher Geschäftsablauf steht oder mehrere Beschäftigte sind bei ihrer Arbeit blockiert. Ein wirksamer Ausweichweg fehlt. |
 
 Bei der Sollbewertung zählen die im Ticket geschilderten Folgen. „Alle sehen die Meldung“ sagt noch nichts darüber aus, ob alle weiterarbeiten können. Ein bestelltes Ersatzgerät hilft erst, wenn es sich tatsächlich einsetzen lässt. Eine dokumentierte Kundenregel gilt, wenn das Ticket die darin genannten Bedingungen erfüllt.
 
@@ -95,21 +95,21 @@ Bei der Sollbewertung zählen die im Ticket geschilderten Folgen. „Alle sehen 
 
 Der Block enthält die Ergebnisse der automatischen Supportbewertung und der Fallsuche. Eine manuelle Prioritätsänderung steht im Feld `prioritaet` des Tickets und hat Vorrang vor späteren Vorschlägen.
 
-Eine erneute Ticketanalyse aktualisiert Priorität, Kategorie und Begründung. Ergebnisse der Fallsuche und die manuell gesetzte Priorität bleiben erhalten. Die Spam-Warteschlange verwendet den Eingangsbefund und die Entscheidung des Supports.
+Eine erneute Ticketanalyse aktualisiert Priorität, Kategorie und Begründung. Ergebnisse der Fallsuche und die manuell gesetzte Priorität bleiben erhalten. Die Spam-Warteschlange verwendet den Modellbefund und die Entscheidung des Supports.
 
 | Feld | Typ | Bedeutung |
 |---|---|---|
 | `prioritaet` | Text | Automatisch vorgeschlagene Priorität |
-| `bewertungsquellen` | Objekt oder `null` | Herkunft je Feld (`prioritaet`, `kategorie`). Mögliche Werte sind `modell`, `regel` und `mock`. Bei alten Einträgen kann die Herkunft fehlen. |
-| `spam` | boolescher Wert oder `null` | Kompatibilitätsfeld älterer Bewertungen. Für die Spam-Prüfung gilt `spampruefung` auf Ticketebene. |
-| `kategorie` | Text | Fachgebiet des Supportfalls. Ältere Modellvergleiche verwenden zusätzlich die Klasse `Spam`. |
-| `begruendung` | Text | Erläuterung der Einstufung mit einem Beleg aus Betreff oder Beschreibung |
+| `modus` | Text | Kennzeichnet Modellbetrieb oder simulierten Testbetrieb. |
+| `spam` | boolescher Wert | Verdacht aus der KI-Analyse. Bei der Einsortierung hat die Mitarbeiterentscheidung Vorrang. |
+| `kategorie` | Text | Vom Modell vorgeschlagene Kategorie, einschließlich `Spam`. |
+| `begruendung` | Text | Begründung des Modells für seine Einstufung |
 | `loesungsvorschlag` | Text oder `null` | Vorschlag auf Basis ähnlicher gelöster Tickets als Text, oder „Kein passender gelöster Fall gefunden …“. `null` = noch nicht gesucht |
 | `ursachen` | Liste | Bis zu 3 Vorschläge `{"ursache", "loesungsweg", "tickets": [1001]}`, wahrscheinlichste zuerst. Leer, wenn kein Fall passt |
 | `aehnliche_tickets` | Liste von Zahlen | IDs der gelösten Tickets, auf die sich die Vorschläge stützen |
 | `treffer` | Liste | Ergebnis der Suche vor der KI: `{"id", "aehnlichkeit"}` (0 bis 1), bester zuerst. Zeigt auch Fälle, die die KI verworfen hat |
 
-Eingangsprüfung, Bewertung und Fallsuche sind eigenständige Schritte. Wurde nur nach gelösten Fällen gesucht, kann das Ticket bereits Fallvorschläge enthalten, während Priorität, Kategorie und Begründung im KI-Block noch fehlen.
+Die gemeinsame Ticketbewertung und die Fallsuche lassen sich unabhängig ausführen. Wurde nur nach gelösten Fällen gesucht, kann das Ticket bereits Fallvorschläge enthalten, während Priorität, Kategorie und Begründung im KI-Block noch fehlen.
 
 ## Kunde
 

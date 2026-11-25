@@ -2,6 +2,7 @@
   {
     "titel": "Speicherkontingent",
     "artikel": "Disk Quota",
+    "lizenz_begriffsnotiz": "https://creativecommons.org/licenses/by-sa/4.0/deed.de",
     "url": "https://de.wikipedia.org/w/index.php?title=Disk_Quota&oldid=248831509",
     "begriffe": ["Quota", "Disk Quota", "Speicherkontingent", "Postfachkontingent", "Speicherlimit", "Speichergrenze", "Speicherwarnung", "Postfach fast voll"],
     "symptome": [["Postfach", "Postfächer", "Mailbox"], ["voll", "ausgeschöpft", "Speicherplatz", "Belegung"]],
@@ -18,6 +19,7 @@
   {
     "titel": "E-Mail-Postfach",
     "artikel": "E-Mail-Konto",
+    "lizenz_begriffsnotiz": "https://creativecommons.org/licenses/by-sa/4.0/deed.de",
     "url": "https://de.wikipedia.org/w/index.php?title=E-Mail-Konto&oldid=249793118",
     "begriffe": ["Postfach", "Postfächer", "Mailkonto", "E-Mail-Postfach", "E-Mail-Konto", "Mailbox", "Webmail"],
     "text": "In einem E-Mail-Postfach werden eingegangene Nachrichten aufbewahrt. Je nach Anbieter lassen sie sich mit einem Mailprogramm, einer App oder über den Browser lesen. Der Zugriff über eine Webseite heißt Webmail."
@@ -25,6 +27,7 @@
   {
     "titel": "Virtuelles privates Netzwerk (VPN)",
     "artikel": "Virtual Private Network",
+    "lizenz_begriffsnotiz": "https://creativecommons.org/licenses/by-sa/4.0/deed.de",
     "url": "https://de.wikipedia.org/w/index.php?title=Virtual_Private_Network&oldid=266327940",
     "begriffe": ["VPN", "Virtual Private Network", "virtuelles privates Netzwerk", "VPN-Tunnel"],
     "pruefung": {
@@ -38,6 +41,7 @@
   {
     "titel": "Namensauflösung (DNS)",
     "artikel": "Domain Name System",
+    "lizenz_begriffsnotiz": "https://creativecommons.org/licenses/by-sa/4.0/deed.de",
     "url": "https://de.wikipedia.org/w/index.php?title=Domain_Name_System&oldid=272262992",
     "begriffe": ["DNS", "Domain Name System", "Namensauflösung", "DNS-Server", "Nameserver", "MX-Eintrag"],
     "symptome": [["Name", "Namen", "Hostname", "Hostnamen", "Servername", "Servernamen"], ["per IP", "über die IP", "IP-Adresse erreichbar"]],
@@ -54,6 +58,7 @@
   {
     "titel": "Mehrfaktor-Authentifizierung (MFA)",
     "artikel": "Multi-Faktor-Authentisierung",
+    "lizenz_begriffsnotiz": "https://creativecommons.org/licenses/by-sa/4.0/deed.de",
     "url": "https://de.wikipedia.org/w/index.php?title=Multi-Faktor-Authentisierung&oldid=263236666",
     "begriffe": ["MFA", "2FA", "Zwei-Faktor-Authentisierung", "Zwei-Faktor-Authentifizierung", "Mehrfaktor-Authentifizierung", "Multi-Faktor-Authentisierung", "Mehrfaktorauthentifizierung", "zweiter Faktor", "Authenticator", "Authenticator-App"],
     "symptome": [["Anmeldung", "anmelden", "einloggen"], ["Bestätigungscode", "Anmeldebestätigung", "zweiten Faktor"]],
@@ -73,6 +78,7 @@
   {
     "titel": "Phishing",
     "artikel": "Phishing",
+    "lizenz_begriffsnotiz": "https://creativecommons.org/licenses/by-sa/4.0/deed.de",
     "url": "https://de.wikipedia.org/w/index.php?title=Phishing&oldid=271745498",
     "begriffe": ["Phishing", "Phishing-Mail", "Phishingnachricht"],
     "text": "Beim Phishing versuchen Betrüger, sich als vertrauenswürdiger Absender auszugeben und vertrauliche Angaben zu erhalten. Ein Warnzeichen ist eine unerwartete Nachricht, die unter Zeitdruck zur Eingabe von Zugangsdaten auffordert."
@@ -80,6 +86,7 @@
   {
     "titel": "Spam",
     "artikel": "Spam",
+    "lizenz_begriffsnotiz": "https://creativecommons.org/licenses/by-sa/4.0/deed.de",
     "url": "https://de.wikipedia.org/w/index.php?title=Spam&oldid=270253438",
     "begriffe": ["Spam", "Spam-Mail", "Junk-Mail", "Werbemail", "Werbemails"],
     "text": "Als Spam bezeichnet man unerwünschte elektronische Nachrichten, die oft an viele Empfänger gleichzeitig gehen. Unbestellte Werbemails sind ein typisches Beispiel."
@@ -87,6 +94,7 @@
   {
     "titel": "Datenbankserver und Datenbankdienst",
     "artikel": "Datenbankserver",
+    "lizenz_begriffsnotiz": "https://creativecommons.org/licenses/by-sa/4.0/deed.de",
     "url": "https://de.wikipedia.org/w/index.php?title=Datenbankserver&oldid=267691666",
     "begriffe": ["Datenbank", "Datenbanken", "Datenbankserver", "Datenbankdienst", "Datenbankverbindung", "SQL-Dienst", "SQL-Server", "SQL-Datenbank"],
     "text": "Ein Datenbankdienst bearbeitet Anfragen der Anwendungen, die mit ihm verbunden sind. Nutzen mehrere Arbeitsplätze denselben Datenbankserver, kann eine Störung an diesem gemeinsamen Dienst mehrere Clients gleichzeitig betreffen.",
@@ -162,6 +170,7 @@
   {
     "titel": "Druckwarteschlange",
     "artikel": "Spooling",
+    "lizenz_begriffsnotiz": "https://creativecommons.org/licenses/by-sa/4.0/deed.de",
     "url": "https://de.wikipedia.org/w/index.php?title=Spooling&oldid=243684708",
     "begriffe": ["Druckwarteschlange", "Druckerwarteschlange", "Druckspooler", "Spooler", "Spooling", "Druckauftrag", "Druckaufträge"],
     "symptome": [["Drucker", "Drucken", "Druckserver"], ["Warteschlange", "Aufträge", "druckt nicht"]],

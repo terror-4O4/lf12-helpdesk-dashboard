@@ -25,8 +25,8 @@ def werbegrund(text: str) -> str | None:
     return None
 
 
-def pruefe(ticket: dict) -> dict:
-    """Vormerken nur bei einem konkreten Muster aus Inhalt, Absicht und Aufforderung."""
+def regelhinweise(ticket: dict) -> list[str]:
+    """Beschreibt auffällige Muster als Hinweise für die Bearbeitung."""
     titel = (ticket.get("titel") or "").casefold()
     nachricht = (ticket.get("beschreibung") or "").casefold()
     text = " ".join((titel + " " + nachricht).split())
@@ -49,10 +49,7 @@ def pruefe(ticket: dict) -> dict:
         or re.search(r"(?:phishing|spam|verdächtige (?:(?:e-?)?mail|nachricht)).{0,20}(?:melden|meldung|zur prüfung)", titel)
     )
     if meldet_nachricht:
-        befund = {"verdaechtig": False, "begruendung": "Der Absender bittet den Support um Prüfung einer Nachricht."}
-        if re.search(r"\b(?:e-?mail|mail)\b", text):
-            befund["anliegen"] = "mail_pruefen"
-        return befund
+        return []
 
     grund = None
     if (re.search(r"(?:passwort|kennwort|zugangsdaten|anmeldedaten|kontodaten|ihre daten)", text)
@@ -70,15 +67,14 @@ def pruefe(ticket: dict) -> dict:
     else:
         werbung = werbegrund(text)
         if werbung:
-            return {"verdaechtig": True, "art": "werbung", "begruendung": werbung}
+            return ["Werbung: " + werbung]
 
-    return {"verdaechtig": grund is not None,
-            "begruendung": grund or "Die lokale Eingangsprüfung hat keinen Spamhinweis gefunden."}
+    return ["Spamverdacht: " + grund] if grund else []
 
 
 def ist_spam(ticket: dict) -> bool:
-    """Die Entscheidung des Supports gilt vor dem automatischen Prüfbefund."""
+    """Eine manuelle Entscheidung hat Vorrang vor dem Spamwert der KI."""
     entscheidung = ticket.get("spam_entscheidung")
     if entscheidung is not None:
         return entscheidung == "spam"
-    return (ticket.get("spampruefung") or pruefe(ticket))["verdaechtig"]
+    return (ticket.get("ki") or {}).get("spam") is True

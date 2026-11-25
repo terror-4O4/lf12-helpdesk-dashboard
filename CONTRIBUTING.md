@@ -1,5 +1,7 @@
 # Mitarbeiten am Projekt
 
+Für die Mitarbeit wird Python 3.11 oder neuer benötigt.
+
 ## Ablauf
 
 ```

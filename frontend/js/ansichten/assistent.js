@@ -13,11 +13,20 @@ const VORSCHLAEGE = [
 
 const ANTWORTHERKUNFT = {
   mock: "Demo-Modus",
+  llama: "Antwort vom lokalen Modell",
   fachdialog: "Prüfanleitung aus dem Fachwissen",
   fachnotiz: "Prüfanleitung aus dem Fachwissen",
   modellvorschlag: "Prüfschritt vom lokalen Modell",
   modellrueckfrage: "Rückfrage vom lokalen Modell",
   standardpruefung: "Allgemeine Prüfhilfe",
+  doku: "Aus der Kundendokumentation",
+  wissen: "Aus dem lokalen Fachwissen",
+  wikipedia: "Aus dem lokalen Wikipedia-Bestand",
+  ticket: "Hinweis zum Ticket",
+  suche: "Ergebnis der lokalen Suche",
+  themenfremd: "Hinweis zum Themenbereich",
+  unklarer_bezug: "Rückfrage zum Themenbereich",
+  rueckfrage: "Rückfrage zur Eingabe",
 };
 
 const verlaeufe = new Map();
@@ -107,15 +116,15 @@ function zeichne() {
           .map((v) => h("button", { class: "knopf-chip", type: "button", onclick: () => fragen(v) }, v)))));
   }
   for (const n of verlauf) {
-    liste.append(h("div", { class: `blase blase-${n.rolle}` },
-      n.rolle === "ki" ? h("div", { class: "md" }, markdown(n.text)) : h("p", {}, n.text),
+    liste.append(h("div", { class: `blase blase-${n.rolle}${n.vomModell ? " blase-modell" : ""}` },
+      n.rolle === "antwort" ? h("div", { class: "md" }, markdown(n.text)) : h("p", {}, n.text),
       n.quellen?.length ? h("details", { class: "chat-quellen" },
         h("summary", {}, n.quellen.length === 1 ? "1 Quelle" : `${n.quellen.length} Quellen`),
         dokuQuellen(n.quellen, n.text)) : null,
-      n.info ? h("span", { class: "blase-info" }, n.info) : null));
+      n.info ? h("span", { class: "blase-info" }, n.vomModell ? kiMarke(n.info) : n.info) : null));
   }
   if (wartend.has(id)) {
-    liste.append(h("div", { class: "blase blase-ki blase-wartet" }, h("span", { class: "punkte" }, "KI denkt nach"), h("span", { class: "sekunden" })));
+    liste.append(h("div", { class: "blase blase-wartet" }, h("span", { class: "punkte" }, "Antwort wird vorbereitet"), h("span", { class: "sekunden" })));
   }
   const letzte = liste.lastElementChild;
   if (letzte) liste.scrollTop += letzte.getBoundingClientRect().top - liste.getBoundingClientRect().top - 8;
@@ -144,10 +153,11 @@ async function fragen(text) {
   try {
     const r = id == null ? await api.frage(frage) : await api.frageTicket(id, frage, vorherigeFragen);
     nachricht.alsKontext = !["themenfremd", "unklarer_bezug"].includes(r.modus);
-    const info = ANTWORTHERKUNFT[r.modus] || "";
-    verlauf.push({ rolle: "ki", text: r.antwort, info, quellen: r.quellen });
+    const info = ANTWORTHERKUNFT[r.modus] || "Herkunft nicht angegeben";
+    const vomModell = ["llama", "modellvorschlag", "modellrueckfrage"].includes(r.modus);
+    verlauf.push({ rolle: "antwort", text: r.antwort, info, vomModell, quellen: r.quellen });
   } catch (e) {
-    verlauf.push({ rolle: "ki", text: `Fehler: ${e.message}`, info: "" });
+    verlauf.push({ rolle: "fehler", text: `Fehler: ${e.message}` });
   } finally {
     clearInterval(uhr);
     wartend.delete(id);

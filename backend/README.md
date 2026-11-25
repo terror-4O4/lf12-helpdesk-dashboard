@@ -43,7 +43,7 @@ Beenden mit `Strg + C`.
 | POST | `/api/kunden/{kunde}/doku/suche` | Antwort auf `{"frage": "..."}` mit Belegtext, Fundstelle und hinterlegten Portal-Links |
 | POST | `/api/tickets/{id}/frage` | Ordnet eine Störungsmeldung oder Rückfrage anhand von Kundenakte, Fallhistorie und lokalem Fachwissen ein. Für Folgefragen kann `verlauf` die letzten sechs Benutzernachrichten desselben Tickets in zeitlicher Reihenfolge enthalten. |
 | POST | `/api/ki/frage` | Beantwortet allgemeine IT-Fragen mit lokalem Fachwissen. Kundenakten und frühere Kundentickets sind nur im Ticketkontext verfügbar. |
-| POST | `/api/tickets/{id}/analyse` | Bewertet ein freigegebenes oder unauffälliges Ticket nach Priorität und Kategorie. Mit `?speichern=false` nur anzeigen |
+| POST | `/api/tickets/{id}/analyse` | Lässt das Projektmodell Spam, Kategorie und Priorität in einer gemeinsamen Analyse bewerten. Mit `?speichern=false` nur anzeigen |
 | GET | `/api/tickets/{id}/aehnliche` | Nur die Suche: ähnlichste gelöste Tickets mit Ähnlichkeit. `?ohne_schwelle=true&anzahl=10` zeigt auch Fälle unter der Schwelle |
 | POST | `/api/tickets/{id}/loesungsvorschlag` | Suche plus KI: bis zu 3 Ursachen mit Lösungsweg und Verweis auf die Tickets, oder „kein passender Fall“. `?speichern=false` = nur anzeigen |
 | GET | `/api/wissensbasis` | Anzahl der gelösten Tickets in der Wissensbasis, Schwelle, Modell |
@@ -53,9 +53,7 @@ Beenden mit `Strg + C`.
 
 Das Backend arbeitet mit einer Arbeitskopie der Tickets in `data/laufzeit/` (nicht im Repo). Details in [`docs/datenformat.md`](../docs/datenformat.md#testdaten-und-arbeitskopie).
 
-Die lokale Eingangsprüfung liefert zu jedem Ticket `spampruefung.verdaechtig` und `spampruefung.begruendung`. Offene Verdachtsfälle gelangen sofort in die Spam-Prüfung. Eine Freigabe durch den Support ermöglicht die reguläre Analyse und Fallsuche. Bei einem offenen Verdacht oder bestätigtem Spam antworten diese Endpunkte mit HTTP 409.
-
-Erkannte Werbung trägt `spampruefung.art = "werbung"`. „Eingang erneut prüfen“ setzt die manuelle Freigabe bei einem offenen Ticket mit den Vorbedingungen des angezeigten Stands zurück. Danach entscheidet der aktuelle Eingangsbefund über die Einsortierung.
+Spam, Kategorie, Priorität und Begründung kommen im Modellbetrieb aus einer Antwort von llama.cpp. Die Auswertung verwendet dafür dieselbe Analysefunktion wie das Dashboard. Die Spam-Warteschlange folgt dem Modellverdacht oder der ausdrücklichen Mitarbeiterentscheidung. Regelhinweise stehen separat am Ticket. Eine erneute Bewertung erhält die manuell gesetzte Priorität und die Spam-Entscheidung.
 
 Bei Spam-Entscheidungen sendet das Dashboard den angezeigten Stand mit (`erwartete_spam_entscheidung`, `erwarteter_status`). Hat eine zweite Person inzwischen entschieden, liefert PATCH HTTP 409. Das Dashboard lädt dann den aktuellen Stand.
 
@@ -84,11 +82,11 @@ Passwortmanager-Verweise.
 
 ## Fachwissen in der Ticketberatung
 
-Die Anwendung sucht automatisch nach passenden [lokalen Fachnotizen](../data/wissen/wikipedia.json). Zu den Quellen gehören Wikipedia, das gematik-Fachportal und Herstellerdokumentation. Die Ticketberatung verbindet diese Hinweise mit dem betroffenen System und früheren Fällen des Kunden. Die Quellen lassen sich nach der Antwort aufklappen. Für die Suche ist keine Internetverbindung nötig.
+Die Anwendung sucht automatisch nach passenden [lokalen Fachnotizen](../data/wissen/wikipedia.json). Zu den Quellen gehören Wikipedia, das gematik-Fachportal und Herstellerdokumentation. Die Ticketberatung verbindet diese Hinweise mit dem betroffenen System und früheren Fällen des Kunden. Die Quellen lassen sich nach der Antwort aufklappen. Die Suche funktioniert offline. Für die verlinkten Originalartikel wird Internetzugang benötigt. Die Wikipedia-Begriffsnotizen stehen unter CC BY-SA 4.0. [Herkunft und Lizenzen](../data/wissen/README.md)
 
 Standardmäßig beantwortet der unter `LLAMA_URL` konfigurierte Dienst auch die Beratungsfragen. Wer für die Formulierung ein zweites lokales Chatmodell betreibt, kann dessen Adresse in `BERATUNG_URL` und bei Bedarf den Modellnamen in `BERATUNG_MODEL` eintragen. `/api/status?modelldetails=true` zeigt die erreichbaren Dienste und die vom Server gemeldeten Modelldateien.
 
-Mit `SUPPORT_MIT_BERATUNGSMODELL=true` verwendet die Ticketbewertung ebenfalls den unter `BERATUNG_URL` eingerichteten Dienst. Der reine Promptvergleich verwendet weiterhin das ausgewählte Vergleichsmodell an `LLAMA_URL`. Die Dienste lassen sich am KI-Status im Dashboard ablesen.
+Auf dem Mac Pro läuft Gemma 4 26B-A4B. Der Router verwendet den Modellnamen `gemma-4-26B-A4B-it-Q4_0` in `LLAMA_MODEL`. Für diesen Betrieb bleiben `BERATUNG_URL` und `BERATUNG_MODEL` leer.
 
 ## Ähnliche Tickets (RAG)
 
@@ -109,10 +107,10 @@ Eine Vektordatenbank (Qdrant, Chroma) ist bewusst nicht dabei: Bei einigen Dutze
 
 ## Sperre: Daten bleiben im lokalen Netz
 
-Beim Start prüft das Backend `LLAMA_URL` und `EMBED_URL`. Erlaubt sind **nur**:
+Beim Start prüft das Backend `LLAMA_URL`, `EMBED_URL` und die optionale `BERATUNG_URL`. Erlaubt sind **nur**:
 - dieser Rechner (`127.0.0.1`, `localhost`)
 - private Netze (`10.x.x.x`, `172.16.x.x` bis `172.31.x.x`, `192.168.x.x`)
 
-Zeigt eine der beiden Adressen auf etwas anderes, z. B. einen KI-Dienst im Internet, **startet das Backend nicht** und meldet `ABBRUCH: ...`. Das gilt auch bei `KI_MOCK=true`. Außerdem ignoriert das Backend Proxy-Einstellungen des Systems und spricht den llama-server immer direkt an.
+Zeigt eine der Adressen auf etwas anderes, z. B. einen KI-Dienst im Internet, **startet das Backend nicht** und meldet `ABBRUCH: ...`. Das gilt auch bei `KI_MOCK=true`. Außerdem ignoriert das Backend Proxy-Einstellungen des Systems und spricht den llama-server immer direkt an.
 
 Diese Sperre darf nur nach Absprache mit Marlon geändert werden.

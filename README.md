@@ -24,7 +24,7 @@ Browser (Dashboard)  ──►  FastAPI  ──►  llama-server (Chat und Klass
 ```
 
 - **Entwicklung:** jeder auf dem eigenen Laptop (Windows oder macOS)
-- **Betrieb:** Mac Pro als Server, Zugriff für die Gruppe nur über Tailscale auf Weboberfläche und API
+- **Betrieb:** Gemma 4 26B-A4B über llama.cpp auf dem Mac Pro, Zugriff für die Gruppe nur über Tailscale auf Weboberfläche und API
 - **Deployment:** ausschließlich durch Marlon, nur geprüfter Code aus `main`
 
 ## Ordnerstruktur
@@ -75,7 +75,7 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 
 ```bash
 # macOS / Linux
-python3 -m venv .venv
+python3.13 -m venv .venv
 source .venv/bin/activate
 ```
 

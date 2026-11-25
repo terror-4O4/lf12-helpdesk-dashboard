@@ -17,6 +17,7 @@ class TicketfragenTest(unittest.TestCase):
         stack = ExitStack()
         self.addCleanup(stack.close)
         self.tickets = app.lade_json(app.DATEN / "tickets.json")
+        app.ergaenze_uebungstickets(self.tickets)
         testdaten = Path(stack.enter_context(TemporaryDirectory()))
         stack.enter_context(patch.object(app, "wissensbasis", app.rag.Wissensbasis(testdaten / "wissen.json")))
         stack.enter_context(patch.object(app, "einbetter", app.rag.Einbetter("", mock=True)))
@@ -74,6 +75,8 @@ class TicketfragenTest(unittest.TestCase):
         self.assertNotIn("Konnektor", r["antwort"])
         self.assertIn("Passwortmanager", self.frage(1021, "Passwort für den Server-Admin?")["antwort"])
         self.assertFalse(self.frage(1021, "Welches Gateway verwendet das Autohaus?")["quellen"])
+        spam = next(t for t in self.tickets if t["id"] == 1010)
+        spam["ki"] = {"spam": True}
         r = self.client.post("/api/tickets/1010/frage", json={"frage": "Was soll ich tun?"})
         self.assertEqual(r.status_code, 409)
 
@@ -136,6 +139,21 @@ class TicketfragenTest(unittest.TestCase):
                 else:
                     self.assertNotIn(formulierung, r["antwort"])
                     self.assertIn("STB-SRV01", r["antwort"])
+
+    def test_handlungsfrage_mit_anleitung_nutzt_modell_und_verweist_auf_quelle(self):
+        for nr, pruefung, quelle in [
+                (1008, "Prüfe das Display am Kartenlesegerät.", "gematik"),
+                (1021, "Vergleiche die Belegung des Praxispostfachs mit dem eingestellten Limit.", "doku/praxis")]:
+            plan = json.dumps({"schritt": 0, "anweisung": pruefung, "rueckfrage": ""})
+            with self.subTest(nr=nr), patch.object(app, "KI_MOCK", False), patch.object(
+                    app, "erzeuge_vorschlag", return_value={"tokens": 0, "ergebnis": {"vorschlaege": []}}), patch.object(
+                    app, "frage_beratungsmodell", return_value=(plan, 23)) as modell:
+                ergebnis = self.frage(nr, "Was ist der nächste Schritt?")
+                self.assertIn(pruefung, ergebnis["antwort"])
+                self.assertEqual(ergebnis["modus"], "modellvorschlag")
+                self.assertTrue(any(q["quelle"].startswith(quelle) for q in ergebnis["quellen"]))
+                self.assertEqual(modell.call_args.kwargs["antwortformat"]["json_schema"]["name"], "diagnoseplan")
+                self.assertEqual(ergebnis["tokens"], 23)
 
     def test_andere_kunden_und_offene_faelle_bleiben_ausgeschlossen(self):
         historisch = next(t for t in self.tickets if t["id"] == 1016)
@@ -230,7 +248,11 @@ class TicketfragenTest(unittest.TestCase):
                 self.assertEqual(eingabe["fruehere_nachrichten"], ["Beide Seiten sind gleich groß."])
                 self.assertNotIn("moegliche_pruefung", eingabe)
                 self.assertEqual(modus, r["modus"])
-                self.assertEqual(r["quellen"], [])
+                if modus.startswith("modell"):
+                    self.assertEqual([q["quelle"] for q in r["quellen"]], ["Ticket #1027 · Eingangsmeldung"])
+                    self.assertEqual(r["quellen"][0]["text"], ticket["beschreibung"])
+                else:
+                    self.assertEqual(r["quellen"], [])
                 self.assertEqual(r["tokens"], 33)
                 if modus == "modellvorschlag":
                     self.assertIn(schritt, r["antwort"])
@@ -280,10 +302,11 @@ class TicketfragenTest(unittest.TestCase):
             nachweis = {}
             wissen = app.wiki.hintergrund(text)
             with self.subTest(text=text, ziel=erlaubter_host), patch.object(
-                    app, "frage_beratungsmodell", side_effect=AssertionError("Anleitung bereits vorhanden")) as modell:
+                    app, "frage_beratungsmodell", return_value=('{"schritt":0,"anweisung":"","rueckfrage":""}', 12)) as modell:
                 antwort, quellen, tokens = app.ticketfragen.beratung(
                     ticket, "Was soll ich prüfen?", fakten, None, wissen, modell=modell, nachweis=nachweis)
-            self.assertIsNone(tokens)
+            modell.assert_called_once()
+            self.assertEqual(tokens, 12)
             self.assertEqual(nachweis["modus"], "fachnotiz")
             self.assertTrue(any(q.get("pruefschritte") for q in quellen))
             for host in ("ARCHIV-SRV03", "ZEIT-SRV02", "ZEIT-SRV04"):
@@ -373,6 +396,11 @@ class TicketfragenTest(unittest.TestCase):
                 self.assertEqual(modus, "standardpruefung")
                 self.assertNotIn("erfolgreich", antwort)
                 self.assertEqual(quellen, [])
+
+    def test_frei_erfundene_beschriftung_ist_kein_belegter_menuepunkt(self):
+        schritt = "Prüfe in der Konferenz die Auswahl unter 'Kamera-Status'."
+        self.assertFalse(app.ticketfragen.offener_text(schritt, "In der Konferenz bleibt die Kamera schwarz."))
+        self.assertTrue(app.ticketfragen.offener_text(schritt, "Unter Kamera-Status erscheint kein Gerät."))
 
     def test_format_erhaelt_ordnungszahlen_abkuerzungen_und_wiederholte_schritte(self):
         text = ("1. Prüfe die 2. Zeile vom 19. November. 2. Lies z. B. die Adresse 10.20.0.52 ab.\n"

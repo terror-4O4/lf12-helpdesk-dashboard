@@ -9,19 +9,6 @@ from backend import app
 
 
 class ModellstatusTest(unittest.TestCase):
-    def test_modellwahl_fuer_support_und_rohvergleich(self):
-        ticket = {"kunde": "bau", "titel": "Fehlende Anzeige", "beschreibung": "Die Liste bleibt leer."}
-        for aktiviert in (False, True):
-            with self.subTest(aktiviert=aktiviert), patch.object(app, "SUPPORT_MIT_BERATUNGSMODELL", aktiviert), \
-                    patch.object(app, "frage_llama", side_effect=[
-                        ('{"prioritaet":"mittel","kategorie":"Software","beleg":1}', 20),
-                        ('{"prioritaet":"mittel","kategorie":"Software","spam":false,"begruendung":"Liste fehlt."}', 25),
-                    ]) as modell:
-                app.analysiere_llama(ticket, nur_support=True)
-                app.analysiere_llama(ticket)
-                self.assertEqual([aufruf.kwargs.get("beratung", False) for aufruf in modell.call_args_list],
-                                 [aktiviert, False])
-
     def test_anzeigename_gehoert_zum_ausgewaehlten_modell(self):
         def antwort(url, **kwargs):
             if url.endswith("/health"):

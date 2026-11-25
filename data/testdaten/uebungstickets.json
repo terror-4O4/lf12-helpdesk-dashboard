@@ -1,5 +1,101 @@
 [
   {
+    "id": 1031,
+    "kunde": "autohaus",
+    "titel": "Fotos am Annahmeplatz 2: USB-Kartenleser fällt aus",
+    "beschreibung": "Die Werkstattfotos lassen sich am Annahmeplatz 2 nicht mehr einlesen. Wir haben zwei Speicherkarten ausprobiert. Mit demselben USB-Kartenleser klappt es am Nachbarplatz. Bis zur Reparatur importieren wir die Bilder dort.",
+    "status": "antwort_erhalten",
+    "prioritaet": "mittel",
+    "prioritaet_quelle": "manuell",
+    "zugewiesen_an": "tim",
+    "erstellt_am": "2026-11-19T09:10:00",
+    "statushistorie": [
+      {
+        "status": "neu",
+        "seit": "2026-11-19T09:10:00"
+      },
+      {
+        "status": "in_bearbeitung",
+        "seit": "2026-11-19T09:26:00"
+      },
+      {
+        "status": "warten_auf_kunde",
+        "seit": "2026-11-19T09:36:00"
+      },
+      {
+        "status": "antwort_erhalten",
+        "seit": "2026-11-19T10:12:00"
+      }
+    ],
+    "ki": null,
+    "ursache": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1032,
+    "kunde": null,
+    "titel": "Zutritt zum Technikraum für den vereinbarten Wartungstermin",
+    "beschreibung": "Hier ist der Elektroservice für den angekündigten USV-Tausch am Freitag. Unser Auftrag nennt 8 Uhr als Beginn. Wer kann uns dann den Technikraum aufschließen? Wir brauchen nur eine Terminbestätigung.",
+    "status": "neu",
+    "prioritaet": null,
+    "prioritaet_quelle": null,
+    "zugewiesen_an": null,
+    "erstellt_am": "2026-11-19T10:20:00",
+    "statushistorie": [
+      {
+        "status": "neu",
+        "seit": "2026-11-19T10:20:00"
+      }
+    ],
+    "ki": null,
+    "ursache": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1033,
+    "kunde": "praxis",
+    "titel": "Kann die angebliche Speicherwarnung gelöscht werden?",
+    "beschreibung": "Die Anmeldung hat eine E-Mail mit einer Speicherwarnung bekommen. In Outlook selbst sehen wir noch 3 GB freien Platz. Wir haben nichts angeklickt. Könnt ihr die Mail prüfen, bevor wir sie löschen?",
+    "status": "neu",
+    "prioritaet": null,
+    "prioritaet_quelle": null,
+    "zugewiesen_an": null,
+    "erstellt_am": "2026-11-19T10:44:00",
+    "statushistorie": [
+      {
+        "status": "neu",
+        "seit": "2026-11-19T10:44:00"
+      }
+    ],
+    "ki": null,
+    "ursache": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1034,
+    "kunde": "logistik",
+    "titel": "Warenausgang: Buchung bricht an allen vier Versandplätzen ab",
+    "beschreibung": "Seit 10:40 Uhr meldet die Warenwirtschaft beim Abschluss jedes Versandauftrags „Buchung fehlgeschlagen“. Alle vier Plätze sind betroffen. Die Aufträge bleiben offen und kein Lkw kann freigegeben werden. Auch mit einem anderen Konto tritt derselbe Fehler auf.",
+    "status": "neu",
+    "prioritaet": null,
+    "prioritaet_quelle": null,
+    "zugewiesen_an": null,
+    "erstellt_am": "2026-11-19T10:52:00",
+    "statushistorie": [
+      {
+        "status": "neu",
+        "seit": "2026-11-19T10:52:00"
+      }
+    ],
+    "ki": null,
+    "ursache": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
     "id": 1035,
     "kunde": "autohaus",
     "erstellt_am": "2026-11-19T10:56:00",

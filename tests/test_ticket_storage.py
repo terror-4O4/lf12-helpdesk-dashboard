@@ -174,3 +174,25 @@ class TicketSpeicherTest(unittest.TestCase):
             self.assertEqual(next(t for t in bestand if t["id"] == neu[0]), aenderung)
             self.assertEqual(client.post("/api/testdaten/zuruecksetzen").json()["tickets"], 2)
             self.assertEqual(client.post("/api/testdaten/ergaenzen").json(), {"hinzugefuegt": []})
+
+    def test_fruehere_vollvorlage_wird_einmalig_mit_verlauf_uebernommen(self):
+        original = Path(__file__).resolve().parents[1] / "data" / "testdaten"
+        grundbestand = app.lade_json(original / "tickets.json")
+        sollwerte = app.lade_json(original / "erwartet.json")
+        uebungen = app.lade_json(original / "uebungstickets.json")
+        self.assertEqual([t["id"] for t in grundbestand], list(range(1001, 1031)))
+        self.assertEqual([t["id"] for t in sollwerte], [t["id"] for t in grundbestand])
+        self.assertEqual([t["id"] for t in uebungen], list(range(1031, 1041)))
+        (app.DATEN / "uebungstickets.json").write_text(json.dumps(uebungen), encoding="utf-8")
+        arbeitskopie = list(grundbestand)
+        self.assertEqual(app.ergaenze_uebungstickets(arbeitskopie), list(range(1031, 1041)))
+        fall = next(t for t in arbeitskopie if t["id"] == 1031)
+        for feld in ("status", "prioritaet", "prioritaet_quelle", "zugewiesen_an", "statushistorie"):
+            self.assertEqual(fall[feld], uebungen[0][feld])
+        alter_fall = dict(uebungen[0], prioritaet="hoch", status="in_bearbeitung")
+        alte_arbeitskopie = [*grundbestand, alter_fall, *uebungen[1:4]]
+        self.assertEqual(app.ergaenze_uebungstickets(alte_arbeitskopie), list(range(1035, 1041)))
+        self.assertEqual(app.ergaenze_uebungstickets(alte_arbeitskopie), [])
+        self.assertEqual(len(alte_arbeitskopie), 40)
+        self.assertEqual(alter_fall["prioritaet"], "hoch")
+        self.assertEqual(alter_fall["status"], "in_bearbeitung")

@@ -5,7 +5,7 @@ import { api } from "../api.js";
 import { MAX_FRAGE, PRIORITAET, STATUS } from "../config.js";
 import {
   alter, dauer, dokuQuellen, formatZeit, fuege, h, istImSpamfilter, jetzt, kiMarke, leeren, markdown, prioBadge, slaAmpel,
-  BEWERTUNGSQUELLEN, spamBadge, statusBadge, ticketNr, ticketPrioBadge, wartezeit,
+  spamBadge, statusBadge, ticketNr, ticketPrioBadge, wartezeit,
 } from "../hilfen.js";
 import {
   anzeigeName, kundeName, meldung, mitarbeiterListe, neuZeichnen, ticketErsetzen, zustand,
@@ -38,11 +38,16 @@ export function zeigeTicket(ziel, { teile }) {
         spamBadge(t))),
     h("div", { class: "raster-detail" },
       h("div", { class: "spalte" }, beschreibung(t, bezugszeit), imFilter ? null : bearbeiten(t), verlauf(t, bezugszeit)),
-      imFilter ? h("section", { class: "karte spam-pruefkarte" },
-        h("div", { class: "karte-kopf" }, h("h3", {}, "Spam / Werbung")),
-        h("p", { class: "begruendung" }, t.spam_entscheidung === "spam" ? "Vom Support als Spam bestätigt." : t.spampruefung.begruendung),
-        spamAktionen(t))
-        : h("div", { class: "spalte" }, kiBlock(t), kiFaelle(t), kundeKarte(t))),
+      h("div", { class: "spalte" },
+        imFilter ? h("section", { class: "karte" },
+          h("div", { class: "karte-kopf" }, h("h3", {}, "Spam / Werbung")),
+          t.spam_entscheidung === "spam" ? h("p", {}, "Vom Support als Spam bestätigt.") : null,
+          spamAktionen(t)) : null,
+        kiBlock(t),
+        t.regelhinweise?.length ? h("section", { class: "karte" },
+          h("h3", {}, "Regelhinweise"),
+          h("ul", {}, t.regelhinweise.map(text => h("li", {}, text)))) : null,
+        imFilter ? null : [kiFaelle(t), kundeKarte(t)])),
   );
   return `Ticket ${ticketNr(t.id)}`;
 }
@@ -61,7 +66,7 @@ function beschreibung(t, bezugszeit) {
       : null,
     t.spam_entscheidung === "kein_spam" ? h("p", { class: "feld-hinweis" },
       t.status === "geschlossen" ? "Vom Support freigegeben." :
-        "Als Supportticket freigegeben. „Eingang erneut prüfen“ hebt die Freigabe auf und wendet den Filter wieder an.") : null,
+        "Als Supportticket freigegeben. Die Freigabe hat Vorrang vor dem Spam-Vorschlag.") : null,
     t.status !== "geschlossen" && !istImSpamfilter(t)
       ? h("details", { class: "nachrichtenaktionen", open: t.spam_entscheidung === "kein_spam" },
         h("summary", {}, "Nachrichtenaktionen"), spamAktionen(t)) : null);
@@ -173,11 +178,15 @@ function verlauf(t, bezugszeit) {
 
 // --- Rechts: KI -----------------------------------------------------------
 function kiBlock(t) {
-  const karte = h("section", { class: "karte karte-ki", "aria-labelledby": "t-ki" },
-    h("div", { class: "karte-kopf" }, h("h3", { id: "t-ki" }, "Ticketbewertung")));
-
+  const demo = t.ki?.modus === "mock";
+  const karte = h("section", { class: demo ? "karte" : "karte karte-ki", "aria-labelledby": "t-ki" },
+    h("div", { class: "karte-kopf" }, h("h3", { id: "t-ki" },
+      demo ? "Demo-Bewertung (ohne Sprachmodell)" : kiMarke("KI-Einschätzung"))));
   const bewertet = Boolean(t.ki?.prioritaet);
-  const knopf = h("button", { class: "knopf knopf-ki" }, bewertet ? "Neu bewerten" : "✦ Jetzt bewerten lassen");
+  const knopf = h("button", { class: "knopf knopf-ki" }, bewertet ? "✦ Neu bewerten" : "✦ Jetzt bewerten lassen");
+  const chat = istImSpamfilter(t) ? null : h("button", {
+    class: "knopf knopf-ki", onclick: () => oeffneAssistent(t),
+  }, "✦ KI zu diesem Ticket fragen");
   knopf.addEventListener("click", async () => {
     knopf.disabled = true;
     knopf.textContent = "KI bewertet …";
@@ -195,28 +204,24 @@ function kiBlock(t) {
 
   if (!bewertet) {
     karte.append(h("p", { class: "leer" }, "Die KI hat dieses Ticket noch nicht bewertet."),
-      h("div", { class: "knopfreihe" }, knopf,
-        h("button", { class: "knopf", onclick: () => oeffneAssistent(t) }, "KI zu diesem Ticket fragen")));
+      h("div", { class: "knopfreihe" }, t.spam_entscheidung === "spam" ? null : knopf, chat));
     return karte;
   }
 
   const ki = t.ki;
-  const quellen = ki.bewertungsquellen || {};
-  const quelle = (feld) => h("small", { class: "gedimmt" }, BEWERTUNGSQUELLEN[quellen[feld]] || "Bisherige Einschätzung");
   const abweichung = t.prioritaet_quelle === "manuell" && t.prioritaet !== ki.prioritaet;
 
   fuege(karte,
     h("dl", { class: "werte" },
-      h("dt", {}, "Priorität"), h("dd", {}, prioBadge(ki.prioritaet, quellen.prioritaet), " · ", quelle("prioritaet")),
-      h("dt", {}, "Kategorie"), h("dd", {}, ki.kategorie || "–", " · ", quelle("kategorie"))),
+      h("dt", {}, "Priorität"), h("dd", {}, prioBadge(ki.prioritaet, demo ? "mock" : "ki")),
+      h("dt", {}, "Kategorie"), h("dd", {}, ki.kategorie || "–"),
+      h("dt", {}, "Spam"), h("dd", {}, ki.spam === true ? "Ja" : ki.spam === false ? "Nein" : "–")),
     abweichung
       ? h("p", { class: "feld-hinweis" },
-        `Von Hand auf „${PRIORITAET[t.prioritaet]}“ gesetzt. Das hat Vorrang vor dem KI-Vorschlag.`)
+        `Der Support hat die gültige Priorität auf „${PRIORITAET[t.prioritaet]}“ gesetzt.`)
       : null,
     ki.begruendung ? h("p", { class: "begruendung" }, h("strong", {}, "Begründung: "), ki.begruendung) : null,
-    h("div", { class: "knopfreihe" },
-      knopf,
-      h("button", { class: "knopf", onclick: () => oeffneAssistent(t) }, "KI zu diesem Ticket fragen")),
+    h("div", { class: "knopfreihe" }, t.spam_entscheidung === "spam" ? null : knopf, chat),
     h("p", { class: "klein gedimmt" }, "KI-Vorschläge können falsch sein. Entscheidung immer durch einen Mitarbeiter."),
   );
   return karte;
@@ -226,10 +231,12 @@ function kiBlock(t) {
 function kiFaelle(t) {
   const ki = t.ki || {};
   const gesucht = Boolean(ki.loesungsvorschlag || ki.treffer?.length || ki.ursachen?.length);
-  const karte = h("section", { class: "karte karte-ki", "aria-labelledby": "t-faelle" },
-    h("div", { class: "karte-kopf" }, h("h3", { id: "t-faelle" }, kiMarke("Ähnliche gelöste Fälle"))));
+  const modell = ki.loesungsmodus === "llama";
+  const titeltext = "Ähnliche gelöste Fälle";
+  const karte = h("section", { class: modell ? "karte karte-ki" : "karte", "aria-labelledby": "t-faelle" },
+    h("div", { class: "karte-kopf" }, h("h3", { id: "t-faelle" }, modell ? kiMarke(titeltext) : titeltext)));
 
-  const knopf = h("button", { class: "knopf knopf-ki" }, gesucht ? "Neu suchen" : "✦ Ähnliche Fälle suchen");
+  const knopf = h("button", { class: "knopf knopf-ki" }, gesucht ? "✦ Neu suchen" : "✦ Ähnliche Fälle suchen");
   knopf.addEventListener("click", async () => {
     knopf.disabled = true;
     knopf.textContent = "Suche und KI laufen …";
@@ -255,6 +262,12 @@ function kiFaelle(t) {
     return karte;
   }
 
+  if (ki.loesungsmodus === "mock") {
+    karte.append(h("p", { class: "feld-hinweis" }, "Demo-Auswahl aus gespeicherten Fällen."));
+  } else if (!ki.loesungsmodus) {
+    karte.append(h("p", { class: "feld-hinweis" }, "Für diesen gespeicherten Vorschlag ist die Herkunft nicht hinterlegt."));
+  }
+
   const aehnlichkeit = Object.fromEntries((ki.treffer || []).map((x) => [x.id, x.aehnlichkeit]));
   const titel = (id) => zustand.tickets.find((x) => x.id === id)?.titel || "";
   const verweis = (id) => h("a", { href: `#/ticket/${id}`, title: titel(id) },
@@ -272,7 +285,7 @@ function kiFaelle(t) {
 
   const weitere = (ki.treffer || []).filter((x) => !(ki.aehnliche_tickets || []).includes(x.id));
   if (weitere.length) {
-    karte.append(h("p", { class: "klein gedimmt" }, "Auch gefunden, aber von der KI nicht verwendet: ",
+    karte.append(h("p", { class: "klein gedimmt" }, "Weitere Treffer: ",
       weitere.map((x, i) => [i ? ", " : "", verweis(x.id)])));
   }
   karte.append(
@@ -339,9 +352,9 @@ function kundeKarte(t) {
       h("dt", {}, "Ansprechpartner"), h("dd", {}, kunde.ansprechpartner)),
     h("p", { class: "klein gedimmt" }, "🔒 Zugangsdaten stehen nie in der Doku, nur der Verweis auf den Passwortmanager."),
     h("div", { class: "knopfreihe" }, knopf,
-      h("button", { class: "knopf", type: "button",
+      h("button", { class: "knopf knopf-ki", type: "button",
         onclick: () => oeffneAssistent(t, "Welche Angaben zur Kundenumgebung helfen mir bei diesem Ticket? Was prüfe ich zuerst?"),
-      }, "KI zur Kundenumgebung fragen")),
+      }, "✦ KI zur Kundenumgebung fragen")),
     doku,
     h("div", { class: "doku-fundstellen" }, h("h4", {}, "Fundstellen zum Ticket"), fundstellen));
   ladeFundstellen();

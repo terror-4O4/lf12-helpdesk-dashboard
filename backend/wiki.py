@@ -63,6 +63,11 @@ def _finde(meldung: str, frage: str, mit_diagnose: bool) -> list[dict]:
             quelle["links"].extend(pruefung["quellen"])
             if "dialog" in pruefung:
                 quelle["dialog"] = pruefung["dialog"]
+        if lizenz := artikel.get("lizenz_begriffsnotiz"):
+            quelle["links"].append({
+                "titel": "Bearbeitete Begriffsnotiz nach Wikipedia · CC BY-SA 4.0",
+                "url": lizenz,
+            })
         ergebnis.append(quelle)
     return ergebnis
 

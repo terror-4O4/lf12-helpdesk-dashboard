@@ -1,9 +1,9 @@
 """Misst, wie gut die KI die Testtickets bewertet (Trefferquote, Dauer).
 
 Lässt alle Tickets aus data/testdaten/tickets.json von der KI analysieren und
-vergleicht die Modellantwort mit data/testdaten/erwartet.json. Der Promptvergleich
-misst die Modellklassen vor Eingangsfilter und Ticketregeln. Den gesamten Ablauf
-im Dashboard prüft auswertung_eingang.py.
+vergleicht die Modellantwort mit data/testdaten/erwartet.json. Die reguläre Messung
+nutzt dieselbe Bewertung wie das Dashboard. Mit --vergleich kommt für dieselben
+zurückgehaltenen Tickets ein zweiter, einfacher Prompt hinzu.
 
 Läuft der llama-server im Router-Modus (Dienst auf dem Mac Pro), werden
 nacheinander alle Modelle getestet, die der Server anbietet. Das Modell aus
@@ -182,9 +182,8 @@ def als_markdown(laeufe: list, meta: dict) -> str:
               "Die Werte sind kein Nachweis für Modellgüte oder Modellleistung.", ""]
     else:
         z += [f"- llama-server: {meta['llama_url']}", ""]
-        z += ["Die Werte messen die Modellausgabe vor Anwendung der Ticketregeln. "
-              "Die Spam-Spalte bewertet die Modellantwort im Versuch. "
-              "Das Dashboard verwendet einen separaten Eingangsfilter.", ""]
+        z += ["Die Auswertung übernimmt Priorität, Spam und Kategorie aus derselben Modellfunktion "
+              "wie das Dashboard. Der Prompt „angepasst“ entspricht dem Projektprompt v2.", ""]
     z += ["| Modell | Prompt | Priorität | Spam | Kategorie | Gesamt | Komplett | Spam übersehen | Fehlalarme |",
           "|---|---|---|---|---|---|---|---|---|"]
     for lauf in laeufe:

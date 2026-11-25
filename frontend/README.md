@@ -18,16 +18,16 @@ Zum Entwickeln reicht `KI_MOCK=true` in der `.env`, dann ist kein KI-Server nöt
 | Übersicht | `#/uebersicht` | Kennzahlen, Handlungsbedarf (Neu und Antwort erhalten, dringendste zuerst), eigene Tickets, persönliche To-dos. Die Übersicht aktualisiert sich alle 30 Sekunden, wenn keine Eingabe aktiv ist. |
 | Tickets | `#/tickets` | Alle Tickets mit Ticketalter, Wartezeit, Suche und Filtern. Filter stehen in der Adresse, z. B. `#/tickets?status=neu&kunde=bau` |
 | Ticket | `#/ticket/1002` | Nachricht, Bearbeitung, Verlauf, KI-Einschätzung, ähnliche Fälle und automatisch gefundene Abschnitte der Kundendoku |
-| Spam / Werbung | `#/spam` | Zeigt aktuelle Verdachtsfälle und ihren Prüfgrund. Manuell freigegebene Nachrichten stehen separat unter „Vom Support freigegeben“. Im offenen Ticket setzt „Eingang erneut prüfen“ die Freigabe zurück und wendet den Filter erneut an. |
-| Neues Ticket | Knopf oben rechts | Nachricht eingeben und automatisch auf Spam prüfen. Freie Supporttickets lassen sich beim Anlegen auf Wunsch von der KI bewerten. |
+| Spam / Werbung | `#/spam` | Zeigt offene Spam-Verdachte aus der Ticketbewertung und ihre Begründung. Freigaben des Supports haben Vorrang und können im Ticket aufgehoben werden. |
+| Neues Ticket | Knopf oben rechts | Die optionale KI-Bewertung prüft Spam, Kategorie und Priorität in einem Aufruf. Für Supporttickets folgt die Suche nach ähnlichen Fällen. |
 | KI-Assistent | Seitenleiste oder „KI zu diesem Ticket fragen“ | Nutzt am offenen Supportticket die Nachricht, passende Kundeninformationen, frühere Lösungen und lokales IT-Wissen. Außerhalb des Tickets beantwortet er allgemeine IT-Fragen. Quellen lassen sich unter der Antwort aufklappen. |
 
-Der Spam-Zähler und die Warteschlange berücksichtigen offene Verdachtsfälle bereits vor einer KI-Bewertung. Ein offenes Supportticket lässt sich in der Ticketansicht unter **Nachrichtenaktionen** auch manuell als Spam markieren und schließen. Ein als Spam bestätigtes Ticket kann der Support dort als neues Supportticket wieder öffnen. In der Ticketliste zeigt **Alle inkl. geschlossen** auch die ausgesonderten Nachrichten.
+Der Spam-Zähler zählt offene Vorschläge, über die der Support noch entscheiden muss. Regelhinweise erscheinen separat im Ticket. Ein offenes Supportticket lässt sich unter **Nachrichtenaktionen** manuell als Spam markieren und schließen. Über **Alle inkl. geschlossen** kann der Support ein bestätigtes Ticket aufrufen und wieder öffnen.
 
 ## Gestaltung
 
 - Neutral, Farbe nur für Status, Priorität, SLA-Ampel und KI-Inhalte
-- In der Liste kennzeichnet „· KI“ eine vom lokalen Sprachmodell vorgeschlagene Priorität. Im Ticket steht die Herkunft im Klartext neben Priorität und Kategorie. Von Hand gesetzte Prioritäten haben Vorrang.
+- KI-Vorschläge tragen ein violettes ✦, etwa an einer Modellpriorität oder beim Badge „✦ Spam-Verdacht“. Von Hand gesetzte Prioritäten haben Vorrang. Im Chat zeigt jede Antwort ihre Herkunft, beispielsweise „Prüfschritt vom lokalen Modell“ oder „Aus der Kundendokumentation“.
 - Hell- und Dunkelmodus folgen der Systemeinstellung
 
 ## SLA-Ampel
@@ -36,9 +36,9 @@ Einstellungen in [`js/config.js`](js/config.js).
 
 | Priorität | Reaktionszeit |
 |---|---|
-| Sehr dringend | 30 Min. |
+| Sehr hoch | 30 Min. |
 | Hoch | 2 Std. |
-| Normal | 8 Std. |
+| Mittel | 8 Std. |
 | Niedrig | 24 Std. |
 | noch nicht bewertet | 2 Std. |
 

@@ -96,14 +96,16 @@ export function alter(text, bezugszeit = jetzt()) {
 export const istOffen = (t) => t.status !== "geschlossen";
 
 export const istImSpamfilter = (t) =>
-  t.spam_entscheidung === "spam" || (!t.spam_entscheidung && t.spampruefung?.verdaechtig === true);
+  t.spam_entscheidung === "spam" || (!t.spam_entscheidung && t.ki?.spam === true);
 
 export const spamOffen = (t) => istOffen(t) && !t.spam_entscheidung && istImSpamfilter(t);
 
 export function spamBadge(t) {
-  const werbung = t.spampruefung?.art === "werbung";
-  if (t.spam_entscheidung === "spam") return h("span", { class: "badge" }, werbung ? "Werbung bestätigt" : "Spam bestätigt");
-  if (istImSpamfilter(t)) return h("span", { class: "badge spam-verdacht" }, werbung ? "Werbeverdacht" : "Spam-Verdacht");
+  if (t.spam_entscheidung === "spam") return h("span", { class: "badge" }, "Spam bestätigt");
+  if (istImSpamfilter(t)) {
+    return t.ki.modus === "mock" ? h("span", { class: "badge" }, "Demo-Spamverdacht")
+      : h("span", { class: "badge badge-ki" }, "✦ Spam-Verdacht");
+  }
   return null;
 }
 
@@ -165,24 +167,20 @@ export function statusBadge(status) {
   return h("span", { class: `badge status-${status}` }, STATUS[status] || status);
 }
 
-export const BEWERTUNGSQUELLEN = {
-  regel: "Ticketregel", modell: "Sprachmodell", mock: "Demo-Bewertung", manuell: "Von Hand gesetzt",
-};
-
 export function ticketPrioBadge(t) {
-  const quelle = t.prioritaet_quelle === "ki" ? t.ki?.bewertungsquellen?.prioritaet : t.prioritaet_quelle;
-  return prioBadge(t.prioritaet, quelle, true);
+  const quelle = t.prioritaet_quelle === "ki" && t.ki?.modus === "mock" ? "mock" : t.prioritaet_quelle;
+  return prioBadge(t.prioritaet, quelle);
 }
 
-export function prioBadge(prio, quelle, mitModellhinweis = false) {
+export function prioBadge(prio, quelle) {
   if (!prio) return h("span", { class: "badge prio-leer", title: "Noch nicht bewertet" }, "offen");
-  const herkunft = quelle === "modell" ? "Vom lokalen Sprachmodell vorgeschlagene Priorität"
-    : BEWERTUNGSQUELLEN[quelle] || "Herkunft der bisherigen Priorität unbekannt";
+  const herkunft = { ki: "Vom lokalen Sprachmodell vorgeschlagene Priorität", mock: "Demo-Bewertung ohne Sprachmodell",
+    manuell: "Von Hand gesetzt" };
   return h(
     "span",
-    { class: `badge prio-${prio}`, title: herkunft },
+    { class: `badge prio-${prio}`, title: herkunft[quelle] || "Herkunft der Priorität unbekannt" },
     PRIORITAET[prio] || prio,
-    mitModellhinweis && quelle === "modell" ? " · KI" : null,
+    quelle === "ki" ? h("span", { class: "ki-zeichen", role: "img", "aria-label": "KI-Vorschlag" }, " ✦") : null,
   );
 }
 

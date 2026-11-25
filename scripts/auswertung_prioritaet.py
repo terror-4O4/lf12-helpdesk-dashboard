@@ -31,8 +31,10 @@ def pruefe_ticket(client, fall):
     if daten["modus"] != "llama" or not daten["gespeichert"]:
         raise ValueError("Die API lieferte keine gespeicherte Bewertung im echten Modellbetrieb.")
     ki = gespeichert["ki"]
+    # --projektstand kann auch die frühere, gemischte Bewertung messen.
+    quelle = ki.get("modus") or (ki.get("bewertungsquellen") or {}).get("prioritaet") or daten["modus"]
     return {**ergebnis, "ist": gespeichert["prioritaet"],
-            "quelle": ki["bewertungsquellen"]["prioritaet"], "kategorie": ki["kategorie"],
+            "quelle": quelle, "kategorie": ki["kategorie"],
             "begruendung": ki["begruendung"], "dauer_ms": daten["dauer_ms"], "tokens": daten["tokens"]}
 
 

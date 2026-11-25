@@ -6,7 +6,7 @@ Skripte für Windows als `.ps1`, für macOS/Linux als `.sh`.
 |---|---|---|
 | `start-backend.sh` / `.ps1` | Backend starten | Entwickler-Rechner |
 | `auswertung.py` | Ticketpriorisierung und Laufzeit messen, Modell- oder Promptvergleich | Rechner mit lokalem Chat-Dienst |
-| `auswertung_eingang.py` | Spam-Warteschlange, Freigabe, Kategorie und Priorität über die laufende Anwendung prüfen | Rechner mit lokalem Dashboard |
+| `auswertung_eingang.py` | Regelhinweise und Treffer bei Spam, Kategorie und Priorität über die laufende Anwendung messen | Rechner mit lokalem Dashboard |
 | `auswertung_prioritaet.py` | Gespeicherte Dashboard-Prioritäten für neue Tickets mit vorab vergebenen Sollwerten prüfen | Rechner mit lokalem Chat-Dienst |
 | `auswertung_rag.py` | Ähnliche Tickets mit und ohne Historie prüfen, Suchschwelle bestimmen | Rechner mit lokalem Chat- und Embedding-Dienst oder Mock |
 | `auswertung_doku.py` | Fundstellen, fehlende Treffer und Ticketbezug der Kundendoku-Suche prüfen | Rechner mit laufendem Backend |
@@ -15,7 +15,7 @@ Skripte für Windows als `.ps1`, für macOS/Linux als `.sh`.
 
 ## auswertung.py
 
-Der Standardlauf vergleicht KI-Bewertungen mit `data/testdaten/erwartet.json`. Für die Abnahme lässt `--vergleich` den einfachen und angepassten Prompt auf denselben 20 neuen Prüftickets aus `data/testdaten/tickets_promptvergleich.json` laufen. Pro Priorität gibt es fünf Fälle.
+Der Standardlauf vergleicht KI-Bewertungen mit `data/testdaten/erwartet.json`. Für die Abnahme lässt `--vergleich` den einfachen Vergleichsprompt und den unveränderten Projektprompt v2 auf denselben 20 neuen Prüftickets aus `data/testdaten/tickets_promptvergleich.json` laufen. Pro Priorität gibt es fünf Fälle.
 
 ```bash
 source .venv/bin/activate
@@ -25,13 +25,13 @@ python scripts/auswertung.py --vergleich --mock # Auswertungsablauf mit Platzhal
 ```
 
 - Für den echten Lauf `LLAMA_URL`, gegebenenfalls `LLAMA_API_KEY` und im Router-Modus das verwendete Modell konfigurieren.
-- Die Werte stammen aus den Modellantworten im jeweiligen Promptversuch. Der Eingangsfilter und die Ticketregeln im Dashboard werden getrennt geprüft.
+- Der Lauf mit Prompt v2 nutzt dieselbe Modellbewertung wie das Dashboard. Die regelbasierten Hinweise gehen in keine Modellquote ein.
 - Für den Modellvergleich lassen sich Modelle mit `-m` auswählen. Der Promptvergleich nutzt standardmäßig `LLAMA_MODEL` oder das Standardmodell des Servers. Je Vergleichspaar bleibt das Modell gleich.
 - Die Promptberichte `data/laufzeit/auswertung/promptvergleich-*.md` und `*.json` enthalten Trefferquoten, Fehlzuordnungen, Prompt-Versionen und Laufzeiten. Bei echtem Modellbetrieb wird die erste Ausgabe im Stream des Chat-Diensts gemessen. Der Mock prüft den Auswertungsablauf mit Platzhaltern.
 
 ## auswertung_eingang.py
 
-Bei laufendem Dashboard prüft `python scripts/auswertung_eingang.py` die gesamte Verarbeitung der Demotickets über HTTP. Das Skript testet die Sperre für Verdachtsfälle und ruft für Supporttickets die Bewertung mit `speichern=false` auf. Es meldet Spamtreffer, durchgelassene Supportmeldungen sowie korrekte Kategorien und Prioritäten. Manuell entschiedene, fehlende oder geänderte Beispielfälle werden als ausgelassen ausgewiesen. Der Einzelbericht liegt unter `data/laufzeit/auswertung/eingangspruefung-*.json`.
+Bei laufendem Dashboard prüft `python scripts/auswertung_eingang.py` die gesamte Verarbeitung der Demotickets über HTTP. Das Skript ruft die Bewertung mit `speichern=false` auf und vergleicht den Modellbefund mit den ursprünglichen Sollwerten. Es meldet Spamtreffer, durchgelassene Supportmeldungen sowie korrekte Kategorien und Prioritäten. Fehlende Fälle und Fälle mit abweichenden Eingangsdaten werden als ausgelassen ausgewiesen. Der Einzelbericht liegt unter `data/laufzeit/auswertung/eingangspruefung-*.json`.
 
 ## auswertung_prioritaet.py
 
@@ -39,7 +39,7 @@ Bei laufendem Dashboard prüft `python scripts/auswertung_eingang.py` die gesamt
 python scripts/auswertung_prioritaet.py --faelle data/testdaten/prioritaet_blindtest.json --bericht data/laufzeit/auswertung/prioritaeten.json
 ```
 
-Das Skript legt die Supportfälle über die Dashboard-API in einer isolierten Arbeitskopie an und liest die gespeicherte Priorität nach der KI-Analyse wieder aus. Die Sollwerte bleiben außerhalb der Anwendung. Als Spam gekennzeichnete Testfälle werden ausgenommen. Ein regulärer Fall, den der Eingang blockiert, zählt als verfehlte Priorität. Der Bericht enthält Treffer pro Stufe, zu hohe und zu niedrige Einstufungen, die Herkunft des Vorschlags und die mediane Antwortzeit erfolgreicher Analysen. Für einen Vorher-Nachher-Vergleich zweimal denselben Datensatz und Modellserver verwenden. `--projektstand` wählt einen lokalen Checkout, `--bericht` jeweils eine neue Ergebnisdatei.
+Das Skript legt die Supportfälle über die Dashboard-API in einer isolierten Arbeitskopie an und liest die gespeicherte Priorität nach der KI-Analyse wieder aus. Die Sollwerte bleiben außerhalb der Anwendung. Als Spam gekennzeichnete Testfälle werden ausgenommen. Ein Auswertungsfehler wird im Bericht als verfehlter Fall erfasst. Der Bericht enthält Treffer pro Stufe, zu hohe und zu niedrige Einstufungen, die Herkunft des Vorschlags und die mediane Antwortzeit erfolgreicher Analysen. Für einen Vorher-Nachher-Vergleich zweimal denselben Datensatz und Modellserver verwenden. `--projektstand` wählt einen lokalen Checkout, `--bericht` jeweils eine neue Ergebnisdatei.
 
 ## auswertung_ticketberatung.py
 

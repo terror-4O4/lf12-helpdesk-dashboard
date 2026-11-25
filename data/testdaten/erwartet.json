@@ -280,41 +280,5 @@
     "hinweis": "Planbarer Auftrag",
     "aehnlich": [],
     "aehnlich_hinweis": "Kein passender gelöster Fall"
-  },
-  {
-    "id": 1031,
-    "prioritaet": "mittel",
-    "spam": false,
-    "kategorie": "Hardware",
-    "hinweis": "Ein Arbeitsplatz ist eingeschränkt. Der Nachbarplatz ermöglicht den Import.",
-    "aehnlich": null,
-    "aehnlich_hinweis": null
-  },
-  {
-    "id": 1032,
-    "prioritaet": "niedrig",
-    "spam": false,
-    "kategorie": "Sonstiges",
-    "hinweis": "Externer Dienstleister ohne Kundenakte fragt nach einem vereinbarten Termin.",
-    "aehnlich": null,
-    "aehnlich_hinweis": null
-  },
-  {
-    "id": 1033,
-    "prioritaet": "niedrig",
-    "spam": false,
-    "kategorie": "E-Mail",
-    "hinweis": "Die Praxis meldet eine erhaltene Nachricht zur Prüfung. Der Mailbetrieb läuft weiter.",
-    "aehnlich": null,
-    "aehnlich_hinweis": null
-  },
-  {
-    "id": 1034,
-    "prioritaet": "sehr_hoch",
-    "spam": false,
-    "kategorie": "Software",
-    "hinweis": "Der Softwarefehler blockiert den gesamten Versand. Ein Kontowechsel hilft keinem der vier Plätze.",
-    "aehnlich": null,
-    "aehnlich_hinweis": null
   }
 ]

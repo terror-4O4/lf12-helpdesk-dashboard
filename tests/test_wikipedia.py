@@ -80,7 +80,8 @@ class WikipediaTest(unittest.TestCase):
     def test_begriffsauskunft_und_pruefschritt_bleiben_unterscheidbar(self):
         quelle, = self.frage("Was ist ein Datenbankserver?")["quellen"]
         self.assertNotIn("pruefschritte", quelle)
-        self.assertEqual(len(quelle["links"]), 1)
+        self.assertIn("oldid=", quelle["links"][0]["url"])
+        self.assertEqual(quelle["links"][-1]["url"], "https://creativecommons.org/licenses/by-sa/4.0/deed.de")
 
     def test_dns_und_mfa_in_alltagssprache_ohne_kundenzustand(self):
         meldungen = [
@@ -109,6 +110,7 @@ class WikipediaTest(unittest.TestCase):
         with patch("socket.socket.connect", side_effect=AssertionError("Netzwerkzugriff")):
             quelle, = wiki.hintergrund("Das Kartenlesegerät erkennt keine Versichertenkarten mehr.")
         self.assertEqual(quelle["quelle"], "gematik · eHealth-Kartenterminal")
+        self.assertFalse(any("creativecommons" in link["url"] for link in quelle["links"]))
         self.assertIn("Display", quelle["pruefschritte"][0])
         self.assertIn("Praxissoftware", quelle["dialog"]["konkret"])
         self.assertEqual(urlsplit(quelle["links"][0]["url"]).hostname, "fachportal.gematik.de")

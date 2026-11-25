@@ -37,100 +37,22 @@ python scripts/auswertung_rag.py
 | Fallsuche auf den Abnahmefällen im Mock-Modus | 3/6 Fälle mit erwarteter Referenz (50 %) und 6/6 Fälle ohne Referenz (100 %). Der neu geschlossene Fall erschien bei der Wachstumskontrolle. |
 | Dashboard-Tests | 6/6 Tests bestanden, darunter SLA-Grenzwerte, Wartezeit und Reihenfolge in der Übersicht. |
 
-Der Mock bestätigt die Bedienung und die Auswertungslogik. Die Fallsuche verwendet darin einen Wortvergleich. Die Qualitäts- und Leistungswerte der echten Modelle auf dem Mac Pro stehen aus.
+Der Mock bestätigt die Bedienung und die Auswertungslogik. Die Fallsuche verwendet darin einen Wortvergleich. Die Abnahme dieser Überarbeitung auf dem Mac Pro steht aus.
 
-## Modellprobelauf unter Windows
+## Entwicklungsnotizen vom Windows-Laptop (23.–24.11.2026)
 
-Am 23.11.2026 lief llama.cpp Build b12651 auf einem Intel Core i7-1165G7 mit vier CPU-Threads pro Dienst. Für den Chat lief Qwen2.5 0.5B Instruct in Q4_K_M und für die Fallsuche EmbeddingGemma 300M in Q4_0. Die Messung prüft den technischen Ablauf und die Eignung dieser Entwicklungskonfiguration. Die Abnahme auf dem vorgesehenen Mac Pro erfolgt separat. [llama.cpp](https://github.com/ggml-org/llama.cpp/releases/tag/b12651) · [Chat-Modell](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF) · [Embedding-Modell](https://huggingface.co/ggml-org/embeddinggemma-300M-qat-q4_0-GGUF)
+Diese früheren Versuche mit Qwen dienten der Fehlersuche auf dem Schullaptop. Sie beziehen sich auf frühere Code- und Promptstände. In einzelnen Läufen haben Regeln Modellwerte überschrieben. Für T14 und T15 sowie die weitere Abnahme gilt Gemma 4 26B-A4B auf dem Mac Pro.
 
-| Prüfung | Beobachtung unter Windows |
+| Frühe Beobachtung | Ergebnis auf dem Schullaptop |
 |---|---|
-| Priorisierung mit einfachem Prompt | 6/20 richtige Prioritäten (30 %), im Mittel 0,945 s bis zum ersten Token, 3,370 s Antwortzeit, 39,2 Tokens/s |
-| Priorisierung mit angepasstem Prompt | 5/20 richtige Prioritäten (25 %), im Mittel 4,587 s bis zum ersten Token, 6,793 s Antwortzeit, 35,4 Tokens/s |
-| Kundendoku nach Überarbeitung der Belegauswahl | 9/11 richtige Fundstellen (82 %), 4/4 korrekte Meldungen ohne Treffer und 2/2 automatische Ticketabfragen. Im ersten Lauf waren 5/11 Fundstellen richtig. Beide Läufe verwendeten dieselben Fälle. |
-| Ähnliche Fälle nach Überarbeitung der Quellenauswahl | 6/6 passende Referenzen in den ersten drei Vorschlägen (100 %), 5/6 Fälle ohne Referenz korrekt als fehlender Treffer behandelt (83 %). Die Wachstumskontrolle bestand. |
-
-Das kleine Chat-Modell bleibt bei beiden Priorisierungsvarianten unter dem Ziel von 80 %. Der längere Prompt erhöhte in dieser Konfiguration die Zeit bis zum ersten Token. Für den Mac Pro sollte die Modellauswahl anhand der Auswertung auf Entwicklungsfällen erfolgen. Die Abnahmefälle dienen anschließend der Messung des gewählten Stands.
-
-Bei der ersten Fallauswertung lehnte die KI passende historische Belege ab. Das Backend übernimmt nun die gespeicherten Ursachen und Lösungswege der vom Modell gewählten Tickets. Für den Wiederholungslauf ergab die Kalibrierung auf den Entwicklungsfällen eine Ähnlichkeitsschwelle von 0,76. Die zwölf Abnahmefälle blieben beim Wiederholungslauf gleich. Ein externer Bildschirm ohne Signal wurde fälschlich mit einem früheren Notebook-Ausfall verknüpft. Der Bericht enthält auch die Antworten ohne Ticket-Historie für alle zwölf Fälle.
-
-## Gegenprobe zur Spam-Prüfung und Ticketbewertung
-
-Im ersten Dashboard-Durchlauf landeten die Outlook-Warnung #1021 und der Umzug #1030 in der Spam-Prüfung. Die Werbung #1010 erschien als Software. Für den Monitorwunsch #1023 übernahm die KI Rückrufzeiten aus der Kundenakte als Begründung. Das Dashboard prüft den Eingang jetzt automatisch. Freigegebene Tickets erhalten eine Bewertung mit Ticketbeleg und Herkunft für Kategorie und Priorität.
-
-Die beiden folgenden Läufe nutzten am 23.11.2026 das lokale Windows-Modell Qwen2.5 0.5B und dieselbe Verarbeitungslogik. Die erste Serie umfasst die bekannten Demofälle. Für die zweite Serie durchliefen die 20 unveränderten Tickets aus `tickets_promptvergleich.json` die Produktions-API in einer eigenen temporären Arbeitskopie. Die ausgewiesene Zahl bei Kategorie und Priorität bezieht sich jeweils auf reguläre Supportanfragen.
-
-| Prüfung | 34 Demotickets | 20 separate Prüftickets |
-|---|---|---|
-| Spam erkannt | 4/4 | 0/1 |
-| Reguläre Anfragen durchgelassen | 30/30 | 19/19 |
-| Kategorie richtig | 30/30 | 11/19 |
-| Priorität richtig | 23/30 | 10/19 |
-
-Im zweiten Lauf gelangte ein Angebot für einen kostenpflichtigen Firmeneintrag in den Support. Der Ausfall eines gemeinsamen Portals wurde als Hardwareproblem mit niedriger Priorität eingestuft. Der eine Werbefall der Serie reicht für eine allgemeine Schätzung der Spam-Erkennungsrate nicht aus. Bei #1002 steht im Entwicklungsdatensatz ein fachlicher Widerspruch: Die Kundenakte nennt für den Lagerdrucker die Stufe „hoch“, der Sollwert lautet „sehr_hoch“. Die Auswertung zählt die Abweichung mit.
-
-Der Demo-Lauf lässt sich mit `python scripts/auswertung_eingang.py` wiederholen. Für die Vorführung eignen sich die gegensätzlichen Postfachmeldungen #1003 und #1021 sowie der Monitorwunsch #1023. Die Spam-Prüfung bietet Freigabe und Bestätigung. Am regulären Ticket kann der Support über „Nachrichtenaktionen“ eine übersehene Werbenachricht markieren.
-
-Beim anschließenden Nutzertest wurde die Tonerwerbung #1010 zunächst von Hand freigegeben. „Neu bewerten“ respektiert diese Entscheidung. „Eingang erneut prüfen“ hebt sie gezielt auf und sortiert das offene Ticket wieder unter „Spam / Werbung“ ein. Für kostenpflichtige Firmeneinträge wurde die Erkennung erweitert. Der bereits bekannte Prüffall wird jetzt erkannt. Für eine neue unabhängige Quote sind weitere unbekannte Werbefälle erforderlich.
-
-Im Browser beantwortete die Ticketberatung „Müssen wir etwas tun?“ bei #1021 mit der Prüfung von Belegung und Limit des Praxispostfachs. Die Antwort belegt das Vorgehen mit der Praxisakte und nennt #1020 als früheren Vergleichsfall. „Was ist ein Speicherkontingent?“ liefert eine lokale Fachnotiz mit Wikipedia-Versionslink. Beide Antworten funktionieren ohne Zugriff auf ein echtes Postfach.
-
-### Ticketberatung im Browser und Modellvergleich
-
-Vor der Überarbeitung gab der Assistent auf den Originaltext von #1017 nur den Inventarsatz zur Datenbank auf `STB-SRV01` aus. Im anschließenden Browsertest verband die Antwort den Ausfall aller Arbeitsplätze mit der Prüfung von Dienststatus, Starttyp und Protokoll auf diesem Server. Sie ordnete die frühere Änderung des Starttyps dem gelösten Fall #1016 zu. Auf „Der SQL-Dienst läuft bereits auf STB-SRV01. Was prüfe ich jetzt?“ folgten der Protokollvergleich und die Frage nach dem genauen Verbindungsfehler. Beim Wechsel zu #1021 öffnete sich der Verlauf der Praxis. Die Antwort behandelte die Belegung ihres Postfachs und den früheren Fall #1020.
-
-Für den Modellvergleich erhielten Qwen2.5 0.5B und 3B die gleichen Meldungen und Belege zu #1017 und #1021. Jeweils ein freier Antwortversuch pro Ticket, Temperatur 0, höchstens 250 Ausgabetokens. Bei #1017 erfand das kleinere Modell einen laufenden SQL-Dienst und fehlerfreie Protokolle (2,65 s). Das größere schlug die passenden Prüfungen vor, empfahl aber bereits Änderungen am Dienst (22,20 s). Bei #1021 nannte nur das größere Modell die Belegungsprüfung, vermutete jedoch unbegründet einen veralteten Bericht als Ursache (4,61 s bzw. 14,58 s). In diesem Lauf verwendete die lokale Demo 3B für die Beratung, 0.5B für die Ticketbewertung und EmbeddingGemma für die Fallsuche. [Modell für die Beratung](https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF)
-
-Ein weiterer Browsertest nutzte drei aufeinanderfolgende Eingaben bei #1008. Auf „Was ist der nächste Schritt?“ kam die Displayprüfung am Kartenleser. „Was soll ich machen?“ führte zum Vergleich der Anzeige beim Einstecken mit der Meldung in der Praxissoftware. Bei „aaaa“ bat der Assistent um Präzisierung. Ein betriebsbereites und ein dunkles Display führten anschließend zu unterschiedlichen Prüfschritten. Beim Wechsel zu #1031 bezog die Antwort den bereits erfolgreichen Test des USB-Kartenlesers am Nachbarplatz ein.
-
-### Neue Tickets im Blindtest am 24.11.2026
-
-Die erste Serie enthält fünf vorab formulierte Tickets, die zweite drei zusätzliche Fälle. Für jedes Ticket standen die Kriterien für einen brauchbaren nächsten Schritt vor dem Lauf fest. Die Meldungen waren in den Projektfällen neu. Sieben lagen außerhalb der lokalen Fachnotizen, einer prüfte die Anwendung des vorhandenen DNS-Wissens. Die Implementierung erhielt weder die neuen Fälle noch deren Sollantworten als Beispiele. [Erste Serie](../data/testdaten/beratung_transfer.json) · [Zusätzliche Fälle](../data/testdaten/beratung_transfer_zusatz.json)
-
-Der Lauf legt Tickets über die API in einer temporären Arbeitskopie an. Pro Fall wird die sichtbare Antwort mit der Ausgabe bei denselben gefundenen Quellen ohne Beratungsmodell verglichen. Zusätzlich werden die unverarbeiteten Modellantworten protokolliert. So lässt sich prüfen, welcher Vorschlag tatsächlich im Chat erschien und ob er einen bereits ausgeführten Test bloß wiederholte. Das Skript lässt sich mit lokal laufenden Modellen erneut ausführen. [Messskript](../scripts/auswertung_ticketberatung.py)
-
-Auf dem Ausgangsstand `8767e82` lieferte Qwen2.5‑3B in der ersten Serie nur beim DNS-Fall eine ausreichende Antwort. Dieser Prüfschritt stand bereits in der Fachnotiz. Bei den übrigen vier Tickets erschien derselbe Ersatztext. Eine Überarbeitung änderte zwar die angezeigte Formulierung, im ersten erneuten Lauf blieben die fachlichen Ergebnisse bei einem von fünf Treffern.
-
-Beim Vergleich auf allen acht Tickets erhielten Qwen2.5‑3B und Qwen3‑4B‑Instruct‑2507 denselben überarbeiteten Prompt und dieselben Quellen. Von den sieben Fällen ohne passende Fachnotiz erfüllte 3B die Kriterien in keinem Fall, 4B in drei Fällen. Für diese sieben Antworten benötigte 4B auf dem Testlaptop mit Core i7‑1165G7 und 16 GB RAM rund 29 bis 43 Sekunden pro Ticket. Beide Modelle liefen lokal ohne zusätzliches Training. [Qwen3‑4B‑Instruct‑2507](https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507) · [Verwendete Modelldatei](https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/blob/18727206c51467496bfba014368bd0a30e97f411/Qwen3-4B-Instruct-2507-Q4_K_M.gguf)
-
-| Neuer Fall | Sichtbarer Vorschlag mit 4B | Bewertung |
-|---|---|---|
-| CSV öffnet sich in einer Spalte | Trennzeichen in der Datei mit der Importeinstellung vergleichen. Excel wurde in der Rückfrage unzutreffend als Texteditor bezeichnet. | Prüfschritt brauchbar |
-| Graues Bild in der Videobesprechung | Verfügbarkeit und Vorschaubild der Kamera im Besprechungsprogramm prüfen. | Prüfschritt brauchbar |
-| Y und Z vertauscht | Aktives Tastaturlayout mit dem funktionierenden Arbeitsplatz vergleichen. | Prüfschritt brauchbar |
-| „Beim Abschluss komme ich nicht weiter“ | Die Antwort setzte ein Formular mit Vorschau voraus. Hier wäre zuerst nach Programm und Vorgang zu fragen. | Kriterium verfehlt |
-| Eingescanntes PDF lässt sich nicht durchsuchen | Der Hinweis auf Suchoptionen überging die entscheidende Prüfung, ob sich sichtbarer Text markieren lässt. | Kriterium verfehlt |
-| Barcodescanner springt nicht ins nächste Feld | Das Modell wiederholte den bereits erfolgreichen manuellen Enter-Test. | Kriterium verfehlt |
-| Lokaler Projektordner ist älter als die Webansicht | Der Zeitstempelvergleich bestätigte nur die Meldung. Synchronisierungsstatus und zugeordneter Ordner blieben ungeprüft. | Kriterium verfehlt |
-| Raumbuchung per IP erreichbar, per Namen nur am Nachbarplatz | Die lokale DNS-Anleitung lässt den tatsächlich betroffenen Namen mit `nslookup` auflösen und vergleicht Ergebnis und DNS-Server beider Geräte. | Prüfschritt aus der Fachnotiz brauchbar |
-
-Beim ersten 4B-Lauf ergänzte das Modell die DNS-Anleitung um einen unbelegten Servernamen. Nach der Korrektur lieferte ein erneuter API-Lauf die Anleitung direkt aus der passenden Fachnotiz. Für die übrigen sieben Fälle wurden die gespeicherten echten Modellausgaben durch die endgültige Anzeigeverarbeitung erneut geprüft. Damit erfüllten vier von acht Antworten die vorab festgelegten Kriterien. Drei stammten vom Modell, eine aus der lokalen Wissensbasis. Mit 3B war nur der DNS-Fall brauchbar. Die acht ausgewählten Beispiele erlauben keine allgemeine Erfolgsquote für den Helpdesk.
-
-### Priorisierung am Schullaptop am 24.11.2026
-
-Die gespeicherte Einstufung des Dashboards wurde über die reguläre Ticket-API mit fiktiven Meldungen in separaten Arbeitskopien gemessen. Die Sollwerte standen vorab fest. In die Anfrage an das Modell gingen nur die Ticketangaben und die relevanten lokalen Kundenregeln. [Auswertungsskript](../scripts/auswertung_prioritaet.py) · [Vergleichsserie mit 20 Fällen](../data/testdaten/prioritaet_blindtest.json) · [Kontrollserie mit zwölf Fällen](../data/testdaten/prioritaet_kontrolle.json)
-
-Auf der bekannten Entwicklungsserie waren mit dem bisherigen Stand `7ea16e0` neun von 19 regulären Tickets zu niedrig eingestuft. Beim ersten überarbeiteten Stand stieg die Trefferzahl mit demselben Qwen2.5-0.5B von 10/19 auf 13/19. Das Modell vergab nun für alle fünf eingeschränkten, weiterführbaren Tätigkeiten die Stufe „Normal“, stufte allerdings vier planbare Anfragen zu hoch ein.
-
-Bei den 20 neu formulierten Fällen erzielte das bisherige Dashboard mit 0.5B nur 5/20. Die Überarbeitung mit 0.5B erreichte zunächst 6/20. Ein erster Versuch mit Qwen3-4B und derselben überarbeiteten Logik lieferte 11/20. Drei ungültige Modellbewertungen zählten als Fehler. Ein festes Antwortformat für jeden Aufruf lieferte 20 gültige Bewertungen, aber nur sieben fachlich richtige Prioritäten. Das Dashboard fordert dieses enge Format daher erst dann an, wenn sich die erste Antwort nicht als gültige Bewertung mit Ticketbeleg lesen lässt. Ein Vorversuch mit dem alten Code und 4B wurde wegen langer Ausgabe abgebrochen. Für diesen Vorversuch liegt keine vollständige Trefferquote vor.
-
-Für die lokale Ticketbewertung wurde der bereits vorhandene Qwen3-4B-Instruct-2507 aktiviert. Beim endgültigen Lauf auf der Vergleichsserie stimmten 13/20 Prioritäten (65 %). Derselbe Code mit dem kleineren Qwen2.5-0.5B erreichte 5/20. Nach Soll-Stufe waren mit 4B vier von fünf niedrigen, drei von fünf normalen, vier von fünf hohen und zwei von fünf sehr dringenden Tickets richtig. Alle 20 erhielten eine gültige Bewertung. Bei 18 kam die Priorität vom Modell und bei zwei aus einer Ticketregel. Der Median der API-Bearbeitungszeit lag bei 6,3 Sekunden. Die Werte beschreiben die gesamte Ticketbewertung einschließlich Regeln und Auswahl des Belegs.
-
-Die ausstehenden Tourenfreigaben einer ganzen Disposition wurden nur als hoch eingestuft. Eine Frage zur angekündigten Wochenendwartung wurde als aktueller Ausfall gewertet. Die 20 Fälle wurden zur Variantenwahl verwendet.
-
-Auf den zwölf zurückgehaltenen Kontrollfällen verbesserte sich die Trefferzahl von 3/12 beim bisherigen Dashboard auf 8/12 beim gewählten 4B-Stand (67 %). Das Modell lieferte für alle zwölf eine gültige Bewertung. Alle drei sehr dringenden Tickets wurden richtig erkannt. Zwei hohe Tickets stufte das Modell als normal ein, ein normales als hoch und einen planbaren Wunsch als normal. Die mediane Bearbeitungszeit betrug 6,5 Sekunden. Beide Serien liegen mit der gewählten Variante unter dem Ziel von 80 %. Eine unabhängige Abnahme auf dem Mac Pro erfordert erneut zurückgehaltene Tickets.
-
-### Ticketchat im lokalen Dashboard am 24.11.2026
-
-Bei #1025 lieferte die Frage „Wie ist das Wetter heute?“ ursprünglich nach rund 32 Sekunden die allgemeine Prüfhilfe zum gesperrten Konto. Nach der Änderung erhielt dieselbe Frage mit demselben Verlauf in 14 ms einen Hinweis auf den IT-Suchbereich, ohne Modellaufruf oder Kundenquellen. „Meine Wetter-App startet nicht“ ging an die allgemeine IT-Hilfe. Die Frage nach dem nächsten Schritt beim gesperrten Konto ergab zwei Stichpunkte zu Sperrstatus und fehlgeschlagenen Anmeldungen.
-
-Bei #1027 zeigte die Seitenleiste drei Listenpunkte für Gerätetest, Druckvorschau und Druckmaterial. Auf den Befund „Die Testseite direkt am Gerät bleibt leer“ folgte die Prüfung des Druckmaterials. In der Arbeitskopie kamen sechs Übungstickets hinzu. Die 34 vorhandenen Datensätze waren vor und nach dem Import inhaltlich identisch. Der Handscanner in #1035 ließ sich anhand eines leeren Textfelds außerhalb der Fachanwendung prüfen. Die Bannerwerbung in #1040 landete bereits beim Eingang im Werbefilter.
-
-Der freie Modellvorschlag für #1037 setzte eine unbelegte Gegenprobe voraus. Das Dashboard verwarf ihn. Die lokale Prüfhilfe leitete anschließend zur Auswahl des Mikrofons in der betroffenen Anwendung und zur Prüfung ihrer Zugriffsberechtigung. Dieser Live-Test belegt die angezeigte Hilfestellung. Er zählt nicht als selbstständig gelöster Modellfall.
+| Qwen2.5 0.5B, zwei damalige Promptvarianten | 6/20 bzw. 5/20 richtige Prioritäten. |
+| Qwen3 4B, damalige Kombination aus Modell und Regeln | 13/20 auf den Entwicklungsfällen, 8/12 auf zurückgehaltenen Kontrollfällen. |
+| Ticketberatung, acht neue Beispiele | Drei Modellantworten und ein Prüfschritt aus einer Fachnotiz erfüllten die festgelegten Kriterien. Eine unbrauchbare Antwort wiederholte einen bereits abgeschlossenen Test. |
+| Spamprüfung | Die Postfachwarnung #1021 war ein Fehlalarm, die Tonerwerbung #1010 wurde übersehen. Beide bleiben als Gegenprobe für den Modelllauf erhalten. |
 
 ## Messlauf auf dem Mac Pro
 
-1. Die autorisierte Umgebung mit Chat- und Embedding-Dienst einrichten, `KI_MOCK=false` setzen und das Backend neu starten. `/api/status` zeigt den Betriebsmodus sowie die Erreichbarkeit beider Dienste. Den verwendeten Commit und die Modellnamen mit den Berichten festhalten.
+1. Gemma 4 26B-A4B über `LLAMA_URL` und `LLAMA_MODEL` sowie den lokalen Embedding-Dienst einrichten, `KI_MOCK=false` setzen und das Backend neu starten. `/api/status` zeigt den Betriebsmodus sowie die Erreichbarkeit beider Dienste. Den verwendeten Commit und die Modellnamen mit den Berichten festhalten.
 2. Die für die Abgabe bestimmten Testfälle und Sollwerte vor dem Lauf festschreiben. Schwellenwerte und Prompts anhand von Entwicklungsfällen festlegen. Die Abnahmefälle dienen anschließend als unabhängiger Vergleich.
 3. Im selben Setup die drei Auswertungen ausführen.
 
@@ -142,7 +64,7 @@ Der freie Modellvorschlag für #1037 setzte eine unbelegte Gegenprobe voraus. Da
 
 4. Berichte dem Testprotokoll zuordnen und die vier Quoten samt Zähler und Nenner, typische Fehlzuordnungen und die Performancemessung übernehmen. Die Ergebnisse der beiden Testbedingungen getrennt ausweisen. Ein fehlendes Messergebnis als offen kennzeichnen.
 
-Der Promptvergleich hält Modell, Testtickets und Hardware konstant. Ein einfacher Ausgangsprompt läuft auf 20 neuen Prüftickets gegen den um Regeln und Beispiele erweiterten Prompt. Welche Variante zuerst ausgeführt wird, wechselt pro Ticket. Beim zweiten Vergleich bearbeitet dasselbe Modell dieselben Fälle ohne und mit Ticket-Historie. Temperatur und Ausgabelimit von 256 Tokens sind für beide Varianten gleich. Die Quellenquote wird für die Variante mit Zugriff auf die Ticket-Historie ausgewertet. Antworten ohne Historie werden fachlich gesichtet. LoRA ist laut V2.1 optional.
+Der Promptvergleich hält Modell, Testtickets und Hardware konstant. Ein einfacher Ausgangsprompt läuft auf 20 neuen Prüftickets gegen den gemeinsam festgelegten Analyse-Prompt v2 (SHA-256-Präfix `bed41d8163d7`). Welche Variante zuerst ausgeführt wird, wechselt pro Ticket. Beim zweiten Vergleich bearbeitet dasselbe Modell dieselben Fälle ohne und mit Ticket-Historie. Temperatur und Ausgabelimit von 256 Tokens sind für beide Varianten gleich. Die Quellenquote wird für die Variante mit Zugriff auf die Ticket-Historie ausgewertet. Antworten ohne Historie werden fachlich gesichtet. LoRA ist laut V2.1 optional.
 
 Die Zeit bis zum ersten Token bezeichnet die Zeit vom Absenden der Anfrage an llama.cpp bis zum ersten empfangenen Ereignis mit erzeugtem Inhalt. Gibt der Server Denktext im Stream aus, zählt auch dieser. Die vollständige Antwortzeit reicht bis zum Ende der Antwort. Die Auswertung erfasst außerdem die Ausgabegeschwindigkeit in Tokens pro Sekunde. Aufwärmzeit und Messläufe getrennt dokumentieren.
 

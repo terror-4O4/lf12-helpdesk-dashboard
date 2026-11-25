@@ -1,8 +1,8 @@
-// Die Eingangsprüfung stellt Verdachtsfälle zur Entscheidung durch den Support bereit.
+// Modellvorschläge und manuelle Entscheidungen zur Spamprüfung.
 
 import { api } from "../api.js";
 import { STATUS } from "../config.js";
-import { alter, h, istImSpamfilter, spamOffen, ticketNr } from "../hilfen.js";
+import { alter, h, istImSpamfilter, spamBadge, spamOffen, ticketNr } from "../hilfen.js";
 import { kundeName, meldung, neuZeichnen, ticketErsetzen, zustand } from "../zustand.js";
 
 export function zeigeSpam(ziel) {
@@ -11,11 +11,11 @@ export function zeigeSpam(ziel) {
     .sort((a, b) => b.id - a.id);
   const bestaetigt = zustand.tickets.filter((t) => t.spam_entscheidung === "spam").length;
   const freigegeben = zustand.tickets.filter((t) =>
-    t.status !== "geschlossen" && t.spampruefung?.verdaechtig && t.spam_entscheidung === "kein_spam");
+    t.status !== "geschlossen" && t.ki?.spam === true && t.spam_entscheidung === "kein_spam");
 
   ziel.append(
-    h("div", { class: "hinweisleiste eingangspruefung" },
-      h("span", {}, "Der Eingangsfilter sortiert verdächtige Nachrichten und Werbung hier ein."),
+    h("div", { class: "hinweisleiste" },
+      h("span", {}, "Hier erscheinen Spam- und Werbeverdachte aus der Ticketbewertung. Der Support entscheidet über die Freigabe."),
       h("span", { class: "hinweisleiste-rechts" }, `Bestätigt: ${bestaetigt}`)),
     offen.length
       ? h("div", { class: "spam-liste" }, offen.map(spamKarte))
@@ -24,7 +24,7 @@ export function zeigeSpam(ziel) {
   if (freigegeben.length) {
     ziel.append(h("details", { class: "karte nachrichtenaktionen" },
       h("summary", {}, `Vom Support freigegeben (${freigegeben.length})`),
-      h("p", { class: "hinweis" }, "Öffne ein freigegebenes Ticket, um den Eingang erneut zu prüfen."),
+      h("p", { class: "hinweis" }, "Die Freigabe lässt sich im Ticket aufheben."),
       h("ul", {}, freigegeben.map((t) => h("li", {},
         h("a", { href: `#/ticket/${t.id}` }, ticketNr(t.id), " ", t.titel))))));
   }
@@ -36,7 +36,8 @@ function spamKarte(t) {
       h("h3", {}, h("a", { href: `#/ticket/${t.id}` }, ticketNr(t.id), " ", t.titel)),
       h("span", { class: "hinweis" }, `${kundeName(t.kunde)} · ${alter(t.erstellt_am)}`)),
     h("p", { class: "nachricht vorschau" }, t.beschreibung),
-    h("p", { class: "begruendung" }, h("strong", {}, t.spampruefung.art === "werbung" ? "Werbung: " : "Prüfgrund: "), t.spampruefung.begruendung),
+    spamBadge(t),
+    h("p", { class: "begruendung" }, t.ki.begruendung || "Keine Begründung hinterlegt."),
     spamAktionen(t));
 }
 
@@ -72,19 +73,18 @@ export function spamAktionen(t) {
   };
 
   if (t.spam_entscheidung === "kein_spam" && t.status !== "geschlossen") {
-    const pruefen = h("button", { type: "button", class: "knopf" }, "Eingang erneut prüfen");
+    const pruefen = h("button", { type: "button", class: "knopf" }, "Freigabe aufheben");
     pruefen.addEventListener("click", () => entscheiden({ spam_entscheidung: null },
       (aktuell) => spamOffen(aktuell) ? `${ticketNr(t.id)} wurde nach Spam / Werbung verschoben.` :
-        `${ticketNr(t.id)} wurde geprüft und bleibt im Support.`));
+        `${ticketNr(t.id)} bleibt im Support.`));
     knoepfe.push(pruefen);
   }
   if (t.spam_entscheidung !== "spam") {
-    const art = t.spampruefung?.art === "werbung" ? "Werbung" : "Spam";
-    const text = t.status === "geschlossen" ? `${art} bestätigen` :
-      spamOffen(t) ? `${art} bestätigen und schließen` : "Als Spam markieren und schließen";
+    const text = t.status === "geschlossen" ? "Spam bestätigen" :
+      spamOffen(t) ? "Spam bestätigen und schließen" : "Als Spam markieren und schließen";
     const ja = h("button", { type: "button", class: "knopf knopf-gefahr" }, text);
     ja.addEventListener("click", () => entscheiden(
-      { spam_entscheidung: "spam", status: "geschlossen" }, `${ticketNr(t.id)} als ${art} geschlossen.`));
+      { spam_entscheidung: "spam", status: "geschlossen" }, `${ticketNr(t.id)} als Spam geschlossen.`));
     knoepfe.push(ja);
   }
   if (istImSpamfilter(t)) {

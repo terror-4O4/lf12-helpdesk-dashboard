@@ -19,23 +19,17 @@ class SpamEingangTest(unittest.TestCase):
         self.enterContext(patch.object(app, "LAUFZEIT_TICKETS", self.pfad))
         self.client = self.enterContext(TestClient(app.app))
 
-    def test_eingang_prueft_alle_demo_tickets_vor_der_analyse(self):
-        tickets = self.client.get("/api/tickets").json()
-        soll = {t["id"]: t["spam"] for t in app.lade_json(app.DATEN / "erwartet.json")}
-        uebung = app.lade_json(app.DATEN / "uebungstickets.json")
-        soll.update({t["id"]: t["id"] == 1040 for t in uebung})
-        self.assertCountEqual([t["id"] for t in tickets], list(soll))
-        for t in tickets:
-            with self.subTest(id=t["id"]):
-                self.assertEqual(t["spampruefung"]["verdaechtig"], soll[t["id"]])
-        for nr in (1003, 1009, 1010, 1011):
-            t = self.client.get(f"/api/tickets/{nr}").json()
-            self.assertTrue(t["spampruefung"]["begruendung"])
-            with patch.object(app, "frage_llama") as modell:
-                self.assertEqual(self.client.post(f"/api/tickets/{nr}/analyse").status_code, 409)
-                self.assertEqual(self.client.get(f"/api/tickets/{nr}/aehnliche").status_code, 409)
-                self.assertEqual(self.client.post(f"/api/tickets/{nr}/loesungsvorschlag").status_code, 409)
-                modell.assert_not_called()
+    def test_hinweise_auf_den_originalen_demotickets_bleiben_separat(self):
+        tickets = {t["id"]: t for t in self.client.get("/api/tickets").json()}
+        for soll in app.lade_json(app.DATEN / "erwartet.json"):
+            with self.subTest(id=soll["id"]):
+                self.assertEqual(bool(tickets[soll["id"]]["regelhinweise"]), soll["spam"])
+        # Das originale Phishing-Demoticket bringt eine KI-Einstufung mit.
+        # Das reine Werbemuster im noch unbewerteten Ticket erzeugt keine.
+        self.assertTrue(eingang.ist_spam(tickets[1003]))
+        self.assertTrue(tickets[1010]["regelhinweise"])
+        self.assertFalse(eingang.ist_spam(tickets[1010]))
+        self.assertIsNone(tickets[1010]["ki"])
 
     def test_supportanliegen_ohne_kundenkennung_und_zitierte_werbung(self):
         werbung = next(t for t in app.lade_json(app.DATEN / "tickets.json") if t["id"] == 1010)
@@ -51,21 +45,21 @@ class SpamEingangTest(unittest.TestCase):
             with self.subTest(titel=titel):
                 r = self.client.post("/api/tickets", json={"titel": titel, "beschreibung": nachricht})
                 self.assertEqual(r.status_code, 201)
-                self.assertFalse(r.json()["spampruefung"]["verdaechtig"])
+                self.assertFalse(r.json()["regelhinweise"])
                 self.assertIsNone(r.json()["ki"])
         # Ein absendender Kunde und ein geänderter Titel heben die inhaltlichen Indizien nicht auf.
         r = self.client.post("/api/tickets", json={
             "titel": "Nachricht an das Büro", "kunde": "praxis", "beschreibung": werbung["beschreibung"],
         })
-        self.assertTrue(r.json()["spampruefung"]["verdaechtig"])
+        self.assertTrue(r.json()["regelhinweise"])
 
     def test_katalogwerbung_ohne_rabatt(self):
         r = self.client.post("/api/tickets", json={
             "titel": "Büromöbel im Herbst",
             "beschreibung": "Entdecken Sie die Schreibtische in unserem neuen Katalog. Bestellen Sie direkt in unserem Onlineshop.",
         })
-        self.assertTrue(r.json()["spampruefung"]["verdaechtig"])
-        self.assertIn("Sortiment", r.json()["spampruefung"]["begruendung"])
+        self.assertTrue(r.json()["regelhinweise"])
+        self.assertIn("Sortiment", r.json()["regelhinweise"][0])
 
     def test_anzeigenangebot_und_kundenauftrag_im_eingang(self):
         for titel, text, werbung in [
@@ -82,10 +76,10 @@ class SpamEingangTest(unittest.TestCase):
                 r = self.client.post("/api/tickets", json={"titel": titel, "beschreibung": text})
                 self.assertEqual(r.status_code, 201)
                 t = r.json()
-                self.assertEqual(t["spampruefung"]["verdaechtig"], werbung)
-                self.assertEqual(t["spampruefung"].get("art"), "werbung" if werbung else None)
+                self.assertEqual(bool(t["regelhinweise"]), werbung)
+                self.assertFalse(eingang.ist_spam(t))
                 if werbung:
-                    self.assertEqual(self.client.post(f"/api/tickets/{t['id']}/analyse").status_code, 409)
+                    self.assertTrue(t["regelhinweise"][0].startswith("Werbung"))
 
     def test_neupruefung_hebt_nur_die_ausgewaehlte_freigabe_auf(self):
         for nr in (1010, 1003):
@@ -95,26 +89,28 @@ class SpamEingangTest(unittest.TestCase):
             self.assertEqual(self.client.post(adr + "/analyse").status_code, 200)
         alt = self.client.get(adr).json()
         self.assertEqual(alt["spam_entscheidung"], "kein_spam")
-        self.assertEqual(alt["spampruefung"]["art"], "werbung")
+        self.assertTrue(alt["regelhinweise"])
         self.assertEqual(self.client.patch(adr, json={"spam_entscheidung": None}).status_code, 422)
         pruefung = {"spam_entscheidung": None, "erwartete_spam_entscheidung": "kein_spam", "erwarteter_status": alt["status"]}
         t = self.client.patch(adr, json=pruefung).json()
-        self.assertTrue(eingang.ist_spam(t))
+        self.assertFalse(eingang.ist_spam(t))  # der Platzhalter meldete keinen Spam
         self.assertIsNone(t["spam_entscheidung"])
         self.assertEqual(t["statushistorie"], alt["statushistorie"])
         self.assertEqual(self.client.patch(adr, json=pruefung).status_code, 409)
-        self.assertEqual(self.client.post(adr + "/analyse").status_code, 409)
+        with patch.object(app, "KI_MOCK", True):
+            self.assertEqual(self.client.post(adr + "/analyse").status_code, 200)
         self.assertEqual(self.client.get("/api/tickets/1003").json()["spam_entscheidung"], "kein_spam")
 
-    def test_alter_fehlalarm_wird_entfernt_und_arbeitsstand_erhalten(self):
+    def test_alte_hybride_wertung_wird_entfernt_und_arbeitsstand_erhalten(self):
         alt = next(t for t in app.lade_json(app.DATEN / "tickets.json") if t["id"] == 1021)
         alt.update(prioritaet_quelle="manuell", prioritaet="hoch", zugewiesen_an="technik",
-                   ki={"spam": True, "kategorie": "Spam", "prioritaet": "niedrig", "begruendung": "Alte Wertung",
+                   ki={"bewertungsquellen": {"prioritaet": "regel", "kategorie": "modell"},
+                       "spam": True, "kategorie": "Spam", "prioritaet": "niedrig", "begruendung": "Alte Wertung",
                        "loesungsvorschlag": "Gespeicherter Hinweis", "aehnliche_tickets": [1002]})
         historie = alt["statushistorie"]
         self.pfad.write_text(json.dumps([alt]), encoding="utf-8")
         neu = self.client.get("/api/tickets/1021").json()
-        self.assertFalse(neu["spampruefung"]["verdaechtig"])
+        self.assertFalse(neu["regelhinweise"])
         self.assertIsNone(neu["ki"]["kategorie"])
         self.assertEqual(neu["prioritaet"], "hoch")
         self.assertEqual(neu["prioritaet_quelle"], "manuell")
@@ -131,7 +127,7 @@ class SpamEingangTest(unittest.TestCase):
         self.assertFalse(rag.ist_fall(t))
         t = self.client.patch(adresse, json={"spam_entscheidung": "kein_spam", "status": "neu"}).json()
         self.assertFalse(eingang.ist_spam(t))
-        self.assertTrue(t["spampruefung"]["verdaechtig"])
+        self.assertTrue(t["regelhinweise"])
         with patch.object(app, "KI_MOCK", True):
             self.assertEqual(self.client.post(adresse + "/analyse").status_code, 200)
         t = self.client.patch(adresse, json={"status": "geschlossen", "loesungsweg": "Rückfrage geklärt."}).json()

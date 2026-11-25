@@ -1,4 +1,4 @@
-"""Prüft Eingangsfilter und Supportbewertung der Demo über die lokale HTTP-API."""
+"""Prüft Regelhinweise und die KI-Einstufung der Demo über die lokale HTTP-API."""
 
 import argparse
 import json
@@ -17,19 +17,12 @@ def pruefe_ticket(client: httpx.Client, vorlage: dict, ticket: dict | None, soll
     ergebnis = {"id": vorlage["id"], "soll": {k: soll[k] for k in ("spam", "kategorie", "prioritaet")}}
     if ticket is None or any(ticket.get(k) != vorlage[k] for k in ("kunde", "titel", "beschreibung")):
         return {**ergebnis, "ausgelassen": "Ticket fehlt oder hat abweichende Eingangsdaten."}
-    if ticket.get("spam_entscheidung") is not None:
-        return {**ergebnis, "ausgelassen": "Der Support hat bereits über den Spamstatus entschieden."}
-
-    befund = ticket["spampruefung"]
-    ergebnis["eingang"] = befund
+    ergebnis["regelhinweise"] = ticket["regelhinweise"]
     antwort = client.post(f"/api/tickets/{ticket['id']}/analyse", params={"speichern": "false"})
     ergebnis["http_status"] = antwort.status_code
-    if befund["verdaechtig"]:
-        ergebnis["ablauf_ok"] = antwort.status_code == 409
-    else:
-        ergebnis["ablauf_ok"] = antwort.status_code == 200
-        if ergebnis["ablauf_ok"]:
-            ergebnis["bewertung"] = antwort.json()["ergebnis"]
+    ergebnis["ablauf_ok"] = antwort.status_code == 200
+    if ergebnis["ablauf_ok"]:
+        ergebnis["bewertung"] = antwort.json()["ergebnis"]
     return ergebnis
 
 
@@ -55,18 +48,18 @@ def main() -> None:
     spam = [f for f in geprueft if f["soll"]["spam"]]
     support = [f for f in geprueft if not f["soll"]["spam"]]
     zahlen = {
-        "spam_erkannt": [sum(f.get("eingang", {}).get("verdaechtig") is True for f in spam), len(spam)],
-        "support_freigegeben": [sum(f.get("eingang", {}).get("verdaechtig") is False for f in support), len(support)],
+        "regelhinweis_bei_spam": [sum(bool(f.get("regelhinweise")) for f in spam), len(spam)],
+        "regelhinweis_bei_support": [sum(bool(f.get("regelhinweise")) for f in support), len(support)],
         "ablauf_korrekt": [sum(f.get("ablauf_ok") is True for f in geprueft), len(geprueft)],
     }
-    for feld in ("kategorie", "prioritaet"):
-        zahlen[feld] = [sum(f.get("bewertung", {}).get(feld) == f["soll"][feld] for f in support), len(support)]
+    for feld in ("spam", "kategorie", "prioritaet"):
+        zahlen[feld] = [sum(f.get("bewertung", {}).get(feld) == f["soll"][feld] for f in geprueft), len(geprueft)]
 
     datum = datetime.now()
     ZIEL.mkdir(parents=True, exist_ok=True)
     pfad = ZIEL / f"eingangspruefung-{datum:%Y-%m-%d_%H-%M-%S-%f}.json"
     bericht = {"datum": datum.isoformat(timespec="seconds"), "backend": status,
-               "daten": "Demotickets mit unveränderter Eingangsnachricht und ohne manuelle Spamentscheidung",
+               "daten": "Demotickets mit unveränderter Eingangsnachricht",
                "ausgelassen": len(faelle) - len(geprueft), "kennzahlen": zahlen, "faelle": faelle}
     pfad.write_text(json.dumps(bericht, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"Modus: {status['ki_modus']}. Geprüft: {len(geprueft)}/{len(faelle)} Demotickets.")

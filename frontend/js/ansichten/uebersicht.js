@@ -2,7 +2,7 @@
 // Ziel laut Antrag: alles Wichtige auf einen Blick, ohne Scrollen.
 
 import { api } from "../api.js";
-import { STATUS } from "../config.js";
+import { PRIORITAET, STATUS } from "../config.js";
 import {
   alter, fuege, h, hatHandlungsbedarf, istOffen, istImSpamfilter, jetzt, kiMarke, leeren, nachDringlichkeit, sla,
   slaAmpel, spamOffen, ticketNr, ticketPrioBadge,
@@ -54,9 +54,9 @@ function kennzahlen(alle, offen, bezugszeit) {
     kachel("Neu", zaehle((t) => t.status === "neu"), "#/tickets?status=neu"),
     kachel("Antwort erhalten", zaehle((t) => t.status === "antwort_erhalten"), "#/tickets?status=antwort_erhalten"),
     kachel("In Bearbeitung", zaehle((t) => t.status === "in_bearbeitung"), "#/tickets?status=in_bearbeitung"),
-    kachel("Sehr dringend", sehrHoch, "#/tickets?prioritaet=sehr_hoch", sehrHoch ? "kachel-warn" : ""),
+    kachel(PRIORITAET.sehr_hoch, sehrHoch, "#/tickets?prioritaet=sehr_hoch", sehrHoch ? "kachel-warn" : ""),
     kachel("SLA überschritten", slaRot, "#/tickets?sla=rot", slaRot ? "kachel-rot" : ""),
-    kachel("Spam / Werbung", spam, "#/spam", spam ? "kachel-warn" : ""),
+    kachel("Spam / Werbung", spam, "#/spam"),
   );
 }
 

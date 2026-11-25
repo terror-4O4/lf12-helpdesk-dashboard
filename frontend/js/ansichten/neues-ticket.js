@@ -25,7 +25,8 @@ export function oeffneNeuesTicket() {
       h("label", { for: "n-kunde" }, "Kunde", kunde),
       h("label", { for: "n-titel" }, "Betreff", titel),
       h("label", { for: "n-text" }, "Nachricht", text),
-      h("label", { class: "inline" }, bewerten, " Nach der Spam-Prüfung KI-Bewertung und Fallsuche starten"),
+      h("label", { class: "inline" }, bewerten, " ", h("span", { class: "ki-marke" }, "✦ KI-Bewertung"),
+        " mit Spam-Prüfung starten und für Supporttickets ähnliche Fälle suchen"),
       h("div", { class: "knopfreihe" },
         anlegen,
         h("button", { class: "knopf", type: "button", onclick: () => dialog.close() }, "Abbrechen"))));
@@ -35,18 +36,22 @@ export function oeffneNeuesTicket() {
     anlegen.disabled = true;
     anlegen.textContent = "Lege an …";
     try {
-      const t = await api.ticketAnlegen({
+      let t = await api.ticketAnlegen({
         kunde: kunde.value === "_ohne" ? null : kunde.value,
         titel: titel.value.trim(),
         beschreibung: text.value.trim(),
       });
       ticketErsetzen(t);
-      if (bewerten.checked && !spamOffen(t)) {
+      if (bewerten.checked) {
         anlegen.textContent = "KI bewertet …";
         try {
           await api.analysieren(t.id);
-          anlegen.textContent = "Suche ähnliche Fälle …";
-          await api.loesungsvorschlag(t.id);
+          t = await api.ticket(t.id);
+          ticketErsetzen(t);
+          if (!spamOffen(t)) {
+            anlegen.textContent = "Suche ähnliche Fälle …";
+            await api.loesungsvorschlag(t.id);
+          }
         } catch (e) {
           meldung(`Angelegt, aber KI fehlgeschlagen: ${e.message}`, "fehler");
         }

@@ -18,9 +18,9 @@
   --orange: #ea6c0a;
   --grau: #9aa1ab;
 
-  --ki: #496477;
-  --ki-hg: #f2f5f6;
-  --ki-rand: #d8e0e4;
+  --ki: #6d4fd6;
+  --ki-hg: #f3f0ff;
+  --ki-rand: #d9d0fb;
   --assistent-breite: clamp(360px, 27vw, 450px);
 
   --radius: 8px;
@@ -42,9 +42,9 @@
     --text-3: #a0aab2;
     --akzent: #9ac1e7;
     --akzent-text: #132333;
-    --ki: #a4c2cd;
-    --ki-hg: #212b30;
-    --ki-rand: #3b494f;
+    --ki: #a993ff;
+    --ki-hg: #221d38;
+    --ki-rand: #3d3466;
   }
 }
 
@@ -238,6 +238,9 @@ body.assistent-offen .rahmen { margin-right: var(--assistent-breite); }
 .ampel-text { font-size: 12px; color: var(--text-2); }
 
 .ki-marke { color: var(--ki); font-weight: 600; }
+.ki-zeichen { color: var(--ki); background: var(--ki-hg); border-radius: 50%; padding-inline: 2px; }
+.badge-ki { color: var(--ki); background: var(--ki-hg); border-color: var(--ki-rand); }
+.karte-ki { background: linear-gradient(var(--ki-hg), var(--flaeche) 120px); border-color: var(--ki-rand); }
 
 .ki-status {
   font-size: 12px; padding: 3px 10px; border-radius: 12px; border: 1px solid var(--rand);
@@ -330,9 +333,6 @@ textarea { resize: vertical; width: 100%; }
 .md h3.md-titel { font-size: 15px; }
 
 /* --- Spam ------------------------------------------------------------------ */
-.eingangspruefung { background: var(--flaeche); border-color: var(--rand); }
-.spam-pruefkarte { align-self: start; }
-.spam-verdacht { border-color: var(--orange); }
 .nachrichtenaktionen { margin-top: 10px; }
 .nachrichtenaktionen summary { width: fit-content; cursor: pointer; font-size: 13px; color: var(--text-2); }
 .nachrichtenaktionen[open] summary { margin-bottom: 6px; }
@@ -360,9 +360,10 @@ textarea { resize: vertical; width: 100%; }
 .blase { max-width: 94%; padding: 9px 12px; border-radius: 9px; overflow-wrap: anywhere; line-height: 1.55; }
 .blase p { margin: 0; white-space: pre-wrap; }
 .blase-ich { align-self: flex-end; background: var(--flaeche-2); border: 1px solid var(--rand); }
-.blase-ki { align-self: stretch; max-width: 100%; padding: 0; }
-.blase-ki > .md > ul { margin: 0; padding-left: 1.25rem; }
-.blase-ki > .md > ul > li + li { margin-top: 0.4rem; }
+.blase-antwort { align-self: stretch; max-width: 100%; padding: 8px 10px; }
+.blase-modell { background: var(--ki-hg); border: 1px solid var(--ki-rand); }
+.blase-antwort > .md > ul { margin: 0; padding-left: 1.25rem; }
+.blase-antwort > .md > ul > li + li { margin-top: 0.4rem; }
 .blase-info { display: block; margin-top: 4px; font-size: 11px; color: var(--text-3); }
 .blase-wartet { color: var(--ki); }
 .chat-quellen { margin-top: 8px; }
