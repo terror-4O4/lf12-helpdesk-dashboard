@@ -204,9 +204,11 @@ export const ticketNr = (id) => `#${id}`;
 
 export function dokuQuellen(quellen, antwort = "") {
   if (!quellen?.length) return null;
-  return h("ul", { class: "doku-quellen", "aria-label": "Fundstellen in der Kundendokumentation" },
-    quellen.map(({ titel, quelle, text, links }) => h("li", {},
-      h("strong", {}, titel),
+  return h("ul", { class: "doku-quellen", "aria-label": "Quellen" },
+    quellen.map(({ titel, quelle, text, links, ticket_id }) => h("li", {},
+      Number.isSafeInteger(ticket_id)
+        ? h("a", { href: `#/ticket/${ticket_id}` }, `#${ticket_id} ${titel}`)
+        : h("strong", {}, titel),
       h("div", { class: "klein gedimmt" }, "Fundstelle ", quelle),
       text === antwort ? null : h("div", { class: "md" }, markdown(text)),
       h("div", { class: "doku-links" }, links?.map(dokuLink)))));

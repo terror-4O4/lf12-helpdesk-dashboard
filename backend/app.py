@@ -18,7 +18,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from threading import RLock
-from typing import Literal
+from typing import Annotated, Literal
 from urllib.parse import urlparse
 
 import httpx
@@ -28,7 +28,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi_offline import FastAPIOffline
 from pydantic import BaseModel, Field
 
-from backend import doku, eingang, rag
+from backend import doku, eingang, gespraech, rag, ticketfragen, wiki
 from backend.speicher import schreibe_atomar
 
 # --- Pfade und Konfiguration ---------------------------------------------
@@ -623,9 +623,11 @@ def ticket_doku(ticket_id: int):
 # --- KI: freie Frage -----------------------------------------------------
 
 SYSTEMPROMPT_FRAGE = (
-    "Du bist ein Assistent im IT-Support. Antworte auf Deutsch, kurz und "
-    "praxisnah in höchstens 5 Stichpunkten. Wenn du etwas nicht sicher weißt, "
-    "sag das, statt zu raten."
+    "Du bist ein Assistent im IT-Support. Antworte auf Deutsch in einem bis drei kurzen "
+    "Stichpunkten. Pro Punkt genau eine Aussage, höchstens 18 Wörter. Beginne direkt mit "
+    "der Antwort oder einem konkreten ersten Prüfschritt. Nenne bei Störungen anschließend, "
+    "wie ein beobachtbares Ergebnis das weitere Vorgehen bestimmt. Frage nur nach einer "
+    "fehlenden Angabe. Erfinde keine bereits durchgeführten Tests oder erfolgreichen Ergebnisse."
 )
 
 
@@ -638,6 +640,17 @@ def frage_beratungsmodell(nachrichten: list, **optionen) -> tuple[str, int | Non
 class Frage(BaseModel):
     frage: str = Field(..., min_length=1, max_length=2000,
                        examples=["Ein Kunde meldet: Outlook startet nicht. Was kann ich tun?"])
+
+
+class Ticketfrage(Frage):
+    vorherige_frage: str | None = Field(default=None, max_length=2000)
+    verlauf: list[Annotated[str, Field(min_length=1, max_length=2000)]] = Field(default_factory=list, max_length=6)
+
+
+def gespraechshinweis(bezug: str, frage: str, start: float, *, im_ticket: bool):
+    return {"antwort": "- " + gespraech.hinweis(bezug, frage, im_ticket=im_ticket), "quellen": [],
+            "modus": "themenfremd" if bezug == "fachfremd" else "unklarer_bezug", "tokens": None,
+            "dauer_ms": round((time.perf_counter() - start) * 1000)}
 
 
 def waehle_doku_fundstelle(frage: str, treffer: list[doku.Abschnitt],
@@ -696,6 +709,12 @@ def kundendoku_suche(kunde: str, eingabe: Frage):
         if doku.ist_zugangsfrage(frage):
             antwort = doku.PASSWORT_HINWEIS
             quellen = [abschnitt.als_quelle() for abschnitt in doku.passwortverweise(dokument, frage)]
+        elif ticketfragen.handlungsfrage(frage):
+            anleitung = ticketfragen.anleitung(dokument, frage)
+            if anleitung:
+                return {"antwort": ticketfragen.arbeitsschritte(anleitung), "quellen": [anleitung.als_quelle()],
+                        "modus": "doku", "tokens": None, "dauer_ms": round((time.perf_counter() - start) * 1000)}
+            antwort = "Für diese Handlungsfrage ist in der Kundenakte kein Vorgehen dokumentiert. Öffne die Hilfe zum Ticket, um auch frühere Fälle zu prüfen."
         else:
             treffer = doku.suche(dokument, frage)
             if treffer:
@@ -712,33 +731,60 @@ def kundendoku_suche(kunde: str, eingabe: Frage):
             "dauer_ms": round((time.perf_counter() - start) * 1000)}
 
 
+@app.post("/api/wissen/wikipedia", tags=["Wissen"])
+def wikipedia_frage(eingabe: Frage):
+    """Beantwortet Begriffsfragen aus der lokalen Auswahl von Wikipedia-Fachnotizen."""
+    start = time.perf_counter()
+    frage = eingabe.frage.strip()
+    if not frage:
+        raise HTTPException(422, "Bitte eine Frage eingeben")
+    antwort, quellen = wiki.antwort(frage)
+    return {"antwort": antwort, "quellen": quellen, "modus": "wikipedia", "tokens": None,
+            "dauer_ms": round((time.perf_counter() - start) * 1000)}
+
+
 @app.post("/api/ki/frage", tags=["KI"])
 def ki_frage(eingabe: Frage):
-    """Stellt der KI eine freie Frage.
-
-    Mit KI_MOCK=true kommt eine Beispielantwort (zum Entwickeln ohne KI-Server),
-    mit KI_MOCK=false antwortet der llama-server aus LLAMA_URL.
-    """
+    """Beantwortet allgemeine IT-Fragen mit den lokal verfügbaren Fachinformationen."""
     start = time.perf_counter()
+    frage = eingabe.frage.strip()
+    if not frage:
+        raise HTTPException(422, "Bitte eine Frage eingeben")
 
-    if doku.ist_zugangsfrage(eingabe.frage):
-        return {"antwort": doku.PASSWORT_HINWEIS, "modus": "suche",
-                "dauer_ms": round((time.perf_counter() - start) * 1000)}
+    bezug = gespraech.themenbezug(frage, modell=None if KI_MOCK else frage_beratungsmodell)
+    if bezug in {"unklar", "fachfremd"}:
+        return gespraechshinweis(bezug, frage, start, im_ticket=False)
+    return allgemeine_it_antwort(frage, start)
 
-    if KI_MOCK:
-        antwort = (
-            "[Mock-Antwort] Das ist eine Beispielantwort. Sobald KI_MOCK=false "
-            f"gesetzt ist, antwortet hier die lokale KI auf: \"{eingabe.frage}\""
+
+def allgemeine_it_antwort(frage: str, start: float):
+    quellen, tokens, modus = [], None, "suche"
+    if doku.ist_zugangsfrage(frage):
+        antwort = doku.PASSWORT_HINWEIS
+    elif (begriff := wiki.antwort(frage))[1]:
+        antwort, quellen = begriff
+        modus = "wissen"
+    elif ticketfragen.fragt_nach_messwert(frage):
+        antwort = "Für eine aktuelle Messung brauchst du Zugriff auf das betroffene System. Welchen Wert möchtest du dort prüfen?"
+    elif (not ticketfragen.faktenfrage(frage) and (wissen := wiki.hintergrund(frage))
+          and any(q.get("pruefschritte") for q in wissen)):
+        nachweis = {}
+        antwort, quellen, tokens = ticketfragen.beratung(
+            {"titel": "", "beschreibung": frage}, frage, [], None, wissen,
+            modell=None if KI_MOCK else frage_beratungsmodell, nachweis=nachweis,
         )
-        return {"antwort": antwort, "modus": "mock",
-                "dauer_ms": round((time.perf_counter() - start) * 1000)}
-
-    text, tokens = frage_beratungsmodell([
-        {"role": "system", "content": SYSTEMPROMPT_FRAGE},
-        {"role": "user", "content": eingabe.frage},
-    ])
-    return {"antwort": text, "modus": "llama",
-            "dauer_ms": round((time.perf_counter() - start) * 1000), "tokens": tokens}
+        modus = nachweis.get("modus", "wissen")
+    elif KI_MOCK:
+        antwort = "Für diese Frage fehlt eine passende lokale Fachnotiz. Im Demomodus ist die freie Modellantwort deaktiviert."
+        modus = "mock"
+    else:
+        antwort, tokens = frage_beratungsmodell([
+            {"role": "system", "content": SYSTEMPROMPT_FRAGE + " Du hast in dieser Ansicht keinen Zugriff auf Kundendaten oder Live-Systeme."},
+            {"role": "user", "content": frage},
+        ], max_tokens=420)
+        modus = "llama"
+    return {"antwort": ticketfragen.stichpunkte(antwort), "quellen": quellen, "modus": modus, "tokens": tokens,
+            "dauer_ms": round((time.perf_counter() - start) * 1000)}
 
 
 # --- KI: Ticket-Analyse --------------------------------------------------
@@ -1067,6 +1113,120 @@ def erzeuge_vorschlag(t: dict, liste: list, wb: rag.Wissensbasis | None = None,
         "dauer_suche_ms": round(dauer_suche * 1000),
         "dauer_ms": round((time.perf_counter() - start) * 1000),
     }
+
+
+def berate_zum_ticket(ticket: dict, bestand: list[dict], dokument: list[doku.Abschnitt],
+                      frage: str, verlauf: list[str]) -> tuple[str, list, str, int | None]:
+    meldung = rag.ticket_text(ticket)
+    anleitung = ticketfragen.anleitung(dokument, meldung)
+    historie = ticketfragen.fragt_nach_historie(frage)
+    if ticketfragen.fragt_nach_messwert(frage):
+        if anleitung and ticketfragen.passt_zur_frage(anleitung, frage):
+            antwort, quellen = ticketfragen.aus_anleitung(anleitung, ticket, bestand, frage)
+            return antwort, quellen, "doku", None
+        return ("Zu diesem Ticket kann ich keine aktuellen Betriebswerte abrufen. "
+                "Erfasse den Messwert am betroffenen System und ergänze ihn im Ticket.", [], "ticket", None)
+
+    if anleitung:
+        if historie or ticketfragen.passt_zur_frage(anleitung, frage):
+            antwort, quellen = ticketfragen.aus_anleitung(anleitung, ticket, bestand, frage)
+            if historie:
+                return antwort, quellen, "doku", None
+            return ticketfragen.belegte_beratung(
+                ticket, frage, verlauf, antwort, quellen, None if KI_MOCK else frage_beratungsmodell)
+        return ("Die Arbeitsanleitung im Ticket belegt für diese Frage keinen nächsten Schritt. "
+                "Welche Funktion oder Meldung möchtest du genauer prüfen?", [], "ticket", None)
+
+    wissen = wiki.hintergrund(meldung, frage)
+    fakten = ticketfragen.aktenfakten(dokument, meldung, ticket["titel"])
+    fall = ticketfragen.dokumentierter_fall(ticket, bestand, fakten)
+    tokens = None
+    if fall is None and ticket.get("kunde"):
+        try:
+            suche = erzeuge_vorschlag(ticket, bestand, nur_ticketkunde=True)
+            tokens = suche["tokens"]
+            vorschlaege = suche["ergebnis"]["vorschlaege"]
+            if vorschlaege:
+                kandidat = finde_ticket(bestand, vorschlaege[0]["tickets"][0])
+                if kandidat.get("kunde") == ticket["kunde"] and kandidat["id"] != ticket["id"] and rag.ist_fall(kandidat):
+                    fall = kandidat
+        except HTTPException as fehler:
+            if fehler.status_code not in (502, 504):
+                raise
+            # Lokale Fachnotizen und Kundenakte bleiben auch ohne Modellserver nutzbar.
+    if historie:
+        if fall:
+            return ticketfragen.historischer_fall(fall), [ticketfragen.fallquelle(fall)], "doku", tokens
+        return "Für dieses Ticket konnte ich keinen passenden gelösten Fall desselben Kunden belegen.", [], "ticket", tokens
+    nachweis = {}
+    antwort, quellen, plantokens = ticketfragen.beratung(
+        ticket, frage, fakten, fall, wissen, modell=None if KI_MOCK else frage_beratungsmodell,
+        verlauf=verlauf, nachweis=nachweis)
+    modus = nachweis.get("modus", "llama" if plantokens is not None else "ticket")
+    return antwort, quellen, modus, (tokens or 0) + (plantokens or 0) or None
+
+
+@app.post("/api/tickets/{ticket_id}/frage", tags=["Tickets", "KI"])
+def ticket_frage(ticket_id: int, eingabe: Ticketfrage):
+    """Beantwortet die Frage zum aktuellen Ticket anhand der Quellen dieses Kunden."""
+    start = time.perf_counter()
+    frage = eingabe.frage.strip()
+    if not frage:
+        raise HTTPException(422, "Bitte eine Frage eingeben")
+    _, bestand, ticket = ki_arbeitsstand(ticket_id)
+    if ticketfragen.unverstaendlich(frage, rag.ticket_text(ticket)):
+        return {"antwort": "- Ich kann deine Eingabe nicht zuordnen. Beschreibe kurz, was du beobachtest, "
+                           "oder frag nach einem konkreten Prüfschritt.",
+                "quellen": [], "modus": "rueckfrage", "tokens": None,
+                "dauer_ms": round((time.perf_counter() - start) * 1000)}
+    verlauf = eingabe.verlauf or ([eingabe.vorherige_frage] if eingabe.vorherige_frage else [])
+    verlauf = [v for v in verlauf if not gespraech.offensichtlich_fremd(v)]
+    bezug = gespraech.themenbezug(frage, rag.ticket_text(ticket), verlauf,
+                                  None if KI_MOCK else frage_beratungsmodell)
+    if bezug in {"unklar", "fachfremd"}:
+        return gespraechshinweis(bezug, frage, start, im_ticket=True)
+    if bezug == "it":
+        return allgemeine_it_antwort(frage, start)
+    if verlauf and ticketfragen.anschlussfrage(frage):
+        # Auch ältere Clients können einen vorherigen Themenwechsel mitschicken.
+        letzte = verlauf[-1].strip()
+        letzter_bezug = gespraech.themenbezug(letzte, rag.ticket_text(ticket), verlauf[:-1],
+                                              None if KI_MOCK else frage_beratungsmodell)
+        if letzter_bezug in {"unklar", "fachfremd"}:
+            verlauf = verlauf[:-1]
+        elif letzter_bezug == "it":
+            return allgemeine_it_antwort(f"{letzte}\nRückfrage: {frage}", start)
+        elif (ticketfragen.faktenfrage(letzte) or ticketfragen.ist_begriffsfrage(letzte)
+                or ticketfragen.fragt_nach_historie(letzte)):
+            frage = letzte
+    kunde = ticket.get("kunde")
+    dokument = doku.abschnitte(kundendoku_pfad(kunde)) if kunde else []
+    modus, tokens = "ticket", None
+    quellen = []
+
+    if kunde and doku.fremder_kunde(frage, kunde, lade_kunden()):
+        antwort = "Für diese Frage ist die Akte eines anderen Kunden nötig. Öffne bitte das zugehörige Ticket."
+    elif doku.ist_zugangsfrage(frage):
+        antwort = doku.PASSWORT_HINWEIS
+        quellen = [q.als_quelle() for q in doku.passwortverweise(dokument, frage)]
+    elif ticketfragen.ist_begriffsfrage(frage) and not ticketfragen.handlungsfrage(frage):
+        antwort, quellen = wiki.antwort(frage)
+        if quellen:
+            modus = "wikipedia"
+        else:
+            return allgemeine_it_antwort(frage, start)
+    elif ticketfragen.faktenfrage(frage) and not (
+            ticketfragen.fragt_nach_messwert(frage) or ticketfragen.fragt_nach_historie(frage)
+    ) and kunde:
+        ergebnis = kundendoku_suche(kunde, Frage(frage=frage))
+        antwort, quellen, modus, tokens = (ergebnis[k] for k in ("antwort", "quellen", "modus", "tokens"))
+        if quellen:
+            antwort = doku.kurzbeleg(frage, quellen[0]["text"])
+            modus = "doku"
+    else:
+        antwort, quellen, modus, tokens = berate_zum_ticket(ticket, bestand, dokument, frage, verlauf)
+    return {"antwort": ticketfragen.stichpunkte(antwort), "quellen": quellen, "modus": modus, "tokens": tokens,
+            "dauer_ms": round((time.perf_counter() - start) * 1000)}
 
 
 def fallquellen(liste: list, ids: set[int]) -> dict:

@@ -1,0 +1,185 @@
+[
+  {
+    "titel": "Speicherkontingent",
+    "artikel": "Disk Quota",
+    "lizenz_begriffsnotiz": "https://creativecommons.org/licenses/by-sa/4.0/deed.de",
+    "url": "https://de.wikipedia.org/w/index.php?title=Disk_Quota&oldid=248831509",
+    "begriffe": ["Quota", "Disk Quota", "Speicherkontingent", "Postfachkontingent", "Speicherlimit", "Speichergrenze", "Speicherwarnung", "Postfach fast voll"],
+    "symptome": [["Postfach", "Postfächer", "Mailbox"], ["voll", "ausgeschöpft", "Speicherplatz", "Belegung"]],
+    "pruefung": {
+      "wenn": [["Postfach", "Postfächer", "Mailbox", "Postfachkontingent"]],
+      "schritte": [
+        "Vergleiche beim betroffenen Postfach den belegten Speicher mit der Warnschwelle und der Grenze für den Empfang.",
+        "Bei Microsoft 365 zeigt der Exchange-Postfachnutzungsbericht diese Werte auch für freigegebene Postfächer. Prüfe das Berichtsdatum, da die Werte zeitverzögert sein können."
+      ],
+      "quellen": [{"titel": "Microsoft Learn · Postfachnutzung und Kontingente", "url": "https://learn.microsoft.com/de-de/microsoft-365/admin/activity-reports/mailbox-usage?view=o365-worldwide"}]
+    },
+    "text": "Ein Speicherkontingent begrenzt, wie viel Platz ein Benutzer oder eine Gruppe belegen kann. Ein System kann schon beim Erreichen einer Warnschwelle melden, dass der Platz knapp wird. An einer festen Obergrenze verhindert es, dass weitere Daten gespeichert werden."
+  },
+  {
+    "titel": "E-Mail-Postfach",
+    "artikel": "E-Mail-Konto",
+    "lizenz_begriffsnotiz": "https://creativecommons.org/licenses/by-sa/4.0/deed.de",
+    "url": "https://de.wikipedia.org/w/index.php?title=E-Mail-Konto&oldid=249793118",
+    "begriffe": ["Postfach", "Postfächer", "Mailkonto", "E-Mail-Postfach", "E-Mail-Konto", "Mailbox", "Webmail"],
+    "text": "In einem E-Mail-Postfach werden eingegangene Nachrichten aufbewahrt. Je nach Anbieter lassen sie sich mit einem Mailprogramm, einer App oder über den Browser lesen. Der Zugriff über eine Webseite heißt Webmail."
+  },
+  {
+    "titel": "Virtuelles privates Netzwerk (VPN)",
+    "artikel": "Virtual Private Network",
+    "lizenz_begriffsnotiz": "https://creativecommons.org/licenses/by-sa/4.0/deed.de",
+    "url": "https://de.wikipedia.org/w/index.php?title=Virtual_Private_Network&oldid=266327940",
+    "begriffe": ["VPN", "Virtual Private Network", "virtuelles privates Netzwerk", "VPN-Tunnel"],
+    "pruefung": {
+      "schritte": [
+        "Prüfe am betroffenen Gerät, ob das vorgesehene Firmenprofil ausgewählt ist und welchen Verbindungsstatus der VPN-Client meldet."
+      ],
+      "quellen": [{"titel": "Microsoft Support · VPN-Profil und Verbindungsstatus", "url": "https://support.microsoft.com/de-de/windows/experience/connectivity-networking/connect-to-a-vpn-in-windows"}]
+    },
+    "text": "Ein VPN verbindet ein Gerät oder ein ganzes Netz über ein vorhandenes Netzwerk mit einem anderen Netz. So kann ein Notebook im Homeoffice interne Firmendienste erreichen. Ob und wie der Datenverkehr verschlüsselt ist, hängt vom eingesetzten VPN-Verfahren ab."
+  },
+  {
+    "titel": "Namensauflösung (DNS)",
+    "artikel": "Domain Name System",
+    "lizenz_begriffsnotiz": "https://creativecommons.org/licenses/by-sa/4.0/deed.de",
+    "url": "https://de.wikipedia.org/w/index.php?title=Domain_Name_System&oldid=272262992",
+    "begriffe": ["DNS", "Domain Name System", "Namensauflösung", "DNS-Server", "Nameserver", "MX-Eintrag"],
+    "symptome": [["Name", "Namen", "Hostname", "Hostnamen", "Servername", "Servernamen"], ["per IP", "über die IP", "IP-Adresse erreichbar"]],
+    "pruefung": {
+      "wenn": [["DNS", "DNS-Server", "Nameserver", "Namensauflösung", "Hostname", "Hostnamen", "Servername", "Servernamen", "per IP", "über die IP", "IP-Adresse erreichbar"]],
+      "schritte": [
+        "Frage den vollständigen betroffenen Rechnernamen am betroffenen Gerät mit nslookup ab und notiere die Antwort sowie den verwendeten DNS-Server.",
+        "Vergleiche das Ergebnis mit einem funktionierenden Gerät im selben Netz. Wenn der konfigurierte DNS-Server gar nicht antwortet, prüfe dessen Erreichbarkeit vom betroffenen Gerät."
+      ],
+      "quellen": [{"titel": "Microsoft Learn · Namensauflösung am DNS-Client prüfen", "url": "https://learn.microsoft.com/de-de/windows-server/networking/dns/troubleshoot/troubleshoot-dns-client"}]
+    },
+    "text": "DNS liefert zu einem Netzwerknamen die passenden Einträge. Ein Browser kann darüber beispielsweise die IP-Adresse eines Webservers finden. Ein MX-Eintrag gibt an, welcher Server E-Mails für eine Domain annimmt."
+  },
+  {
+    "titel": "Mehrfaktor-Authentifizierung (MFA)",
+    "artikel": "Multi-Faktor-Authentisierung",
+    "lizenz_begriffsnotiz": "https://creativecommons.org/licenses/by-sa/4.0/deed.de",
+    "url": "https://de.wikipedia.org/w/index.php?title=Multi-Faktor-Authentisierung&oldid=263236666",
+    "begriffe": ["MFA", "2FA", "Zwei-Faktor-Authentisierung", "Zwei-Faktor-Authentifizierung", "Mehrfaktor-Authentifizierung", "Multi-Faktor-Authentisierung", "Mehrfaktorauthentifizierung", "zweiter Faktor", "Authenticator", "Authenticator-App"],
+    "symptome": [["Anmeldung", "anmelden", "einloggen"], ["Bestätigungscode", "Anmeldebestätigung", "zweiten Faktor"]],
+    "pruefung": {
+      "wenn": [["Gerät", "Gerätewechsel", "Handy", "Diensthandy", "Smartphone", "Anmeldung", "anmelden", "einloggen", "Bestätigung", "Benachrichtigung", "Benachrichtigungen", "Zugriff", "geht nicht", "funktioniert nicht"]],
+      "schritte": [
+        "Prüfe mit der betroffenen Person, auf welchem Gerät die Anmeldemethode für das Arbeitskonto registriert ist. Bei einem Gerätewechsel kann die Bestätigung noch am alten Gerät ankommen.",
+        "Falls das registrierte Gerät fehlt, prüfe, ob die Anmeldung eine bereits eingerichtete alternative Methode anbietet. Ist keine verfügbar, wende dich an die zuständige Kontoverwaltung."
+      ],
+      "quellen": [
+        {"titel": "Microsoft Support · Authenticator nach Gerätewechsel", "url": "https://support.microsoft.com/de-de/authenticator/microsoft-authenticator-faqs"},
+        {"titel": "Microsoft Support · Probleme mit Authenticator behandeln", "url": "https://support.microsoft.com/de-de/authenticator/troubleshoot-problems-with-microsoft-authenticator"}
+      ]
+    },
+    "text": "Bei der Mehrfaktor-Authentifizierung weist eine Person ihre Identität mit mehreren unabhängigen Faktoren nach. Ein Passwort belegt Wissen, ein registrierter Sicherheitsschlüssel Besitz. Kommen zwei unabhängige Faktoren zum Einsatz, spricht man von Zwei-Faktor-Authentifizierung."
+  },
+  {
+    "titel": "Phishing",
+    "artikel": "Phishing",
+    "lizenz_begriffsnotiz": "https://creativecommons.org/licenses/by-sa/4.0/deed.de",
+    "url": "https://de.wikipedia.org/w/index.php?title=Phishing&oldid=271745498",
+    "begriffe": ["Phishing", "Phishing-Mail", "Phishingnachricht"],
+    "text": "Beim Phishing versuchen Betrüger, sich als vertrauenswürdiger Absender auszugeben und vertrauliche Angaben zu erhalten. Ein Warnzeichen ist eine unerwartete Nachricht, die unter Zeitdruck zur Eingabe von Zugangsdaten auffordert."
+  },
+  {
+    "titel": "Spam",
+    "artikel": "Spam",
+    "lizenz_begriffsnotiz": "https://creativecommons.org/licenses/by-sa/4.0/deed.de",
+    "url": "https://de.wikipedia.org/w/index.php?title=Spam&oldid=270253438",
+    "begriffe": ["Spam", "Spam-Mail", "Junk-Mail", "Werbemail", "Werbemails"],
+    "text": "Als Spam bezeichnet man unerwünschte elektronische Nachrichten, die oft an viele Empfänger gleichzeitig gehen. Unbestellte Werbemails sind ein typisches Beispiel."
+  },
+  {
+    "titel": "Datenbankserver und Datenbankdienst",
+    "artikel": "Datenbankserver",
+    "lizenz_begriffsnotiz": "https://creativecommons.org/licenses/by-sa/4.0/deed.de",
+    "url": "https://de.wikipedia.org/w/index.php?title=Datenbankserver&oldid=267691666",
+    "begriffe": ["Datenbank", "Datenbanken", "Datenbankserver", "Datenbankdienst", "Datenbankverbindung", "SQL-Dienst", "SQL-Server", "SQL-Datenbank"],
+    "text": "Ein Datenbankdienst bearbeitet Anfragen der Anwendungen, die mit ihm verbunden sind. Nutzen mehrere Arbeitsplätze denselben Datenbankserver, kann eine Störung an diesem gemeinsamen Dienst mehrere Clients gleichzeitig betreffen.",
+    "pruefung": {
+      "schritte": [
+        "Prüfe auf dem Datenbankserver den Status und den konfigurierten Starttyp der zur Anwendung gehörenden Dienstinstanz.",
+        "Vergleiche den Zeitpunkt der Störung mit den Start- und Fehlermeldungen im Datenbankprotokoll. Bei Microsoft SQL Server unter Windows ist auch das Anwendungsereignisprotokoll relevant."
+      ],
+      "quellen": [
+        {"titel": "Microsoft Learn · SQL-Dienst und Ereignisprotokoll prüfen", "url": "https://learn.microsoft.com/de-de/troubleshoot/sql/database-engine/connect/consistent-sql-network-connectivity-issue"},
+        {"titel": "Microsoft Learn · Startmodus des SQL-Diensts", "url": "https://learn.microsoft.com/de-de/sql/tools/configuration-manager/sql-server-properties-service-tab?view=sql-server-ver17"}
+      ]
+    }
+  },
+  {
+    "titel": "Gesundheitskarte am Kartenterminal",
+    "anbieter": "gematik",
+    "artikel": "eHealth-Kartenterminal",
+    "url": "https://fachportal.gematik.de/telematikinfrastruktur/komponenten-dienste/ehealth-kartenterminal",
+    "begriffe": ["eHealth-Kartenterminal", "eGK", "Gesundheitskarte", "Gesundheitskarten", "Versichertenkarte", "Versichertenkarten", "Krankenkassenkarte", "Krankenkassenkarten"],
+    "symptome": [["Kartenlesegerät", "Kartenterminal", "Kartenleser"], ["Arztpraxis", "Praxissoftware", "Patientenaufnahme", "Versichertenkarte", "Versichertenkarten", "Gesundheitskarte", "Gesundheitskarten"]],
+    "text": "Das eHealth-Kartenterminal einer Praxis liest die elektronische Gesundheitskarte (eGK). Die Kartenerkennung am Gerät und die anschließende Verarbeitung in der Praxissoftware sind getrennte Stationen des Einlesevorgangs.",
+    "pruefung": {
+      "wenn": [["Kartenterminal", "Kartenlesegerät", "Kartenleser", "Lesegerät", "Terminal", "liest", "eingelesen", "einlesen", "erkannt"]],
+      "schritte": [
+        "Prüfe am betroffenen Kartenterminal, ob das Display leuchtet und eine Bereitschafts- oder Fehlermeldung anzeigt.",
+        "Beobachte beim nächsten regulären Einlesen, ob das Terminal die Gesundheitskarte erkennt. Vergleiche die Anzeige am Gerät mit der Meldung in der Praxissoftware."
+      ],
+      "dialog": {
+        "einstieg": "Schau zuerst am betroffenen Kartenlesegerät auf das Display. Ist es dunkel, zeigt es Bereitschaft oder steht dort eine Fehlermeldung?",
+        "konkret": "Beobachte beim nächsten regulären Einlesen die Anzeige direkt am Gerät. Achte darauf, ob beim Einstecken ein Kartensymbol oder ein Fehler erscheint. Schau dann, welche Meldung die Praxissoftware am PC zeigt.",
+        "eskalation": "Gib den Ausfall an die technische Praxisbetreuung weiter. Notiere den Arbeitsplatz, die Uhrzeit, die Anzeige am Terminal und den technischen Fehlertext der Praxissoftware. Lass Namen und Kartennummern aus dem Ticket.",
+        "befunde": [
+          {
+            "muster": "\\b(?:dunkel|schwarz|aus)\\b.{0,50}\\b(?:nach der sichtprüfung|stromversorgung (?:geprüft|kontrolliert)|kabel sitzt fest)\\b|\\b(?:stromversorgung (?:geprüft|kontrolliert)|kabel sitzt fest)\\b.{0,50}\\b(?:bleibt dunkel|bleibt aus)\\b",
+            "antwort": "Gib der technischen Praxisbetreuung den Arbeitsplatz und die Uhrzeit durch. Melde dazu, dass die Anzeige nach der Sichtprüfung der Stromversorgung dunkel bleibt.",
+            "konkret": "Ergänze im Ticket, welche Anzeige dunkel bleibt und wann zuletzt eine Karte gelesen wurde. Bitte die Praxis-IT um Prüfung vor Ort."
+          },
+          {
+            "muster": "\\b(?:praxissoftware|praxisprogramm|pvs|software|programm)\\b.{0,65}\\b(?:nicht gefunden|nicht verbunden|nicht erreichbar|offline|keine verbindung)\\b|\\b(?:praxissoftware|praxisprogramm|pvs|software|programm)\\b.{0,30}\\b(?:findet|erkennt|sieht|erreicht)\\b.{0,35}\\b(?:kein\\w*|nicht)\\b",
+            "antwort": "Prüfe in der Praxissoftware, welchen Verbindungsstatus sie für das Kartenterminal an diesem Arbeitsplatz anzeigt. Melde Arbeitsplatz, Uhrzeit und technischen Fehlerwortlaut an die Praxis-IT, damit sie die Anbindung prüfen kann.",
+            "konkret": "Schau am PC in die Statusanzeige für die Telematikanbindung. Ist dort ein konkreter Fehlertext oder Fehlercode zu sehen? Übernimm nur die technische Meldung ins Ticket."
+          },
+          {
+            "muster": "\\b(?:display|anzeige|bildschirm|gerät|es)\\s+(?:(?:ist|bleibt)\\s+)?(?:(?:immer noch|weiterhin|komplett|ganz|noch)\\s+)?(?:dunkel|schwarz|aus|leer|tot|ausgeschaltet|nicht an)\\b|\\b(?:display|anzeige|bildschirm|es)\\s+(?:leuchtet nicht|zeigt nichts|reagiert nicht)\\b|\\b(?:dunkles|schwarzes) display\\b|^\\s*(?:dunkel|schwarz)[.!\\s]*$",
+            "antwort": "Prüfe von außen, ob der vorhandene Anschluss für die Stromversorgung fest sitzt. Bleibt die Anzeige dunkel, gib diesen Befund an die technische Praxisbetreuung weiter.",
+            "konkret": "Folge dem vorhandenen Versorgungskabel vom Terminal bis zum Anschluss. Ist ein Stecker sichtbar lose oder sind beide Enden fest und das Display bleibt dunkel?"
+          },
+          {
+            "muster": "\\b(?:beim|nach dem)\\s+einstecken\\b.{0,32}\\b(?:tut sich nichts|passiert nichts|keine reaktion|kein kartensymbol)\\b|\\b(?:leuchtet|ist an|ist bereit|ist eingeschaltet|ist beleuchtet)\\b.{0,70}\\b(?:keine (?:karte|karten|reaktion)|karte nicht|kein kartensymbol)\\b|\\b(?:die )?karte (?:ist |steckt )(?:richtig|korrekt)\\b.{0,40}\\b(?:keine reaktion|nichts|nicht erkannt)\\b|\\b(?:karte|egk) wird am (?:gerät|terminal) nicht erkannt\\b|\\bam (?:terminal|gerät) wird die (?:karte|egk) nicht erkannt\\b|\\b(?:terminal|gerät) erkennt die (?:karte|egk) nicht\\b",
+            "antwort": "Prüfe anhand der Markierung am Gerät, ob die Gesundheitskarte richtig herum im vorgesehenen Schlitz steckt. Reagiert das Terminal beim regulären Einlesen weiterhin auf keine Karte, melde genau diesen Befund der technischen Praxisbetreuung.",
+            "konkret": "Vergleiche die Ausrichtung des Chips mit der Abbildung am Kartenfach. Sitzt die Karte richtig, gib die ausbleibende Reaktion des Terminals und den Zeitpunkt an die Praxis-IT weiter."
+          },
+          {
+            "muster": "\\b(?:terminal|lesegerät|kartenleser|gerät)\\s+(?:erkennt|liest)\\s+(?:die\\s+)?(?:gesundheitskarte|versichertenkarte|egk|karte)\\b(?![^.,;!?]{0,30}\\b(?:nicht|kein\\w*)\\b)|\\b(?:karte|egk)\\s+wird\\s+(?:am\\s+(?:gerät|terminal)\\s+)?erkannt\\b|\\bam (?:terminal|lesegerät|gerät)\\s+wird\\s+(?:die\\s+)?(?:karte|egk)\\s+erkannt\\b",
+            "antwort": "Die Karte wird am Gerät erkannt. Prüfe jetzt am PC, was die Praxissoftware beim Übernehmen der Daten meldet. Notiere nur den technischen Fehlertext und die Uhrzeit für die Praxis-IT.",
+            "konkret": "Lass dir am PC den Dialog zeigen, der unmittelbar nach der Kartenerkennung erscheint. Wie lautet dort der technische Fehlercode oder Fehlertext?"
+          },
+          {
+            "muster": "\\b(?:display|anzeige|bildschirm|gerät|terminal|es)\\s+(?:leuchtet(?!\\s+(?:nicht|kein\\w*))|an|ist (?:an|hell|beleuchtet|eingeschaltet)|zeigt was)\\b|\\b(?:gerät|terminal|lesegerät|display|es)\\s+(?:(?:meldet|zeigt|ist)\\s+)?(?:bereit|betriebsbereit)\\b|^\\s*(?:bereit|betriebsbereit)\\b",
+            "antwort": "Beobachte beim nächsten regulären Einlesen das Kartensymbol am Terminal. Steckt die Gesundheitskarte entsprechend der Markierung im vorgesehenen Schlitz? Halte fest, ob das Gerät die Karte erkennt oder einen Fehler zeigt.",
+            "konkret": "Schau vor und direkt nach dem Einstecken auf das Display. Erscheint ein Kartensymbol, bleibt die Anzeige gleich oder zeigt das Gerät einen Fehlercode?"
+          }
+        ]
+      },
+      "quellen": [
+        {"titel": "EPIKUR · Karte und Verbindungsstatus prüfen", "url": "https://hilfe.epikur.de/a/egk-kartenterminal-lesefehler--karte-ti-pruefen"},
+        {"titel": "KBV · Meldungen und technische Fehler beim Einlesen", "url": "https://www.kbv.de/media/sp/Praxisinformation_VSDM.pdf"},
+        {"titel": "CHERRY · Anschluss und Stromversorgung am Beispiel ST-1506", "url": "https://www.cherry.de/de-de/produkt/ehealth-terminal-st-1506"}
+      ]
+    }
+  },
+  {
+    "titel": "Druckwarteschlange",
+    "artikel": "Spooling",
+    "lizenz_begriffsnotiz": "https://creativecommons.org/licenses/by-sa/4.0/deed.de",
+    "url": "https://de.wikipedia.org/w/index.php?title=Spooling&oldid=243684708",
+    "begriffe": ["Druckwarteschlange", "Druckerwarteschlange", "Druckspooler", "Spooler", "Spooling", "Druckauftrag", "Druckaufträge"],
+    "symptome": [["Drucker", "Drucken", "Druckserver"], ["Warteschlange", "Aufträge", "druckt nicht"]],
+    "text": "Ein Spooler speichert Druckaufträge vorübergehend und gibt sie an den Drucker weiter. In der Warteschlange ist sichtbar, welche Dokumente noch auf die Ausgabe warten.",
+    "pruefung": {
+      "schritte": [
+        "Öffne die Warteschlange des betroffenen Druckers und kontrolliere den ausgewählten Drucker. Prüfe, ob der gemeldete Auftrag dort steht und ob weitere Aufträge dahinter warten."
+      ],
+      "quellen": [{"titel": "Microsoft Support · Druckwarteschlange anzeigen", "url": "https://support.microsoft.com/de-de/windows/hardware/printer/view-a-printer-s-print-queue-in-windows"}]
+    }
+  }
+]

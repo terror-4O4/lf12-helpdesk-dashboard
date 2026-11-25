@@ -6,12 +6,18 @@
 
 | Datei | Inhalt |
 |---|---|
-| `tickets.json` | 30 Tickets (#1001 bis #1030) |
+| `tickets.json` | Die 30 ursprünglichen Projekttickets (#1001–1030) für die Modellmessung |
+| `uebungstickets.json` | Zehn zusätzliche Übungsfälle (#1031–1040) für die Arbeit im Dashboard |
 | `kunden.json` | 5 Testkunden |
 | `doku/<kunde>.md` | Kundendoku je Testkunde, Zugangsdaten nur als Verweis auf den Passwortmanager |
-| `erwartet.json` | Erwartete KI-Bewertung je Ticket (Priorität, Spam, Kategorie) für die Trefferquote |
+| `erwartet.json` | Die ursprünglichen Sollwerte für genau diese 30 Tickets (Priorität, Spam, Kategorie) |
+| `fragen_doku.json` | Freie Doku-Fragen und Ticketfälle mit Sollfundstellen, fehlenden Treffern und einem Passwortmanager-Verweis |
+| `prioritaet_blindtest.json` | 20 separat erstellte Supporttickets für den lokalen Vergleich der Dashboard-Priorisierung, fünf je Soll-Stufe |
+| `prioritaet_kontrolle.json` | Zwölf weitere Supporttickets zur Kontrolle der gewählten Modellvariante, drei je Stufe |
 
-## Aufbau der 30 Tickets
+Die Doku-Fälle lassen sich bei laufendem Backend mit `python scripts/auswertung_doku.py` prüfen. Die Auswertung trennt die Trefferquote für vorbereitete Fragen von Fällen ohne belegte Fundstelle und von der automatischen Suche zum Ticket.
+
+## Aufbau der 30 ursprünglichen Tickets
 
 | | Anzahl |
 |---|---|
@@ -32,6 +38,21 @@
 - **Kundenregeln aus der Doku:** #1005, #1007, #1008, #1016, #1017, #1020 (Abschnitt "Besonderheiten")
 - **Workaround vorhanden, daher nur mittel:** #1015, #1019, #1024
 
+### Übungstickets im Dashboard
+
+Die ursprünglichen 30 Tickets und ihre Sollwerte kommen aus dem gemeinsamen Projekt auf `main`. Die zehn zusätzlichen Fälle wurden für die lokale Variante erstellt. Eine neue Arbeitskopie enthält alle 40 Tickets. Die Hauptmessung verwendet ausschließlich #1001–1030.
+
+| Übung | Fachlich erwartete Einstufung | Entscheidende Angabe |
+|---|---|---|
+| #1031 | Hardware, mittel, regulär | Derselbe Kartenleser funktioniert am Nachbarplatz. |
+| #1032 | Sonstiges, niedrig, regulär | Ein externer Wartungspartner fragt nach einem vereinbarten Termin. |
+| #1033 | E-Mail, niedrig, regulär | Die Praxis meldet eine verdächtige Mail zur Prüfung. Der Mailbetrieb läuft. |
+| #1034 | Software, sehr hoch, regulär | Alle vier Versandplätze sind blockiert, auch mit einem anderen Konto. |
+
+#1035 und #1036 vergleichen einen Scanfehler mit nutzbarer manueller Eingabe und einen Versandstillstand trotz manueller Eingabe. #1037–1040 behandeln ein stummes Teams-Mikrofon, einen veralteten Bauplan, eine geplante Kalenderfreigabe und unerbetene Bannerwerbung.
+
+In einer bereits bearbeiteten Arbeitskopie ergänzt `POST /api/testdaten/ergaenzen` die fehlenden Übungsfälle. Belegte Ticketnummern bleiben beim bisherigen Vorgang, die neue Vorlage erhält dann eine freie Nummer. Die Antwort enthält die neu vergebenen Ticketnummern.
+
 **Paare für den Lösungsvorschlag (RAG):** Zu diesen offenen Tickets gibt es ein ähnliches gelöstes Ticket, meist vom selben Kunden.
 
 | Offen | Gelöst |
@@ -45,6 +66,4 @@
 
 ## Hinweis Zeitstempel
 
-Die Zeitstempel sind fest (03.11. bis 19.11.2026). Bei der Präsentation sind sie Tage alt, dann zeigt die SLA-Ampel alles rot. Lösung folgt (Skript, das die Zeiten relativ zu "jetzt" verschiebt).
-
-Die 30 ursprünglichen Tickets und ihre Sollwerte bilden die gemeinsame Referenz. Weitere Übungstickets #1031–1040 stehen separat in `uebungstickets.json`. Der Promptvergleich verwendet `tickets_promptvergleich.json`, die zusätzlichen Prioritätsprüfungen verwenden `prioritaet_blindtest.json` und `prioritaet_kontrolle.json`.
+Die Beispiele verwenden feste Zeitstempel. Die [Demo-Uhrzeit im Dashboard](http://127.0.0.1:8000/?jetzt=2026-11-19T11:30) zeigt den Stand am 19. November um 11:30 Uhr.

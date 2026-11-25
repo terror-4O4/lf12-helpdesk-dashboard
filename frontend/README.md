@@ -20,14 +20,14 @@ Zum Entwickeln reicht `KI_MOCK=true` in der `.env`, dann ist kein KI-Server nöt
 | Ticket | `#/ticket/1002` | Nachricht, Bearbeitung, Verlauf, KI-Einschätzung, ähnliche Fälle und automatisch gefundene Abschnitte der Kundendoku |
 | Spam / Werbung | `#/spam` | Zeigt offene Spam-Verdachte aus der Ticketbewertung und ihre Begründung. Freigaben des Supports haben Vorrang und können im Ticket aufgehoben werden. |
 | Neues Ticket | Knopf oben rechts | Die optionale KI-Bewertung prüft Spam, Kategorie und Priorität in einem Aufruf. Für Supporttickets folgt die Suche nach ähnlichen Fällen. |
-| KI-Assistent | Knopf links unten | Allgemeine Fragen oder Suche in der Doku eines gewählten Kunden mit Fundstelle |
+| KI-Assistent | Seitenleiste oder „KI zu diesem Ticket fragen“ | Nutzt am offenen Supportticket die Nachricht, passende Kundeninformationen, frühere Lösungen und lokales IT-Wissen. Außerhalb des Tickets beantwortet er allgemeine IT-Fragen. Quellen lassen sich unter der Antwort aufklappen. |
 
 Der Spam-Zähler zählt offene Vorschläge, über die der Support noch entscheiden muss. Regelhinweise erscheinen separat im Ticket. Ein offenes Supportticket lässt sich unter **Nachrichtenaktionen** manuell als Spam markieren und schließen. Über **Alle inkl. geschlossen** kann der Support ein bestätigtes Ticket aufrufen und wieder öffnen.
 
 ## Gestaltung
 
 - Neutral, Farbe nur für Status, Priorität, SLA-Ampel und KI-Inhalte
-- Ein violettes ✦ kennzeichnet die Modellpriorität und das Badge „✦ Spam-Verdacht“. Manuell gesetzte Prioritäten haben Vorrang. Im Mock-Modus ist die Bewertung als Demo gekennzeichnet.
+- KI-Vorschläge tragen ein violettes ✦, etwa an einer Modellpriorität oder beim Badge „✦ Spam-Verdacht“. Von Hand gesetzte Prioritäten haben Vorrang. Im Chat zeigt jede Antwort ihre Herkunft, beispielsweise „Prüfschritt vom lokalen Modell“ oder „Aus der Kundendokumentation“.
 - Hell- und Dunkelmodus folgen der Systemeinstellung
 
 ## SLA-Ampel
