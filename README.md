@@ -4,6 +4,8 @@ Schulprojekt im Lernfeld 12 (Klasse 12BE15): ein Dashboard für den IT-Support, 
 
 Verbindliche Grundlage ist der genehmigte **Projektantrag V2.1**.
 
+**[Projektdokumentation als Word-Datei herunterladen](docs/Projektdokumentation_LF12_Helpdesk.docx?raw=true)** · Die Gruppe pflegt den gemeinsamen Bericht direkt in dieser Datei.
+
 > **Alle Daten in diesem Repo sind frei erfunden.** Es gibt keine echten Kunden, Tickets, Personen oder Zugangsdaten.
 
 ## Team
@@ -109,5 +111,3 @@ Kurzfassung, Details in [CONTRIBUTING.md](CONTRIBUTING.md):
 |---|---|
 | Abgabe Dateien | 11.12.2026 |
 | Präsentation | spätestens 16.12.2026 |
-
-Den Projektverlauf, die technischen Entscheidungen und die Ergebnisse der Prüfläufe hält die Gruppe in der [gemeinsamen Projektdokumentation](docs/projektdokumentation.md) fest.
