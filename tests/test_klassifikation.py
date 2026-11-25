@@ -53,23 +53,36 @@ class ModellbewertungTest(unittest.TestCase):
         self.assertEqual(t["prioritaet"], "hoch")
         self.assertFalse(eingang.ist_spam(t))
 
-    def test_spam_wird_unveraendert_gespeichert_und_ist_erneut_bewertbar(self):
-        # Bewusst widersprüchliche Werte machen ein stilles Umsetzen sofort sichtbar.
+    def test_modellspam_wird_als_niedrig_und_spam_gespeichert_und_gemessen(self):
+        roh = {**self.roh, "spam": True}
+        erwartet = {**roh, "prioritaet": "niedrig", "kategorie": "Spam"}
+        adr = f"/api/tickets/{self.werbung['id']}"
+        with patch.object(app, "frage_llama", return_value=(json.dumps(roh), 10)):
+            antwort = self.client.post(adr + "/analyse").raise_for_status().json()
+            messung = auswertung.bewerte_ticket(self.werbung, erwartet, auswertung.PROMPTS["angepasst"], mock=False)
+        ticket = self.client.get(adr).raise_for_status().json()
+        self.assertEqual(antwort["ergebnis"], erwartet)
+        self.assertEqual(messung["ki"], erwartet)
+        self.assertEqual({k: ticket["ki"][k] for k in erwartet}, erwartet)
+        self.assertEqual(ticket["prioritaet"], "niedrig")
+        self.assertTrue(eingang.ist_spam(ticket))
+
+    def test_neubewertung_von_spam_erhaelt_manuelle_entscheidung(self):
         roh = {**self.roh, "spam": True}
         adr = f"/api/tickets/{self.werbung['id']}"
         with patch.object(app, "frage_llama", return_value=(json.dumps(roh), 10)) as modell:
             for _ in range(2):
-                self.assertEqual(self.client.post(adr + "/analyse").json()["ergebnis"], roh)
+                self.client.post(adr + "/analyse").raise_for_status()
                 self.assertTrue(eingang.ist_spam(self.client.get(adr).json()))
-            self.client.patch(adr, json={"spam_entscheidung": "kein_spam", "prioritaet": "niedrig"}).raise_for_status()
+            self.client.patch(adr, json={"spam_entscheidung": "kein_spam", "prioritaet": "hoch"}).raise_for_status()
             self.client.post(adr + "/analyse").raise_for_status()
             self.assertEqual(modell.call_count, 3)
         t = self.client.get(adr).json()
         self.assertEqual(t["spam_entscheidung"], "kein_spam")
         self.assertFalse(eingang.ist_spam(t))
-        self.assertEqual(t["prioritaet"], "niedrig")
+        self.assertEqual(t["prioritaet"], "hoch")
         self.assertEqual(t["prioritaet_quelle"], "manuell")
-        self.assertEqual({k: t["ki"][k] for k in roh}, roh)
+        self.assertEqual(t["ki"]["prioritaet"], "niedrig")
 
     def test_fehlerhafte_modellantwort_erzeugt_keine_einstufung(self):
         adr = f"/api/tickets/{self.werbung['id']}"

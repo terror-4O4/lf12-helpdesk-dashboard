@@ -838,6 +838,8 @@ def analysiere_llama(t: dict, *, systemprompt: str = SYSTEMPROMPT_ANALYSE,
             raise ValueError
     except (ValueError, TypeError):
         raise HTTPException(502, "Die KI hat eine ungültige Ticketbewertung geliefert.")
+    if ergebnis["spam"]:
+        ergebnis["prioritaet"], ergebnis["kategorie"] = "niedrig", "Spam"
     return ergebnis, tokens
 
 
