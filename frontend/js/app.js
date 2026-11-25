@@ -18,7 +18,7 @@ const ANSICHTEN = {
   uebersicht: { titel: "Übersicht", zeige: zeigeUebersicht },
   tickets: { titel: "Tickets", zeige: zeigeTickets },
   ticket: { titel: "Ticket", zeige: zeigeTicket, nav: "tickets" },
-  spam: { titel: "Spam-Prüfung", zeige: zeigeSpam },
+  spam: { titel: "Spam / Werbung", zeige: zeigeSpam },
 };
 
 // "#/tickets?status=neu" -> { name: "tickets", teile: [], abfrage: URLSearchParams }
@@ -31,14 +31,14 @@ function leseAdresse() {
 let zeichnet = false;
 let nochmal = null; // Wunsch zum Neuzeichnen, während gerade gezeichnet wird
 
-function uebersichtDarfAktualisieren() {
-  return !document.hidden && leseAdresse().name === "uebersicht"
+function ansichtDarfAktualisieren() {
+  return !document.hidden && ["uebersicht", "spam"].includes(leseAdresse().name)
     && !document.activeElement?.closest("#inhalt, #mitarbeiter, #assistent")
     && !document.querySelector("dialog[open], #inhalt button:disabled");
 }
 
 async function zeichnen({ neuLaden = true, imHintergrund = false } = {}) {
-  if (imHintergrund && (zeichnet || !uebersichtDarfAktualisieren())) return;
+  if (imHintergrund && (zeichnet || !ansichtDarfAktualisieren())) return;
   if (zeichnet) {
     nochmal = { neuLaden: neuLaden || nochmal?.neuLaden };
     return;
@@ -57,7 +57,7 @@ async function zeichnen({ neuLaden = true, imHintergrund = false } = {}) {
 
   try {
     if (neuLaden) await ladeDaten();
-    if (imHintergrund && !uebersichtDarfAktualisieren()) return;
+    if (imHintergrund && (adresse.name !== leseAdresse().name || !ansichtDarfAktualisieren())) return;
     aktualisiereKopf();
     leeren(ziel);
     const titel = await ansicht.zeige(ziel, adresse);

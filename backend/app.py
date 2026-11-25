@@ -28,7 +28,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi_offline import FastAPIOffline
 from pydantic import BaseModel, Field
 
-from backend import doku, rag
+from backend import doku, eingang, rag
 from backend.speicher import schreibe_atomar
 
 # --- Pfade und Konfiguration ---------------------------------------------
@@ -47,6 +47,8 @@ LLAMA_API_KEY = os.getenv("LLAMA_API_KEY", "")
 # Modellname für den llama-server im Router-Modus (Dateiname ohne .gguf).
 # Leer lassen, wenn der llama-server mit genau einem Modell (-m) läuft.
 LLAMA_MODEL = os.getenv("LLAMA_MODEL", "").strip()
+BERATUNG_URL = os.getenv("BERATUNG_URL", "").strip().rstrip("/")
+BERATUNG_MODEL = os.getenv("BERATUNG_MODEL", "").strip()
 KI_MOCK = os.getenv("KI_MOCK", "true").lower() == "true"
 KI_TIMEOUT = float(os.getenv("KI_TIMEOUT", "120"))
 
@@ -93,9 +95,10 @@ def pruefe_lokale_adresse(url: str) -> None:
 
 # Prüfung beim Start, unabhängig von KI_MOCK: Eine falsche Adresse soll
 # sofort auffallen und nicht erst, wenn jemand den Mock abschaltet.
-# Gilt für beide Server: Chat (LLAMA_URL) und Embeddings (EMBED_URL).
 pruefe_lokale_adresse(LLAMA_URL)
 pruefe_lokale_adresse(EMBED_URL)
+if BERATUNG_URL:
+    pruefe_lokale_adresse(BERATUNG_URL)
 
 app = FastAPIOffline(
     title="LF12 Helpdesk-Dashboard API",
@@ -122,11 +125,32 @@ def lade_json(pfad: Path) -> list:
 
 
 def lade_tickets() -> list:
-    """Liest die Arbeitskopie und legt sie bei Bedarf aus den Testdaten an."""
+    """Prüft neue und bereits gespeicherte Tickets vor der ersten Anzeige."""
     with TICKET_LOCK:
-        if not LAUFZEIT_TICKETS.exists():
-            speichere_tickets(lade_json(DATEN / "tickets.json"))
-        return lade_json(LAUFZEIT_TICKETS)
+        neu = not LAUFZEIT_TICKETS.exists()
+        liste = lade_json(DATEN / "tickets.json" if neu else LAUFZEIT_TICKETS)
+        if neu:
+            ergaenze_uebungstickets(liste)
+        geaendert = neu
+        for t in liste:
+            hinweise = eingang.regelhinweise(t)
+            if t.get("regelhinweise") != hinweise or "spampruefung" in t:
+                t["regelhinweise"] = hinweise
+                t.pop("spampruefung", None)
+                geaendert = True
+            ki = t.get("ki") or {}
+            if "bewertungsquellen" in ki:
+                # Die frühere Supportanalyse mischte Regeln und Modellwerte.
+                # Ihr Rohbefund lässt sich aus dem Ergebnis nicht rekonstruieren.
+                ki.pop("bewertungsquellen")
+                for feld in ("prioritaet", "kategorie", "spam", "begruendung"):
+                    ki[feld] = None
+                if t.get("prioritaet_quelle") == "ki":
+                    t["prioritaet"] = t["prioritaet_quelle"] = None
+                geaendert = True
+        if geaendert:
+            speichere_tickets(liste)
+        return liste
 
 
 def speichere_tickets(liste: list) -> None:
@@ -153,19 +177,31 @@ def finde_ticket(liste: list, ticket_id: int) -> dict:
     raise HTTPException(404, f"Ticket #{ticket_id} nicht gefunden")
 
 
-def ki_arbeitsstand(ticket_id: int) -> tuple[int, list, dict]:
+def ki_arbeitsstand(ticket_id: int, *, support: bool = True) -> tuple[int, list, dict]:
     """Hält den Datenstand fest, ohne das Lock während des Modellaufrufs zu halten."""
     with TICKET_LOCK:
         liste = lade_tickets()
-        return tickets_generation, liste, finde_ticket(liste, ticket_id)
+        t = finde_ticket(liste, ticket_id)
+        if support:
+            verlange_support_ticket(t)
+        return tickets_generation, liste, t
 
 
-def aktuelles_ki_ticket(liste: list, generation: int, alt: dict) -> dict:
+def verlange_support_ticket(t: dict) -> None:
+    if eingang.ist_spam(t):
+        raise HTTPException(409, "Dieses Ticket ist in der Spam-Prüfung oder als Spam bestätigt. Für die Ticketberatung zuerst als „Kein Spam“ freigeben.")
+
+
+def aktuelles_ki_ticket(liste: list, generation: int, alt: dict, *, support: bool = True) -> dict:
     if generation != tickets_generation:
         raise HTTPException(409, "Die Testdaten wurden zurückgesetzt. Bitte erneut ausführen.")
     t = finde_ticket(liste, alt["id"])
     if any(t.get(feld) != alt.get(feld) for feld in ("kunde", "titel", "beschreibung")):
         raise HTTPException(409, "Das Ticket wurde inzwischen geändert. Bitte erneut ausführen.")
+    if support:
+        verlange_support_ticket(t)
+    elif t.get("spam_entscheidung") != alt.get("spam_entscheidung"):
+        raise HTTPException(409, "Die Spamentscheidung wurde inzwischen geändert. Bitte erneut bewerten.")
     return t
 
 
@@ -244,19 +280,24 @@ def llama_stream_lesen(r: httpx.Response, start: float, messung: dict) -> tuple[
 
 def frage_llama(nachrichten: list, antwortformat: dict | None = None,
                 temperatur: float = 0.3, *, messung: dict | None = None,
-                max_tokens: int | None = None) -> tuple[str, int | None]:
+                max_tokens: int | None = None, beratung: bool = False,
+                grammatik: str | None = None) -> tuple[str, int | None]:
     """Schickt Nachrichten an den llama-server. Gibt (Text, Anzahl Tokens) zurück."""
     kopfzeilen = {"Authorization": f"Bearer {LLAMA_API_KEY}"} if LLAMA_API_KEY else {}
     anfrage = {"messages": nachrichten, "temperature": temperatur}
-    if LLAMA_MODEL:
+    modell = BERATUNG_MODEL if beratung and BERATUNG_URL else LLAMA_MODEL
+    if modell:
         # Im Router-Modus wählt der llama-server anhand dieses Feldes das Modell
-        anfrage["model"] = LLAMA_MODEL
+        anfrage["model"] = modell
     if antwortformat:
         anfrage["response_format"] = antwortformat
+    if grammatik:
+        anfrage["grammar"] = grammatik
     if max_tokens is not None:
         anfrage["max_tokens"] = max_tokens
 
-    url = f"{LLAMA_URL}/v1/chat/completions"
+    basis_url = BERATUNG_URL if beratung and BERATUNG_URL else LLAMA_URL
+    url = f"{basis_url}/v1/chat/completions"
     try:
         # trust_env=False: keine Proxy-Einstellungen des Systems verwenden,
         # die Anfrage geht immer direkt an den lokalen llama-server.
@@ -288,10 +329,11 @@ def frage_llama(nachrichten: list, antwortformat: dict | None = None,
         if code == 401:
             hinweis = " (LLAMA_API_KEY in der .env prüfen)"
         elif code == 400 and "model" in text:
-            hinweis = " (LLAMA_MODEL in der .env setzen, Router-Modus)"
+            variable = "BERATUNG_MODEL" if beratung and BERATUNG_URL else "LLAMA_MODEL"
+            hinweis = f" ({variable} in der .env prüfen, Router-Modus)"
         raise HTTPException(502, f"KI-Server lehnt ab ({code}){hinweis}: {text}")
     except httpx.HTTPError as fehler:
-        raise HTTPException(502, f"KI nicht erreichbar unter {LLAMA_URL}: {fehler}")
+        raise HTTPException(502, f"KI nicht erreichbar unter {basis_url}: {fehler}")
     except (json.JSONDecodeError, IndexError, KeyError, TypeError, AttributeError):
         raise HTTPException(502, "Der KI-Server hat eine ungültige Antwort geliefert")
 
@@ -299,7 +341,7 @@ def frage_llama(nachrichten: list, antwortformat: dict | None = None,
 # --- Status --------------------------------------------------------------
 
 @app.get("/api/status", tags=["Status"])
-def status():
+def status(modelldetails: bool = False):
     """Zeigt, ob das Backend läuft und ob die KI erreichbar ist."""
     if KI_MOCK:
         return {"backend": "ok", "ki_modus": "mock", "ki_erreichbar": None,
@@ -311,8 +353,29 @@ def status():
         except httpx.HTTPError:
             return False
 
-    return {"backend": "ok", "ki_modus": "llama", "ki_erreichbar": gesund(LLAMA_URL),
-            "ki_modell": LLAMA_MODEL or None, "embedding_erreichbar": gesund(EMBED_URL)}
+    ergebnis = {"backend": "ok", "ki_modus": "llama", "ki_erreichbar": gesund(LLAMA_URL),
+                "ki_modell": LLAMA_MODEL or None, "embedding_erreichbar": gesund(EMBED_URL)}
+    if BERATUNG_URL:
+        ergebnis.update(beratung_erreichbar=gesund(BERATUNG_URL), beratung_modell=BERATUNG_MODEL or None)
+    if modelldetails:
+        for feld, url, alias, erreichbar in (
+            ("chat_datei", LLAMA_URL, LLAMA_MODEL, ergebnis["ki_erreichbar"]),
+            ("embedding_datei", EMBED_URL, EMBED_MODEL, ergebnis["embedding_erreichbar"]),
+            ("beratung_datei", BERATUNG_URL, BERATUNG_MODEL, ergebnis.get("beratung_erreichbar")),
+        ):
+            if not erreichbar:
+                continue
+            try:
+                headers = {"Authorization": f"Bearer {LLAMA_API_KEY}"} if LLAMA_API_KEY else {}
+                props = httpx.get(f"{url}/props", headers=headers, timeout=1, trust_env=False).raise_for_status().json()
+                if not isinstance(props, dict) or (alias and props.get("model_alias") != alias):
+                    continue
+                pfad = props.get("model_path")
+                if isinstance(pfad, str) and pfad.lower().endswith(".gguf"):
+                    ergebnis[feld] = pfad.replace("\\", "/").rsplit("/", 1)[-1]
+            except (httpx.HTTPError, ValueError):
+                continue
+    return ergebnis
 
 
 # --- Tickets -------------------------------------------------------------
@@ -337,6 +400,7 @@ def ticket(ticket_id: int):
 Status = Literal["neu", "in_bearbeitung", "warten_auf_kunde",
                  "antwort_erhalten", "geparkt", "geschlossen"]
 Prioritaet = Literal["niedrig", "mittel", "hoch", "sehr_hoch"]
+SpamEntscheidung = Literal["spam", "kein_spam"]
 
 
 def jetzt() -> str:
@@ -352,34 +416,69 @@ class NeuesTicket(BaseModel):
                               examples=["Seit heute früh kommt beim Drucken nur ein leeres Blatt."])
 
 
+def erstelle_ticket(eingabe: NeuesTicket, nummer: int, zeit: str) -> dict:
+    t = {
+        "id": nummer,
+        "kunde": eingabe.kunde,
+        "titel": eingabe.titel.strip(),
+        "beschreibung": eingabe.beschreibung.strip(),
+        "status": "neu",
+        "prioritaet": None,
+        "prioritaet_quelle": None,
+        "zugewiesen_an": None,
+        "erstellt_am": zeit,
+        "statushistorie": [{"status": "neu", "seit": zeit}],
+        "ki": None,
+        "spam_entscheidung": None,
+        "ursache": None,
+        "loesungsweg": None,
+        "geschlossen_am": None,
+    }
+    t["regelhinweise"] = eingang.regelhinweise(t)
+    return t
+
+
+def ergaenze_uebungstickets(liste: list) -> list[int]:
+    """Ergänzt fehlende Vorlagen und behält bereits vergebene Ticketnummern bei."""
+    vorlagen = lade_json(DATEN / "uebungstickets.json")
+    importiert = {t.get("uebungsvorlage") for t in liste}
+    identitaet = ("kunde", "erstellt_am", "titel", "beschreibung")
+    altbestand = {tuple(t.get(k) for k in identitaet) for t in liste if not t.get("uebungsvorlage")}
+    belegt = {t["id"] for t in liste}
+    reserviert = {v["id"] for v in vorlagen}
+    ausweichnummer = max(belegt | reserviert, default=1000) + 1
+    neu = []
+    for vorlage in vorlagen:
+        vorlagen_id = vorlage["id"]
+        if vorlagen_id in importiert or tuple(vorlage.get(k) for k in identitaet) in altbestand:
+            continue
+        nummer = vorlagen_id
+        if nummer in belegt:
+            nummer = ausweichnummer
+            ausweichnummer += 1
+        t = erstelle_ticket(NeuesTicket(**vorlage), nummer, vorlage["erstellt_am"])
+        for feld in ("status", "prioritaet", "prioritaet_quelle", "zugewiesen_an", "statushistorie",
+                     "ki", "spam_entscheidung", "ursache", "loesungsweg", "geschlossen_am"):
+            if feld in vorlage:
+                t[feld] = vorlage[feld]
+        t["uebungsvorlage"] = vorlagen_id
+        liste.append(t)
+        importiert.add(vorlagen_id)
+        neu.append(nummer)
+    return neu
+
+
 @app.post("/api/tickets", tags=["Tickets"], status_code=201)
 def ticket_anlegen(eingabe: NeuesTicket):
     """Legt ein neues Ticket mit Status "neu" an (Nummer = höchste vorhandene + 1).
 
-    Bewertet wird es danach wie jedes andere Ticket über /api/tickets/{id}/analyse.
+    Auffällige Eingangsmuster erscheinen als separate Hinweise.
     """
     if eingabe.kunde is not None and eingabe.kunde not in {k["kunde"] for k in lade_kunden()}:
         raise HTTPException(422, f"Kunde '{eingabe.kunde}' nicht gefunden")
 
     with ticket_aktualisierung() as liste:
-        zeit = jetzt()
-        t = {
-            "id": max((x["id"] for x in liste), default=1000) + 1,
-            "kunde": eingabe.kunde,
-            "titel": eingabe.titel.strip(),
-            "beschreibung": eingabe.beschreibung.strip(),
-            "status": "neu",
-            "prioritaet": None,
-            "prioritaet_quelle": None,
-            "zugewiesen_an": None,
-            "erstellt_am": zeit,
-            "statushistorie": [{"status": "neu", "seit": zeit}],
-            "ki": None,
-            "spam_entscheidung": None,
-            "ursache": None,
-            "loesungsweg": None,
-            "geschlossen_am": None,
-        }
+        t = erstelle_ticket(eingabe, max((x["id"] for x in liste), default=1000) + 1, jetzt())
         liste.append(t)
     return t
 
@@ -392,7 +491,10 @@ class TicketAenderung(BaseModel):
                                       examples=["lena"])
     ursache: str | None = Field(None, max_length=1000)
     loesungsweg: str | None = Field(None, max_length=4000)
-    spam_entscheidung: Literal["spam", "kein_spam"] | None = None
+    spam_entscheidung: SpamEntscheidung | None = Field(
+        None, description="Manuelle Entscheidung. Explizites null hebt sie auf und lässt den Eingangsfilter entscheiden.")
+    erwartete_spam_entscheidung: SpamEntscheidung | None = None
+    erwarteter_status: Status | None = None
 
 
 @app.patch("/api/tickets/{ticket_id}", tags=["Tickets"])
@@ -409,9 +511,18 @@ def ticket_aendern(ticket_id: int, aenderung: TicketAenderung):
     felder = aenderung.model_fields_set
     if not felder:
         raise HTTPException(422, "Keine Änderung mitgeschickt")
+    vorbedingungen = {"erwartete_spam_entscheidung", "erwarteter_status"}
+    mit_pruefstand = bool(felder & vorbedingungen)
+    erneut_pruefen = "spam_entscheidung" in felder and aenderung.spam_entscheidung is None
+    if (mit_pruefstand or erneut_pruefen) and (not vorbedingungen.issubset(felder)
+            or "spam_entscheidung" not in felder or aenderung.erwarteter_status is None):
+        raise HTTPException(422, "Zur geprüften Spam-Entscheidung den vorherigen Status und die vorherige Spam-Entscheidung mitsenden.")
 
     with ticket_aktualisierung() as liste:
         t = finde_ticket(liste, ticket_id)
+        if mit_pruefstand and (t.get("spam_entscheidung") != aenderung.erwartete_spam_entscheidung
+                               or t["status"] != aenderung.erwarteter_status):
+            raise HTTPException(409, "Status oder Spam-Entscheidung wurden inzwischen geändert. Bitte den aktuellen Stand prüfen.")
 
         if "prioritaet" in felder:
             if aenderung.prioritaet is None:
@@ -435,15 +546,26 @@ def ticket_aendern(ticket_id: int, aenderung: TicketAenderung):
             if aenderung.status is None:
                 raise HTTPException(422, "Status kann nicht geleert werden")
             if aenderung.status != t["status"]:
-                if (aenderung.status == "geschlossen" and not t.get("loesungsweg")
-                        and t.get("spam_entscheidung") != "spam"):
-                    raise HTTPException(422, "Zum Schließen bitte einen Lösungsweg eintragen")
                 zeit = jetzt()
                 t["status"] = aenderung.status
                 t.setdefault("statushistorie", []).append({"status": aenderung.status, "seit": zeit})
                 t["geschlossen_am"] = zeit if aenderung.status == "geschlossen" else None
+        if (felder & {"status", "spam_entscheidung", "loesungsweg"} and t["status"] == "geschlossen"
+                and not t.get("loesungsweg") and t.get("spam_entscheidung") != "spam"):
+            raise HTTPException(422, "Ein geschlossenes Supportticket braucht einen Lösungsweg. Bitte einen Lösungsweg eintragen oder das Ticket wieder öffnen.")
 
     return t
+
+
+@app.post("/api/testdaten/ergaenzen", tags=["Tickets"])
+def testdaten_ergaenzen():
+    """Fügt neue Übungstickets zur aktuellen Arbeitskopie hinzu."""
+    with TICKET_LOCK:
+        liste = lade_tickets()
+        neu = ergaenze_uebungstickets(liste)
+        if neu:
+            speichere_tickets(liste)
+    return {"hinzugefuegt": neu}
 
 
 @app.post("/api/testdaten/zuruecksetzen", tags=["Tickets"])
@@ -452,6 +574,7 @@ def testdaten_zuruecksetzen():
     global tickets_generation
     with TICKET_LOCK:
         testtickets = lade_json(DATEN / "tickets.json")
+        ergaenze_uebungstickets(testtickets)
         speichere_tickets(testtickets)
         tickets_generation += 1
     return {"zurueckgesetzt": True, "tickets": len(testtickets)}
@@ -504,6 +627,12 @@ SYSTEMPROMPT_FRAGE = (
     "praxisnah in höchstens 5 Stichpunkten. Wenn du etwas nicht sicher weißt, "
     "sag das, statt zu raten."
 )
+
+
+def frage_beratungsmodell(nachrichten: list, **optionen) -> tuple[str, int | None]:
+    if BERATUNG_URL:
+        optionen["beratung"] = True
+    return frage_llama(nachrichten, **optionen)
 
 
 class Frage(BaseModel):
@@ -604,7 +733,7 @@ def ki_frage(eingabe: Frage):
         return {"antwort": antwort, "modus": "mock",
                 "dauer_ms": round((time.perf_counter() - start) * 1000)}
 
-    text, tokens = frage_llama([
+    text, tokens = frage_beratungsmodell([
         {"role": "system", "content": SYSTEMPROMPT_FRAGE},
         {"role": "user", "content": eingabe.frage},
     ])
@@ -673,21 +802,15 @@ ANALYSE_FORMAT = {
     },
 }
 
-MOCK_SPAM_WOERTER = ("bestätigen sie", "link", "gesperrt", "gewonnen", "gewinn")
-
-
 def analysiere_mock(t: dict) -> dict:
-    """Einfache Regel statt KI, damit das Frontend ohne KI-Server testen kann."""
-    text = f"{t['titel']} {t['beschreibung']}".lower()
-    if any(w in text for w in MOCK_SPAM_WOERTER):
-        return {"prioritaet": "niedrig", "spam": True, "kategorie": "Spam",
-                "begruendung": "[Mock] Enthält typische Spam-Wörter."}
+    """Neutraler Platzhalter für die Modellantwort im Offlinebetrieb."""
     return {"prioritaet": "mittel", "spam": False, "kategorie": "Sonstiges",
             "begruendung": "[Mock] Platzhalter-Bewertung ohne KI."}
 
 
 def analysiere_llama(t: dict, *, systemprompt: str = SYSTEMPROMPT_ANALYSE,
                      messung: dict | None = None) -> tuple[dict, int | None]:
+    """Gemeinsamer Modellaufruf für Dashboard und Messung mit dem Ticketkontext aus T15."""
     kunde = next((k for k in lade_kunden() if k["kunde"] == t["kunde"]), None)
     besonderheiten = doku_abschnitt(t["kunde"], "Besonderheiten")
 
@@ -701,35 +824,33 @@ def analysiere_llama(t: dict, *, systemprompt: str = SYSTEMPROMPT_ANALYSE,
         [{"role": "system", "content": systemprompt},
          {"role": "user", "content": ticket_text}],
         antwortformat=ANALYSE_FORMAT,
-        temperatur=0,
-        **({"messung": messung} if messung is not None else {}),
+        temperatur=0, messung=messung,
     )
 
-    # Doppelt prüfen: Auch wenn das Format erzwungen ist, nichts ungeprüft übernehmen
     try:
         ergebnis = json.loads(text)
-        assert ergebnis["prioritaet"] in PRIORITAETEN
-        assert ergebnis["kategorie"] in KATEGORIEN
-        assert isinstance(ergebnis["spam"], bool)
-        ergebnis["begruendung"] = str(ergebnis.get("begruendung", ""))[:300]
-    except (json.JSONDecodeError, KeyError, AssertionError, TypeError):
-        raise HTTPException(502, f"KI-Antwort hat ein ungültiges Format: {text[:200]}")
-
-    if ergebnis["spam"]:
-        ergebnis["prioritaet"], ergebnis["kategorie"] = "niedrig", "Spam"
+        if not isinstance(ergebnis, dict) or set(ergebnis) != {"prioritaet", "kategorie", "spam", "begruendung"}:
+            raise ValueError
+        if ergebnis["prioritaet"] not in PRIORITAETEN or ergebnis["kategorie"] not in KATEGORIEN:
+            raise ValueError
+        if (type(ergebnis["spam"]) is not bool or not isinstance(ergebnis["begruendung"], str)
+                or len(ergebnis["begruendung"]) > 300):
+            raise ValueError
+    except (ValueError, TypeError):
+        raise HTTPException(502, "Die KI hat eine ungültige Ticketbewertung geliefert.")
     return ergebnis, tokens
 
 
 @app.post("/api/tickets/{ticket_id}/analyse", tags=["KI"])
 def ticket_analyse(ticket_id: int, speichern: bool = True):
-    """Lässt die KI ein Ticket bewerten: Priorität, Spam, Kategorie, Begründung.
+    """Bewertet Spam, Kategorie und Priorität in einer gemeinsamen Modellantwort.
 
     Mit speichern=true wird das Ergebnis in den KI-Block des Tickets geschrieben.
     Die Priorität des Tickets wird nur übernommen, wenn sie nicht von Hand
     geändert wurde (prioritaet_quelle "manuell" hat Vorrang).
     """
     start = time.perf_counter()
-    generation, _, t = ki_arbeitsstand(ticket_id)
+    generation, _, t = ki_arbeitsstand(ticket_id, support=False)
 
     if KI_MOCK:
         ergebnis, tokens, modus = analysiere_mock(t), None, "mock"
@@ -738,15 +859,9 @@ def ticket_analyse(ticket_id: int, speichern: bool = True):
 
     if speichern:
         with ticket_aktualisierung() as liste:
-            t = aktuelles_ki_ticket(liste, generation, t)
-            # Ergebnisse der Fallsuche aus der aktuellen Arbeitskopie übernehmen.
-            t["ki"] = {
-                **neuer_ki_block(t.get("ki")),
-                "prioritaet": ergebnis["prioritaet"],
-                "spam": ergebnis["spam"],
-                "kategorie": ergebnis["kategorie"],
-                "begruendung": ergebnis["begruendung"],
-            }
+            t = aktuelles_ki_ticket(liste, generation, t, support=False)
+            # Manuelle Entscheidungen und Ergebnisse einer parallelen Fallsuche erhalten.
+            t["ki"] = {**neuer_ki_block(t.get("ki")), **ergebnis, "modus": modus}
             if t.get("prioritaet_quelle") != "manuell":
                 t["prioritaet"] = ergebnis["prioritaet"]
                 t["prioritaet_quelle"] = "ki"
@@ -783,7 +898,7 @@ def aktuelle_schwelle() -> float:
 
 
 def finde_aehnliche(t: dict, liste: list, anzahl: int = 3, schwelle: float | None = None,
-                    wb: rag.Wissensbasis | None = None) -> tuple[list[dict], list[dict]]:
+                    wb: rag.Wissensbasis | None = None, *, nur_ticketkunde: bool = False) -> tuple[list[dict], list[dict]]:
     """Gibt (Treffer, Fälle der Wissensbasis) zurück. Das Ticket selbst zählt nie mit.
 
     wb: andere Vektor-Datei, z. B. für Tests (Standard: data/laufzeit/wissensbasis.json)
@@ -796,6 +911,8 @@ def finde_aehnliche(t: dict, liste: list, anzahl: int = 3, schwelle: float | Non
         raise HTTPException(502, str(fehler))
     if schwelle is None:
         schwelle = aktuelle_schwelle()
+    if nur_ticketkunde:
+        faelle = [fall for fall in faelle if t.get("kunde") and fall.get("kunde") == t["kunde"]]
     treffer = rag.suche(anfrage, faelle, vektoren, t.get("kunde"), anzahl=anzahl,
                         kundenbonus=RAG_KUNDENBONUS, schwelle=schwelle)
     return treffer, faelle
@@ -825,6 +942,7 @@ def aehnliche_tickets(ticket_id: int, anzahl: int = 3, ohne_schwelle: bool = Fal
     start = time.perf_counter()
     liste = lade_tickets()
     t = finde_ticket(liste, ticket_id)
+    verlange_support_ticket(t)
     treffer, faelle = finde_aehnliche(t, liste, max(1, min(anzahl, 50)),
                                       schwelle=-1.0 if ohne_schwelle else None)
     titel = {x["id"]: x["titel"] for x in faelle}
@@ -917,7 +1035,7 @@ KEIN_FALL = "Kein passender gelöster Fall gefunden."
 
 
 def erzeuge_vorschlag(t: dict, liste: list, wb: rag.Wissensbasis | None = None,
-                       *, messung: dict | None = None) -> dict:
+                       *, messung: dict | None = None, nur_ticketkunde: bool = False) -> dict:
     """Suche plus KI. Wird vom Endpunkt und von scripts/auswertung_rag.py benutzt.
 
     Gibt es keinen Fall über der Schwelle, wird die KI gar nicht gefragt und
@@ -925,7 +1043,7 @@ def erzeuge_vorschlag(t: dict, liste: list, wb: rag.Wissensbasis | None = None,
     außerdem als unpassend verwerfen.
     """
     start = time.perf_counter()
-    treffer, faelle = finde_aehnliche(t, liste, wb=wb)
+    treffer, faelle = finde_aehnliche(t, liste, wb=wb, nur_ticketkunde=nur_ticketkunde)
     dauer_suche = time.perf_counter() - start
     nach_id = {f["id"]: f for f in faelle}
     gefunden = [nach_id[x["id"]] for x in treffer]
@@ -977,6 +1095,7 @@ def loesungsvorschlag(ticket_id: int, speichern: bool = True):
             ki["ursachen"] = ergebnis["vorschlaege"]
             ki["aehnliche_tickets"] = sorted({i for v in ergebnis["vorschlaege"] for i in v["tickets"]})
             ki["treffer"] = [{"id": x["id"], "aehnlichkeit": x["aehnlichkeit"]} for x in treffer]
+            ki["loesungsmodus"] = v.get("modus")
             ki["loesungsvorschlag"] = (
                 "\n".join(f"{n}. {v['ursache']}: {v['loesungsweg']}"
                           for n, v in enumerate(ergebnis["vorschlaege"], 1))

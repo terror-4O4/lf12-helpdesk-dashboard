@@ -2,10 +2,10 @@
 // Ziel laut Antrag: alles Wichtige auf einen Blick, ohne Scrollen.
 
 import { api } from "../api.js";
-import { STATUS } from "../config.js";
+import { PRIORITAET, STATUS } from "../config.js";
 import {
-  alter, fuege, h, hatHandlungsbedarf, istOffen, istSpamVerdacht, jetzt, kiMarke, leeren, nachDringlichkeit, prioBadge, sla,
-  slaAmpel, spamOffen, ticketNr,
+  alter, fuege, h, hatHandlungsbedarf, istOffen, istImSpamfilter, jetzt, kiMarke, leeren, nachDringlichkeit, sla,
+  slaAmpel, spamOffen, ticketNr, ticketPrioBadge,
 } from "../hilfen.js";
 import {
   anzeigeName, kundeName, lokalLesen, lokalSchreiben, meldung, neuZeichnen, ticketErsetzen, zustand,
@@ -15,11 +15,11 @@ import { ticketTabelle } from "./tickets.js";
 export function zeigeUebersicht(ziel) {
   const alle = zustand.tickets;
   const bezugszeit = jetzt();
-  const offen = alle.filter((t) => istOffen(t) && !istSpamVerdacht(t));
+  const offen = alle.filter((t) => istOffen(t) && !istImSpamfilter(t));
   const handlungsbedarf = offen
     .filter(hatHandlungsbedarf)
     .sort((a, b) => nachDringlichkeit(a, b, bezugszeit));
-  const unbewertet = alle.filter((t) => istOffen(t) && !t.ki?.prioritaet);
+  const unbewertet = offen.filter((t) => !t.ki?.prioritaet);
 
   fuege(ziel,
     kennzahlen(alle, offen, bezugszeit),
@@ -54,9 +54,9 @@ function kennzahlen(alle, offen, bezugszeit) {
     kachel("Neu", zaehle((t) => t.status === "neu"), "#/tickets?status=neu"),
     kachel("Antwort erhalten", zaehle((t) => t.status === "antwort_erhalten"), "#/tickets?status=antwort_erhalten"),
     kachel("In Bearbeitung", zaehle((t) => t.status === "in_bearbeitung"), "#/tickets?status=in_bearbeitung"),
-    kachel("Sehr dringend", sehrHoch, "#/tickets?prioritaet=sehr_hoch", sehrHoch ? "kachel-warn" : ""),
+    kachel(PRIORITAET.sehr_hoch, sehrHoch, "#/tickets?prioritaet=sehr_hoch", sehrHoch ? "kachel-warn" : ""),
     kachel("SLA überschritten", slaRot, "#/tickets?sla=rot", slaRot ? "kachel-rot" : ""),
-    kachel("Spam-Verdacht", spam, "#/spam", spam ? "kachel-ki" : ""),
+    kachel("Spam / Werbung", spam, "#/spam"),
   );
 }
 
@@ -112,7 +112,7 @@ function meineTickets(offen, bezugszeit) {
         slaAmpel(t, false, bezugszeit),
         h("span", { class: "nr" }, ticketNr(t.id)),
         h("span", { class: "titel-kurz" }, t.titel),
-        prioBadge(t.prioritaet, t.prioritaet_quelle)),
+        ticketPrioBadge(t)),
       h("span", { class: "unterzeile" }, `${kundeName(t.kunde)} · ${STATUS[t.status]} · ${alter(t.erstellt_am, bezugszeit)}`)))));
   return karte;
 }

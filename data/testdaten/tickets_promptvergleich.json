@@ -1,0 +1,162 @@
+[
+  {
+    "id": 2001,
+    "kunde": "bau",
+    "titel": "Leserechte für die Urlaubsvertretung vorbereiten",
+    "beschreibung": "Bitte richtet für Mara den lesenden Zugriff auf die Angebote ab dem nächsten Monat ein. Die Vertretung startet erst dann, aktuell hat jeder die nötigen Rechte.",
+    "erwartet": {"prioritaet": "niedrig", "spam": false, "kategorie": "Benutzerkonto"},
+    "hinweis": "Planbarer Auftrag mit Vorlauf."
+  },
+  {
+    "id": 2002,
+    "kunde": "autohaus",
+    "titel": "Frage zur Statusleuchte am Bildschirm",
+    "beschreibung": "Nach dem Feierabend blinkt am ausgeschalteten Bildschirm eine blaue Leuchte. Ist das normal? Bild und Bedienung sind einwandfrei.",
+    "erwartet": {"prioritaet": "niedrig", "spam": false, "kategorie": "Hardware"},
+    "hinweis": "Reine Frage ohne Arbeitsbeeinträchtigung."
+  },
+  {
+    "id": 2003,
+    "kunde": null,
+    "titel": "Exklusives Sponsoring für Ihre Website",
+    "beschreibung": "Für nur 499 Euro pro Monat erscheinen Sie ganz oben in unserem regionalen Firmenverzeichnis. Antworten Sie mit JA, um sich Ihren Werbeplatz zu sichern.",
+    "erwartet": {"prioritaet": "niedrig", "spam": true, "kategorie": "Spam"},
+    "hinweis": "Unaufgeforderte Werbung ohne IT-Anliegen."
+  },
+  {
+    "id": 2004,
+    "kunde": "praxis",
+    "titel": "Absender einer Einladung einschätzen",
+    "beschreibung": "Eine unbekannte Adresse hat der Praxis eine Konferenzeinladung geschickt. Ich habe sie nicht geöffnet und würde gerne wissen, woran ich einen seriösen Absender erkenne. Wir arbeiten normal weiter.",
+    "erwartet": {"prioritaet": "niedrig", "spam": false, "kategorie": "E-Mail"},
+    "hinweis": "Legitime Rückfrage eines Kunden, kein zugesandtes Spam-Angebot."
+  },
+  {
+    "id": 2005,
+    "kunde": "steuerbuero",
+    "titel": "Angebot für eine IT-Einweisung im Februar",
+    "beschreibung": "Wir möchten im Februar eine kurze IT-Einweisung für das Sekretariat buchen. Könnt ihr uns unverbindlich zwei Termine und den Preis nennen? Es liegt keine Störung vor.",
+    "erwartet": {"prioritaet": "niedrig", "spam": false, "kategorie": "Sonstiges"},
+    "hinweis": "Termin- und Angebotsanfrage ohne Beeinträchtigung."
+  },
+  {
+    "id": 2006,
+    "kunde": "autohaus",
+    "titel": "Zubehörberichte lassen sich nicht als Tabelle exportieren",
+    "beschreibung": "In der Zubehörsoftware stürzt der Excel-Export ab. Im Programm selbst können beide Mitarbeitenden alle Berichte weiter lesen und die wenigen Werte von Hand übertragen.",
+    "erwartet": {"prioritaet": "mittel", "spam": false, "kategorie": "Software"},
+    "hinweis": "Ausweichweg vorhanden. Die Sonderregel für den Annahme-PC greift hier nicht."
+  },
+  {
+    "id": 2007,
+    "kunde": "bau",
+    "titel": "Besprechungsraum hat kein WLAN",
+    "beschreibung": "Seit heute verbinden sich im Besprechungsraum keine Geräte mit dem WLAN. Alle sechs Teilnehmer sind am Tisch per Netzwerkkabel online. Die Besprechung läuft damit weiter.",
+    "erwartet": {"prioritaet": "mittel", "spam": false, "kategorie": "Netzwerk"},
+    "hinweis": "Mehrere betroffen, aber alle können über Kabel weiterarbeiten."
+  },
+  {
+    "id": 2008,
+    "kunde": "steuerbuero",
+    "titel": "Kopierer zieht doppelseitige Vorlagen schief ein",
+    "beschreibung": "Seit heute knickt der automatische Einzug bei vier von fünf doppelseitigen Vorlagen. Am selben Gerät können wir die Seiten einzeln über das Glas kopieren und kommen damit langsamer voran.",
+    "erwartet": {"prioritaet": "mittel", "spam": false, "kategorie": "Drucker"},
+    "hinweis": "Kopierer fällt unter Drucker. Die Einzelkopie ist ein Workaround."
+  },
+  {
+    "id": 2009,
+    "kunde": "praxis",
+    "titel": "Headset am Diktierplatz nicht erkannt",
+    "beschreibung": "Das USB-Headset am Diktierplatz wird nicht mehr erkannt. Die Ärztin kann mit dem eingebauten Mikrofon weiter diktieren, muss sich dafür aber näher ans Gerät setzen.",
+    "erwartet": {"prioritaet": "mittel", "spam": false, "kategorie": "Hardware"},
+    "hinweis": "Gerät defekt, vorhandenes Mikrofon erlaubt Weiterarbeit."
+  },
+  {
+    "id": 2010,
+    "kunde": "logistik",
+    "titel": "Fahrerliste im gemeinsamen Postfach fehlt",
+    "beschreibung": "Die Fahrerliste kam heute nicht im gemeinsamen Dispo-Postfach an. Der Fahrer schickt sie auf Wunsch an das persönliche Postfach der Disponentin, damit die Touren geplant werden können.",
+    "erwartet": {"prioritaet": "mittel", "spam": false, "kategorie": "E-Mail"},
+    "hinweis": "Mailfluss gestört. Die Disposition arbeitet über das persönliche Postfach weiter."
+  },
+  {
+    "id": 2011,
+    "kunde": "steuerbuero",
+    "titel": "Ersatz-TANs werden für den Lohnzugang abgelehnt",
+    "beschreibung": "Die einzige für die Übertragung eingeteilte Sachbearbeiterin kann sich am Lohnportal nicht anmelden. Ihr vorhandener zweiter Faktor wird abgelehnt, Ersatzcodes funktionieren ebenfalls nicht. Sie kann die heute fällige Übertragung deshalb nicht ausführen, alle anderen Anwendungen in der Kanzlei laufen.",
+    "erwartet": {"prioritaet": "hoch", "spam": false, "kategorie": "Benutzerkonto"},
+    "hinweis": "Wichtige Aufgabe einer einzelnen Person blockiert. Kein Ausfall der zentralen Kanzleisoftware."
+  },
+  {
+    "id": 2012,
+    "kunde": "bau",
+    "titel": "Externer Planaustausch vom Arbeitsplatz nicht erreichbar",
+    "beschreibung": "Am Arbeitsplatz der einzigen heute eingeteilten Zeichnerin sind seit der Netzumstellung alle externen Verbindungen unterbrochen. Die übrigen Plätze haben Internet, doch sie kann keinen nutzen und keine Pläne für die anstehenden Termine bereitstellen.",
+    "erwartet": {"prioritaet": "hoch", "spam": false, "kategorie": "Netzwerk"},
+    "hinweis": "Ein Arbeitsplatz ohne nutzbaren Ausweichplatz."
+  },
+  {
+    "id": 2013,
+    "kunde": "praxis",
+    "titel": "PC im Abrechnungszimmer bleibt im Startbildschirm",
+    "beschreibung": "Der Rechner im Abrechnungszimmer kommt seit dem Einschalten nicht mehr ins Betriebssystem. Die Abrechnungskraft kann ihre Arbeit ohne diesen Rechner nicht erledigen und hat heute keinen freien Ersatzplatz. Die Patientenaufnahme am Empfang läuft.",
+    "erwartet": {"prioritaet": "hoch", "spam": false, "kategorie": "Hardware"},
+    "hinweis": "Ein Arbeitsplatz blockiert. Die Sonderregel für die Anmeldung greift nicht."
+  },
+  {
+    "id": 2014,
+    "kunde": "autohaus",
+    "titel": "Signaturprogramm am einzelnen Verkaufsplatz stürzt ab",
+    "beschreibung": "Am Verkaufsplatz im Obergeschoss beendet sich die Vertragssoftware beim Unterschreiben. Der dort eingeteilte Verkäufer kann heute keine Verträge abschließen. Es gibt für ihn keinen Ersatzplatz, die anderen Verkaufsplätze und die Fahrzeugannahme funktionieren.",
+    "erwartet": {"prioritaet": "hoch", "spam": false, "kategorie": "Software"},
+    "hinweis": "Eine Person ohne Ausweichweg, kein Ausfall der Fahrzeugannahme."
+  },
+  {
+    "id": 2015,
+    "kunde": "logistik",
+    "titel": "Einzelner Etikettendrucker am Musterplatz reagiert nicht",
+    "beschreibung": "Der Etikettendrucker am separaten Musterplatz nimmt keine Aufträge mehr an. Die zuständige Kollegin kann die heute fälligen Muster nicht abschicken. Die anderen Geräte haben das benötigte Etikettenformat nicht, der normale Warenausgang läuft.",
+    "erwartet": {"prioritaet": "hoch", "spam": false, "kategorie": "Drucker"},
+    "hinweis": "Eine Person blockiert. Der für den Warenausgang kritische Lagerdrucker ist nicht betroffen."
+  },
+  {
+    "id": 2016,
+    "kunde": "bau",
+    "titel": "Dateiserver für alle Mitarbeiter nicht erreichbar",
+    "beschreibung": "Das gesamte Büro erhält beim Öffnen der gemeinsamen Projektlaufwerke einen Verbindungsfehler. Auch vom Besprechungsraum ist der Server nicht erreichbar. Niemand hat die aktuellen Baupläne anderswo, die Planbearbeitung steht komplett.",
+    "erwartet": {"prioritaet": "sehr_hoch", "spam": false, "kategorie": "Netzwerk"},
+    "hinweis": "Serververbindung für alle unterbrochen, keine Ausweichkopien."
+  },
+  {
+    "id": 2017,
+    "kunde": "logistik",
+    "titel": "An der Rampe kann niemand Barcode-Eingänge buchen",
+    "beschreibung": "Die Wareneingangsanwendung friert seit dem Start der Frühschicht an allen fünf Stationen nach dem Scannen ein. Kein Eingang lässt sich buchen, und die Fahrer stehen an der Rampe. Manuell gibt es keine Buchungsmöglichkeit.",
+    "erwartet": {"prioritaet": "sehr_hoch", "spam": false, "kategorie": "Software"},
+    "hinweis": "Ganze Abteilung ohne Workaround. Die Anwendung friert ein."
+  },
+  {
+    "id": 2018,
+    "kunde": "praxis",
+    "titel": "Heute fehlen sämtliche Laborbefunde im Praxispostfach",
+    "beschreibung": "Das Laborteam bestätigt, dass die Befundmails seit dem Morgen zurückgewiesen werden. In der Praxis kommt kein Laborbefund an. Für die heutige Behandlung gibt es vor Ort keinen anderen Abruf.",
+    "erwartet": {"prioritaet": "sehr_hoch", "spam": false, "kategorie": "E-Mail"},
+    "hinweis": "Die dokumentierte Kundenregel gilt für ausbleibende Laborbefunde."
+  },
+  {
+    "id": 2019,
+    "kunde": "autohaus",
+    "titel": "Annahme-PC meldet dauernd einen Lüfterfehler und schaltet sich aus",
+    "beschreibung": "Der PC an der Fahrzeugannahme schaltet sich nach jedem Einschalten mit einem Lüfterfehler ab. Die Schicht kann keine Fahrzeuge annehmen. Andere Arbeitsplätze haben keinen Zugriff auf die Annahmemaske.",
+    "erwartet": {"prioritaet": "sehr_hoch", "spam": false, "kategorie": "Hardware"},
+    "hinweis": "Die dokumentierte Sonderregel für den PC der Fahrzeugannahme greift."
+  },
+  {
+    "id": 2020,
+    "kunde": "steuerbuero",
+    "titel": "Alle Sachbearbeiter werden am gemeinsamen Mandantenportal abgewiesen",
+    "beschreibung": "Seit 8 Uhr bekommen alle Personen der Sachbearbeitung bei der Anmeldung die Meldung „Anmeldeverfahren nicht zugelassen“. Kein Konto kommt durch, und die fälligen Mandantenübermittlungen können ohne das Portal nicht erledigt werden.",
+    "erwartet": {"prioritaet": "sehr_hoch", "spam": false, "kategorie": "Benutzerkonto"},
+    "hinweis": "Die gesamte Sachbearbeitung ist bei einer zeitkritischen Aufgabe ohne Ausweichweg blockiert."
+  }
+]

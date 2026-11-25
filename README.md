@@ -1,8 +1,8 @@
 # LF12 · Helpdesk-Dashboard mit KI-Assistent
 
-Schulprojekt im Lernfeld 12 (Klasse 12BE15): ein Dashboard für den IT-Support, das den Zustand aller Tickets auf einen Blick zeigt. Eine **lokal laufende KI** (llama.cpp) priorisiert Tickets, erkennt Spam und schlägt anhand bereits gelöster Tickets mögliche Ursachen und Lösungswege vor. Kundendokumentation lässt sich über ein KI-Textfeld durchsuchen.
+Das Helpdesk-Dashboard für Lernfeld 12 (Klasse 12BE15) zeigt offene Tickets, Wartezeiten und Handlungsbedarf. Ein lokal betriebenes Sprachmodell mit llama.cpp schlägt Prioritäten vor und nutzt ähnliche gelöste Tickets für mögliche Lösungswege. Im Dashboard lässt sich die Kundendokumentation zum Ticket oder per freier Frage durchsuchen. Bei der Bearbeitung entscheidet der Support.
 
-Verbindliche Grundlage ist der genehmigte **Projektantrag V2.1**.
+Grundlage ist der **Projektantrag V2.1**. Die [Projektdokumentation](docs/README.md) beschreibt den Aufbau und die Projektgrenzen. Der [Prüf- und Demoablauf](docs/test-und-demo.md) enthält Messziele, Auswertung und Präsentationsfälle.
 
 > **Alle Daten in diesem Repo sind frei erfunden.** Es gibt keine echten Kunden, Tickets, Personen oder Zugangsdaten.
 
@@ -15,16 +15,16 @@ Verbindliche Grundlage ist der genehmigte **Projektantrag V2.1**.
 | Ricardo H. | |
 | Jennan H. | |
 
-## Architektur (Kurzfassung)
+## Architektur
 
 ```
-Browser (Dashboard)  ──►  Backend (Python)  ──►  llama-server (llama.cpp, OpenAI-kompatible API)
-                              │
-                              └──►  Testdaten (fiktive Tickets, Kundendoku)
+Browser (Dashboard)  ──►  FastAPI  ──►  llama-server (Chat und Klassifikation)
+                             ├────────►  zweiter llama-server (Embeddings für ähnliche Fälle)
+                             └────────►  Ticket-Arbeitskopie, fiktive Kundendoku
 ```
 
 - **Entwicklung:** jeder auf dem eigenen Laptop (Windows oder macOS)
-- **Betrieb:** Mac Pro als Server, Zugriff für die Gruppe nur über Tailscale auf Weboberfläche und API
+- **Betrieb:** Gemma 4 26B-A4B über llama.cpp auf dem Mac Pro, Zugriff für die Gruppe nur über Tailscale auf Weboberfläche und API
 - **Deployment:** ausschließlich durch Marlon, nur geprüfter Code aus `main`
 
 ## Ordnerstruktur
@@ -34,15 +34,16 @@ Browser (Dashboard)  ──►  Backend (Python)  ──►  llama-server (llama
 | `backend/` | Python-Backend: holt Daten, baut Prompts, spricht mit llama-server |
 | `frontend/` | Dashboard-Oberfläche (HTML, CSS, JavaScript) |
 | `data/testdaten/` | Fiktive Tickets, Kundendoku, Spam-Beispiele |
-| `docs/` | Projektdokumentation, Testprotokolle, Diagramme |
-| `scripts/` | Hilfsskripte (Server starten, Testdaten erzeugen, ...) |
+| `docs/` | Projektdokumentation, Datenformat, Prüf- und Demoablauf |
+| `scripts/` | Backend-Start, Auswertungen und Bereitstellung für den Mac Pro |
+| `tests/` | Automatisierte Prüfungen für Backend und Dashboard |
 
 ## Einrichtung
 
 ### Voraussetzungen
 
 - [Git](https://git-scm.com/downloads)
-- **Python 3.11 oder neuer**
+- **Python 3.11 oder neuer** (lokal mit 3.12 geprüft)
   - Windows: [python.org](https://www.python.org/downloads/), bei der Installation **„Add python.exe to PATH“** anhaken
   - macOS: `brew install python@3.13`. ⚠️ Das vorinstallierte `python3` von Apple ist 3.9 und zu alt. Die Umgebung daher mit `python3.13 -m venv .venv` anlegen
 - Editor, z. B. [VS Code](https://code.visualstudio.com/)
@@ -60,12 +61,12 @@ Die Datei `.env.example` kopieren und als `.env` speichern. In `.env` stehen eur
 
 ```bash
 # macOS / Linux
-cp .env.example .env
+test -f .env || cp .env.example .env
 ```
 
 ```powershell
 # Windows (PowerShell)
-Copy-Item .env.example .env
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
 > ⚠️ Die `.env` wird **nie** committet (steht in `.gitignore`). Den API-Key für den Server bekommt ihr von Marlon persönlich, nicht über Trello, WhatsApp-Gruppe oder das Repo.
@@ -74,7 +75,7 @@ Copy-Item .env.example .env
 
 ```bash
 # macOS / Linux
-python3 -m venv .venv
+python3.13 -m venv .venv
 source .venv/bin/activate
 ```
 
@@ -84,7 +85,13 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-Abhängigkeiten werden ergänzt, sobald das Backend steht (`backend/requirements.txt`).
+In der aktivierten Umgebung die Abhängigkeiten installieren.
+
+```text
+python -m pip install -r backend/requirements.txt
+```
+
+Die Vorlage startet mit `KI_MOCK=true`. Danach das Backend mit `./scripts/start-backend.sh` (macOS/Linux) oder `.\scripts\start-backend.ps1` (Windows) starten und [das Dashboard](http://127.0.0.1:8000/) öffnen. Die feste [Demo-Uhrzeit](http://127.0.0.1:8000/?jetzt=2026-11-19T11:30) passt zu den Beispieltickets. Für den Modellbetrieb die lokale Konfiguration nach der [Backend-Anleitung](backend/README.md) einrichten.
 
 ## Mitarbeiten
 

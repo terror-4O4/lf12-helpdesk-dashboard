@@ -13,10 +13,10 @@ if (Test-Path ".venv\Scripts\Activate.ps1") {
     . .\.venv\Scripts\Activate.ps1
 }
 
-# Python 3.10 oder neuer nötig
-python -c "import sys; sys.exit(sys.version_info < (3, 10))" 2>$null
+# Python 3.11 oder neuer nötig
+python -c "import sys; sys.exit(sys.version_info < (3, 11))" 2>$null
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "Python zu alt oder nicht gefunden. Benötigt wird 3.10 oder neuer (python.org)."
+    Write-Host "Python zu alt oder nicht gefunden. Benötigt wird 3.11 oder neuer (python.org)."
     Write-Host "Danach .venv löschen und mit 'python -m venv .venv' neu anlegen."
     exit 1
 }
@@ -29,4 +29,4 @@ foreach ($zeile in Get-Content ".env") {
     if ($zeile -match '^APP_PORT=(.+)$') { $appPort = $Matches[1].Trim() }
 }
 
-uvicorn backend.app:app --reload --host $appHost --port $appPort
+python -m uvicorn backend.app:app --reload --host $appHost --port $appPort

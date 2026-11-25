@@ -24,6 +24,7 @@ from threading import Lock
 
 import httpx
 
+from backend import eingang
 from backend.speicher import schreibe_atomar
 
 # EmbeddingGemma erwartet eine Aufgabe vor dem Text. Für den Vergleich
@@ -46,8 +47,7 @@ def ist_fall(t: dict) -> bool:
     return (
         t.get("status") == "geschlossen"
         and bool((t.get("loesungsweg") or "").strip())
-        and t.get("spam_entscheidung") != "spam"
-        and not (t.get("ki") or {}).get("spam")
+        and not eingang.ist_spam(t)
     )
 
 

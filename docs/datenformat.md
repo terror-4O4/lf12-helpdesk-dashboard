@@ -6,10 +6,13 @@ Alle Dateien liegen unter `data/testdaten/` und sind **frei erfunden**.
 
 | Datei | Inhalt |
 |---|---|
-| `tickets.json` | Liste aller Tickets |
+| `tickets.json` | 30 ursprüngliche Testtickets |
 | `kunden.json` | Liste aller Kunden |
 | `doku/<kunde>.md` | Kundendokumentation, eine Datei pro Kunde |
 | `erwartet.json` | Erwartete KI-Bewertung je Ticket, nur für Tests |
+| `fragen_doku.json` | Vorbereitete Doku-Fragen mit Sollfundstelle, Belegtext und Fällen ohne Treffer |
+| `tickets_promptvergleich.json` | 20 neue Prüftickets mit Sollbewertung, fünf Fälle pro Priorität |
+| `rag_abnahme.json` | Neue Prüffälle mit oder ohne bekannte Lösung in der Ticket-Historie |
 
 ## Allgemeine Regeln
 
@@ -55,12 +58,13 @@ Alle Dateien liegen unter `data/testdaten/` und sind **frei erfunden**.
 | `beschreibung` | Text | Problembeschreibung, wie sie vom Kunden kommt |
 | `status` | Text | Aktueller Status, siehe unten |
 | `prioritaet` | Text oder `null` | Gültige Priorität, siehe unten. Wird zuerst von der KI gesetzt, kann von Hand geändert werden |
-| `prioritaet_quelle` | Text oder `null` | `"ki"` = Wert stammt von der KI, `"manuell"` = von einem Mitarbeiter geändert |
+| `prioritaet_quelle` | Text oder `null` | `ki` bezeichnet die automatisch übernommene Einstufung, `manuell` die Entscheidung des Supports. |
 | `zugewiesen_an` | Text oder `null` | Kürzel des zuständigen Mitarbeiters |
 | `erstellt_am` | Zeitstempel | Wann das Ticket angelegt wurde |
 | `statushistorie` | Liste | Jeder Statuswechsel mit Zeitpunkt, älteste zuerst. Daraus berechnet das Dashboard Ticketalter, Wartezeiten und SLA |
 | `ki` | Objekt oder `null` | Ergebnis der KI-Auswertung, siehe unten. `null`, solange die KI das Ticket noch nicht bewertet hat |
-| `spam_entscheidung` | Text oder `null` | Entscheidung eines Mitarbeiters zum Spam-Verdacht: `"spam"` (bestätigt) oder `"kein_spam"` (Fehlalarm der KI). `null` = noch nicht entschieden. Fehlt das Feld (ältere Testdaten), gilt `null` |
+| `regelhinweise` | Liste von Texten | Ergänzende Hinweise aus Textmustern. Sie ändern weder KI-Ergebnis noch Warteschlange. |
+| `spam_entscheidung` | Text oder `null` | Entscheidung des Supports. `"spam"` bestätigt Spam, `"kein_spam"` gibt das Ticket frei. Der manuelle Entscheid hat Vorrang. |
 | `ursache` | Text oder `null` | Ursache des Problems, wird beim Schließen eingetragen (laut Antrag „Ursache und Lösung erfassen“) |
 | `loesungsweg` | Text oder `null` | Wird beim Schließen eingetragen, Pflicht zum Schließen (außer bestätigter Spam). Mit der Ursache die Grundlage für ähnliche Fälle |
 | `geschlossen_am` | Zeitstempel oder `null` | Wann das Ticket geschlossen wurde |
@@ -78,28 +82,34 @@ Alle Dateien liegen unter `data/testdaten/` und sind **frei erfunden**.
 
 ### Priorität
 
-`niedrig`, `mittel`, `hoch`, `sehr_hoch` (Stufen laut Projektantrag V2.1)
+| Code und Anzeige | Maßstab für die Sollbewertung |
+|---|---|
+| `niedrig` / Niedrig | Frage, kosmetischer Fehler oder planbarer Auftrag. Die laufende Arbeit ist möglich. |
+| `mittel` / Mittel | Die Arbeit ist beeinträchtigt. Ein nutzbarer Ausweichweg oder eine vorübergehende Unterbrechung erlaubt die Weiterarbeit. |
+| `hoch` / Hoch | Eine Person kann eine notwendige Arbeit nicht erledigen oder eine wichtige Funktion ist ausgefallen. |
+| `sehr_hoch` / Sehr hoch | Ein wesentlicher Geschäftsablauf steht oder mehrere Beschäftigte sind bei ihrer Arbeit blockiert. Ein wirksamer Ausweichweg fehlt. |
+
+Bei der Sollbewertung zählen die im Ticket geschilderten Folgen. „Alle sehen die Meldung“ sagt noch nichts darüber aus, ob alle weiterarbeiten können. Ein bestelltes Ersatzgerät hilft erst, wenn es sich tatsächlich einsetzen lässt. Eine dokumentierte Kundenregel gilt, wenn das Ticket die darin genannten Bedingungen erfüllt.
 
 ### KI-Block
 
-Der KI-Block wird **nur von der KI** geschrieben, Mitarbeiter ändern ihn nie. Ändert ein Mitarbeiter die Priorität, passiert das im Feld `prioritaet` des Tickets (mit `prioritaet_quelle: "manuell"`), der KI-Block bleibt unverändert. So bleibt nachvollziehbar, was die KI vorgeschlagen hat. Das ist die Grundlage für die Tests („Wie oft lag die KI richtig?“).
+Der Block enthält die Ergebnisse der automatischen Supportbewertung und der Fallsuche. Eine manuelle Prioritätsänderung steht im Feld `prioritaet` des Tickets und hat Vorrang vor späteren Vorschlägen.
 
-Wird ein Ticket erneut analysiert, ersetzt das neue Ergebnis den KI-Block. Eine manuell gesetzte Priorität bleibt dabei erhalten.
-
-Genauso beim Spam: Ein Mitarbeiter bestätigt oder verwirft den Verdacht im Feld `spam_entscheidung` des Tickets, `ki.spam` bleibt unverändert. So lassen sich Fehlalarme der KI zählen.
+Eine erneute Ticketanalyse aktualisiert Priorität, Kategorie und Begründung. Ergebnisse der Fallsuche und die manuell gesetzte Priorität bleiben erhalten. Die Spam-Warteschlange verwendet den Modellbefund und die Entscheidung des Supports.
 
 | Feld | Typ | Bedeutung |
 |---|---|---|
-| `prioritaet` | Text | Von der KI vorgeschlagene Priorität |
-| `spam` | true/false | Von der KI als Spam erkannt |
-| `kategorie` | Text | Genau einer dieser Werte: `Software`, `Hardware`, `Netzwerk`, `Drucker`, `Benutzerkonto`, `E-Mail`, `Spam`, `Sonstiges` |
-| `begruendung` | Text | Kurzer Satz, warum die KI so bewertet hat. Für das Dashboard und zum Nachvollziehen bei Tests |
+| `prioritaet` | Text | Automatisch vorgeschlagene Priorität |
+| `modus` | Text | Kennzeichnet Modellbetrieb oder simulierten Testbetrieb. |
+| `spam` | boolescher Wert | Verdacht aus der KI-Analyse. Bei der Einsortierung hat die Mitarbeiterentscheidung Vorrang. |
+| `kategorie` | Text | Vom Modell vorgeschlagene Kategorie, einschließlich `Spam`. |
+| `begruendung` | Text | Begründung des Modells für seine Einstufung |
 | `loesungsvorschlag` | Text oder `null` | Vorschlag auf Basis ähnlicher gelöster Tickets als Text, oder „Kein passender gelöster Fall gefunden …“. `null` = noch nicht gesucht |
 | `ursachen` | Liste | Bis zu 3 Vorschläge `{"ursache", "loesungsweg", "tickets": [1001]}`, wahrscheinlichste zuerst. Leer, wenn kein Fall passt |
 | `aehnliche_tickets` | Liste von Zahlen | IDs der gelösten Tickets, auf die sich die Vorschläge stützen |
 | `treffer` | Liste | Ergebnis der Suche vor der KI: `{"id", "aehnlichkeit"}` (0 bis 1), bester zuerst. Zeigt auch Fälle, die die KI verworfen hat |
 
-Bewertung (Priorität, Spam, Kategorie, Begründung) und Fallsuche laufen getrennt. Wurde nur gesucht, aber noch nicht bewertet, sind `prioritaet`, `spam`, `kategorie` und `begruendung` `null`.
+Die gemeinsame Ticketbewertung und die Fallsuche lassen sich unabhängig ausführen. Wurde nur nach gelösten Fällen gesucht, kann das Ticket bereits Fallvorschläge enthalten, während Priorität, Kategorie und Begründung im KI-Block noch fehlen.
 
 ## Kunde
 
@@ -135,6 +145,8 @@ Eine Markdown-Datei pro Kunde unter `doku/<kunde>.md`, z. B. `doku/bau.md`. Fest
 ## Zugangsdaten
 ## Besonderheiten
 ```
+
+Weitere Überschriften auf Ebene `##` bilden zusätzliche Fundstellen. Die Suche gibt aus Dateiname und Überschrift eine Quellenkennung wie `doku/bau.md#netzwerk-und-firewall` an. Portal-Links als Markdown-Links pflegen. Die Antwort übernimmt die Adresse aus der Kundenakte.
 
 **Zugangsdaten stehen nie im Klartext in der Doku**, nur der Verweis auf den Passwortmanager:
 
@@ -187,11 +199,12 @@ In die Wissensbasis kommt jedes Ticket mit Status `geschlossen` und Lösungsweg,
 
 ## Testdaten und Arbeitskopie
 
-Das Backend verändert **nie** die Dateien in `data/testdaten/`. Beim ersten Start kopiert es `tickets.json` nach `data/laufzeit/tickets.json` und arbeitet nur noch mit dieser Kopie (z. B. speichert es dort KI-Analysen). `data/laufzeit/` steht in der `.gitignore` und landet nie im Repo.
+Beim ersten Laden erstellt das Backend aus `data/testdaten/tickets.json` und `data/testdaten/uebungstickets.json` die Arbeitskopie `data/laufzeit/tickets.json`. Dort speichert es auch neue Meldungen und KI-Analysen. Git ignoriert das Verzeichnis `data/laufzeit/`.
 
-Zurücksetzen auf den Stand der Testdaten: `POST /api/testdaten/zuruecksetzen` oder den Ordner `data/laufzeit/` löschen.
+`POST /api/testdaten/ergaenzen` ergänzt fehlende Übungsfälle in der Arbeitskopie. Das Feld `uebungsvorlage` merkt sich die Nummer der Vorlage, falls die lokale Ticketnummer bereits vergeben ist. So bleiben wiederholte Importe und spätere Bearbeitungen demselben Fall zugeordnet.
+
+Der Endpunkt `POST /api/testdaten/zuruecksetzen` ersetzt die Ticket-Arbeitskopie durch den Testdatenstand. Für eine reproduzierbare Demo lässt sich die Uhrzeit mit `?jetzt=2026-11-19T11:30` an die Testdaten anpassen.
 
 ## Offene Punkte
 
-- **Testdaten altern:** Feste Zeitstempel sind bei der Präsentation Tage alt, dann ist jedes Ticket rot. Lösung folgt (z. B. Skript, das die Zeiten relativ zu „jetzt“ verschiebt).
-- **Mitarbeiter:** Format für Mitarbeiter und persönliche To-dos folgt. Bis dahin nimmt das Dashboard die Kürzel aus `zugewiesen_an`, die To-dos speichert es nur im Browser.
+- **Mitarbeiter:** Das Dashboard nimmt die Kürzel aus `zugewiesen_an`. Persönliche To-dos werden im Browser gespeichert.

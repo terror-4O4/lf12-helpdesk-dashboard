@@ -1,0 +1,110 @@
+[
+  {
+    "id": 3401,
+    "kunde": "logistik",
+    "titel": "Wannenwaage gibt das Gewicht nicht mehr an den Rechner weiter",
+    "beschreibung": "Beim Wiegen erscheint der Messwert weiterhin auf der Waage, im Eingangsschein bleibt das Feld leer. Wir tragen den abgelesenen Wert im Schein von Hand ein und können jede Lieferung annehmen. Es dauert so länger.",
+    "erwartet": {
+      "prioritaet": "mittel"
+    }
+  },
+  {
+    "id": 3402,
+    "kunde": "praxis",
+    "titel": "Später anderes Bild auf dem Aufrufmonitor",
+    "beschreibung": "Die Anzeige im Wartezimmer funktioniert und alle Aufrufe sind lesbar. Bei der nächsten Überarbeitung möchten wir das Hintergrundbild durch unser neues Logo ersetzen. Eile hat das keine.",
+    "erwartet": {
+      "prioritaet": "niedrig"
+    }
+  },
+  {
+    "id": 3403,
+    "kunde": "bau",
+    "titel": "Straßensperrungsplan öffnet nur noch die Ansicht",
+    "beschreibung": "Bei meinem Planungszugang ist das Zeichnen für sämtliche Sperrungspläne ausgegraut. Mit meinem Zugang klappt es am Gerät des Kollegen ebenso wenig, er zeichnet mit seiner Kennung normal. Ich kann meine heute zu zeichnenden Pläne gerade nur ansehen und darf keine andere Kennung benutzen.",
+    "erwartet": {
+      "prioritaet": "hoch"
+    }
+  },
+  {
+    "id": 3404,
+    "kunde": "steuerbuero",
+    "titel": "Einreichungen bleiben bei der Versandfreigabe hängen",
+    "beschreibung": "Sobald wir die vorbereiteten Anmeldungen absenden, landen sie sofort wieder unter Entwürfe. Das passiert heute bei jedem Mitglied des Übermittlungsteams. Die fälligen Meldungen werden über keinen anderen Weg angenommen, unser Team bekommt also keine einzige raus.",
+    "erwartet": {
+      "prioritaet": "sehr_hoch"
+    }
+  },
+  {
+    "id": 3405,
+    "kunde": "autohaus",
+    "titel": "Werkzeugausgabe an einem Arbeitsplatz nicht nutzbar",
+    "beschreibung": "Ich bin der Werkzeugwart der Spätschicht und kann mit meiner Kennung keine Ausleihen bestätigen. Auch an der Station im Nebenraum klappt das für mich nicht. Die anderen Schichten konnten mit ihren Kennungen normal buchen. Für meine Aufgabe habe ich keine andere Ausgabemöglichkeit.",
+    "erwartet": {
+      "prioritaet": "hoch"
+    }
+  },
+  {
+    "id": 3406,
+    "kunde": "steuerbuero",
+    "titel": "Ansicht zweier Belege nebeneinander trennen",
+    "beschreibung": "Im Lernraum würden wir künftig gern zeigen, wie man zwei Belege nebeneinander anordnet. Wir möchten dafür eine kurze Anleitung für den Kurs im nächsten Monat. Im Tagesgeschäft funktioniert der Belegabruf wie gewohnt.",
+    "erwartet": {
+      "prioritaet": "niedrig"
+    }
+  },
+  {
+    "id": 3407,
+    "kunde": "logistik",
+    "titel": "Abholcodes werden nicht mehr angenommen",
+    "beschreibung": "Unser Hofsystem weist seit Schichtbeginn jeden Abholcode zurück, egal an welcher Schranke wir ihn scannen. Der Hof darf Fahrer ausschließlich nach bestätigtem Code einlassen. Der gesamte Abholbetrieb ruht und die Lkw stauen sich vor der Einfahrt.",
+    "erwartet": {
+      "prioritaet": "sehr_hoch"
+    }
+  },
+  {
+    "id": 3408,
+    "kunde": "praxis",
+    "titel": "Befundbilder lassen sich im Browser nur einzeln öffnen",
+    "beschreibung": "Der Sammelaufruf von Untersuchungsbildern zeigt mir eine graue Fläche. Wenn ich dieselben Bilder einzeln auswähle, sehe ich jedes davon und kann die Auswertung fertigstellen. Ich brauche nur etliche zusätzliche Klicks.",
+    "erwartet": {
+      "prioritaet": "mittel"
+    }
+  },
+  {
+    "id": 3409,
+    "kunde": "bau",
+    "titel": "Gültige Stundensätze im Angebot werden alle zu null",
+    "beschreibung": "Sämtliche Leute in unserer Kalkulation bekommen seit heute beim Abschluss eines Angebots Nullbeträge, obwohl die Einzelpreise stimmen. Deshalb kann momentan kein Auftraggeber ein gültiges Angebot bekommen. Eine zweite freigegebene Kalkulationsmöglichkeit haben wir nicht.",
+    "erwartet": {
+      "prioritaet": "sehr_hoch"
+    }
+  },
+  {
+    "id": 3410,
+    "kunde": "autohaus",
+    "titel": "Eintrag im Geräteverzeichnis ergänzen",
+    "beschreibung": "Das Ersatztablet im Schulungsschrank ist einsatzbereit und korrekt verbucht. Für unsere nächste Inventur hätten wir gern zusätzlich die Farbe der Hülle im Verzeichnis. Ein Eintrag nächste Woche ist völlig ausreichend.",
+    "erwartet": {
+      "prioritaet": "niedrig"
+    }
+  },
+  {
+    "id": 3411,
+    "kunde": "steuerbuero",
+    "titel": "Abrechnung für Reisepauschalen ohne meine Unterschrift offen",
+    "beschreibung": "Mein persönlicher Signaturstift reagiert bei keiner Freigabe, obwohl der meiner Kollegin bei ihren Vorgängen funktioniert. Für meinen Stapel gibt es keinen Vertretungsberechtigten und keine Papierfreigabe. Meine Freigaben kommen heute dadurch nicht weiter.",
+    "erwartet": {
+      "prioritaet": "hoch"
+    }
+  },
+  {
+    "id": 3412,
+    "kunde": "bau",
+    "titel": "Fotostrecke lässt sich nicht mehr gemeinsam verschicken",
+    "beschreibung": "Wenn ich in der Baustellenmappe mehrere Fotos auf einmal auswähle, bleibt die Übergabe leer. Einzeln kann ich sie aus derselben Mappe übermitteln, die Bauleitung hat heute schon einzelne Bilder von mir erhalten. Bei größeren Fotostrecken kostet das zusätzliche Zeit.",
+    "erwartet": {
+      "prioritaet": "mittel"
+    }
+  }
+]

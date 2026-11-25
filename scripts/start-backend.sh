@@ -14,9 +14,9 @@ if [ -f .venv/bin/activate ]; then
   source .venv/bin/activate
 fi
 
-# Python 3.10 oder neuer nötig (macOS bringt nur 3.9 mit)
-if ! python -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2>/dev/null; then
-  echo "Python zu alt: $(python --version 2>&1). Benötigt wird 3.10 oder neuer."
+# Python 3.11 oder neuer nötig
+if ! python -c 'import sys; sys.exit(sys.version_info < (3, 11))' 2>/dev/null; then
+  echo "Python zu alt oder nicht gefunden. Benötigt wird 3.11 oder neuer."
   echo "macOS: brew install python@3.13, dann .venv löschen und mit python3.13 -m venv .venv neu anlegen."
   exit 1
 fi
@@ -25,4 +25,4 @@ fi
 APP_HOST=$(grep -E '^APP_HOST=' .env | cut -d= -f2)
 APP_PORT=$(grep -E '^APP_PORT=' .env | cut -d= -f2)
 
-exec uvicorn backend.app:app --reload --host "${APP_HOST:-127.0.0.1}" --port "${APP_PORT:-8000}"
+exec python -m uvicorn backend.app:app --reload --host "${APP_HOST:-127.0.0.1}" --port "${APP_PORT:-8000}"
