@@ -1,5 +1,6 @@
 """Regressionstests für parallele Änderungen der lokalen Ticketdaten."""
 
+import json
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack
@@ -9,6 +10,7 @@ from threading import Event
 from unittest.mock import patch
 
 from fastapi import HTTPException
+from fastapi.testclient import TestClient
 
 from backend import app
 
@@ -29,13 +31,14 @@ class TicketSpeicherTest(unittest.TestCase):
         daten = tmp / "testdaten"
         daten.mkdir()
         (daten / "tickets.json").write_text("[]", encoding="utf-8")
+        (daten / "uebungstickets.json").write_text("[]", encoding="utf-8")
         stack.enter_context(patch.object(app, "DATEN", daten))
         stack.enter_context(patch.object(app, "LAUFZEIT_TICKETS", tmp / "laufzeit" / "tickets.json"))
         stack.enter_context(patch.object(app, "tickets_generation", 0))
         stack.enter_context(patch.object(app, "KI_MOCK", True))
         stack.enter_context(patch.object(app, "analysiere_mock", return_value=ANALYSE))
 
-    def anlegen(self, titel="Outlook startet nicht"):
+    def anlegen(self, titel="Rückfrage zum vorhandenen Profil"):
         return app.ticket_anlegen(app.NeuesTicket(titel=titel, beschreibung="Eine Person ist betroffen."))
 
     def fall(self):
@@ -150,3 +153,46 @@ class TicketSpeicherTest(unittest.TestCase):
         ids = {t["id"] for t in neue}
         self.assertEqual(len(ids), 12)
         self.assertEqual({t["id"] for t in app.lade_tickets()}, ids)
+
+    def test_uebungstickets_ergaenzen_erhaelt_eigene_nummern_und_bearbeitungen(self):
+        eigen = self.anlegen("Eigener Fall mit derselben Nummer wie die neue Vorlage")
+        app.ticket_aendern(eigen["id"], app.TicketAenderung(status="in_bearbeitung", prioritaet="hoch"))
+        vorher = app.ticket(eigen["id"])
+        vorlagen = [
+            {"id": eigen["id"] + i, "titel": f"Übung {i}", "beschreibung": "Ein neuer Übungsfall",
+             "erstellt_am": "2026-11-19T11:10:00", "kunde": None} for i in range(2)
+        ]
+        (app.DATEN / "uebungstickets.json").write_text(json.dumps(vorlagen), encoding="utf-8")
+        with TestClient(app.app) as client:
+            neu = client.post("/api/testdaten/ergaenzen").raise_for_status().json()["hinzugefuegt"]
+            self.assertEqual(neu, [eigen["id"] + 2, eigen["id"] + 1])
+            self.assertEqual(client.get(f"/api/tickets/{eigen['id']}").json(), vorher)
+            aenderung = client.patch(f"/api/tickets/{neu[0]}", json={"prioritaet": "niedrig"}).json()
+            self.assertEqual(client.post("/api/testdaten/ergaenzen").json(), {"hinzugefuegt": []})
+            bestand = client.get("/api/tickets").json()
+            self.assertEqual(len(bestand), 3)
+            self.assertEqual(next(t for t in bestand if t["id"] == neu[0]), aenderung)
+            self.assertEqual(client.post("/api/testdaten/zuruecksetzen").json()["tickets"], 2)
+            self.assertEqual(client.post("/api/testdaten/ergaenzen").json(), {"hinzugefuegt": []})
+
+    def test_fruehere_vollvorlage_wird_einmalig_mit_verlauf_uebernommen(self):
+        original = Path(__file__).resolve().parents[1] / "data" / "testdaten"
+        grundbestand = app.lade_json(original / "tickets.json")
+        sollwerte = app.lade_json(original / "erwartet.json")
+        uebungen = app.lade_json(original / "uebungstickets.json")
+        self.assertEqual([t["id"] for t in grundbestand], list(range(1001, 1031)))
+        self.assertEqual([t["id"] for t in sollwerte], [t["id"] for t in grundbestand])
+        self.assertEqual([t["id"] for t in uebungen], list(range(1031, 1041)))
+        (app.DATEN / "uebungstickets.json").write_text(json.dumps(uebungen), encoding="utf-8")
+        arbeitskopie = list(grundbestand)
+        self.assertEqual(app.ergaenze_uebungstickets(arbeitskopie), list(range(1031, 1041)))
+        fall = next(t for t in arbeitskopie if t["id"] == 1031)
+        for feld in ("status", "prioritaet", "prioritaet_quelle", "zugewiesen_an", "statushistorie"):
+            self.assertEqual(fall[feld], uebungen[0][feld])
+        alter_fall = dict(uebungen[0], prioritaet="hoch", status="in_bearbeitung")
+        alte_arbeitskopie = [*grundbestand, alter_fall, *uebungen[1:4]]
+        self.assertEqual(app.ergaenze_uebungstickets(alte_arbeitskopie), list(range(1035, 1041)))
+        self.assertEqual(app.ergaenze_uebungstickets(alte_arbeitskopie), [])
+        self.assertEqual(len(alte_arbeitskopie), 40)
+        self.assertEqual(alter_fall["prioritaet"], "hoch")
+        self.assertEqual(alter_fall["status"], "in_bearbeitung")

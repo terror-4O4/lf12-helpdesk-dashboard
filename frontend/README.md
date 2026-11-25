@@ -18,14 +18,16 @@ Zum Entwickeln reicht `KI_MOCK=true` in der `.env`, dann ist kein KI-Server nöt
 | Übersicht | `#/uebersicht` | Kennzahlen, Handlungsbedarf (Neu und Antwort erhalten, dringendste zuerst), eigene Tickets, persönliche To-dos. Die Übersicht aktualisiert sich alle 30 Sekunden, wenn keine Eingabe aktiv ist. |
 | Tickets | `#/tickets` | Alle Tickets mit Ticketalter, Wartezeit, Suche und Filtern. Filter stehen in der Adresse, z. B. `#/tickets?status=neu&kunde=bau` |
 | Ticket | `#/ticket/1002` | Nachricht, Bearbeitung, Verlauf, KI-Einschätzung, ähnliche Fälle und automatisch gefundene Abschnitte der Kundendoku |
-| Spam-Prüfung | `#/spam` | Spam-Verdacht der KI bestätigen oder verwerfen |
-| Neues Ticket | Knopf oben rechts | Mail einfügen, Ticket anlegen, KI bewertet direkt |
+| Spam / Werbung | `#/spam` | Zeigt offene Spam-Verdachte aus der Ticketbewertung und ihre Begründung. Freigaben des Supports haben Vorrang und können im Ticket aufgehoben werden. |
+| Neues Ticket | Knopf oben rechts | Die optionale KI-Bewertung prüft Spam, Kategorie und Priorität in einem Aufruf. Für Supporttickets folgt die Suche nach ähnlichen Fällen. |
 | KI-Assistent | Knopf links unten | Allgemeine Fragen oder Suche in der Doku eines gewählten Kunden mit Fundstelle |
+
+Der Spam-Zähler zählt offene Vorschläge, über die der Support noch entscheiden muss. Regelhinweise erscheinen separat im Ticket. Ein offenes Supportticket lässt sich unter **Nachrichtenaktionen** manuell als Spam markieren und schließen. Über **Alle inkl. geschlossen** kann der Support ein bestätigtes Ticket aufrufen und wieder öffnen.
 
 ## Gestaltung
 
 - Neutral, Farbe nur für Status, Priorität, SLA-Ampel und KI-Inhalte
-- **Alles, was von der KI kommt, ist violett und mit ✦ gekennzeichnet.** Eine Priorität mit ✦ hat die KI gesetzt, ohne ✦ ein Mitarbeiter.
+- Ein violettes ✦ kennzeichnet die Modellpriorität und das Badge „✦ Spam-Verdacht“. Manuell gesetzte Prioritäten haben Vorrang. Im Mock-Modus ist die Bewertung als Demo gekennzeichnet.
 - Hell- und Dunkelmodus folgen der Systemeinstellung
 
 ## SLA-Ampel
@@ -34,9 +36,9 @@ Einstellungen in [`js/config.js`](js/config.js).
 
 | Priorität | Reaktionszeit |
 |---|---|
-| Sehr dringend | 30 Min. |
+| Sehr hoch | 30 Min. |
 | Hoch | 2 Std. |
-| Normal | 8 Std. |
+| Mittel | 8 Std. |
 | Niedrig | 24 Std. |
 | noch nicht bewertet | 2 Std. |
 

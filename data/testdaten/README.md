@@ -46,3 +46,5 @@
 ## Hinweis Zeitstempel
 
 Die Zeitstempel sind fest (03.11. bis 19.11.2026). Bei der Präsentation sind sie Tage alt, dann zeigt die SLA-Ampel alles rot. Lösung folgt (Skript, das die Zeiten relativ zu "jetzt" verschiebt).
+
+Die 30 ursprünglichen Tickets und ihre Sollwerte bilden die gemeinsame Referenz. Weitere Übungstickets #1031–1040 stehen separat in `uebungstickets.json`. Der Promptvergleich verwendet `tickets_promptvergleich.json`, die zusätzlichen Prioritätsprüfungen verwenden `prioritaet_blindtest.json` und `prioritaet_kontrolle.json`.

@@ -93,3 +93,9 @@ Beim Start prüft das Backend `LLAMA_URL` und `EMBED_URL`. Erlaubt sind **nur**:
 Zeigt eine der beiden Adressen auf etwas anderes, z. B. einen KI-Dienst im Internet, **startet das Backend nicht** und meldet `ABBRUCH: ...`. Das gilt auch bei `KI_MOCK=true`. Außerdem ignoriert das Backend Proxy-Einstellungen des Systems und spricht den llama-server immer direkt an.
 
 Diese Sperre darf nur nach Absprache mit Marlon geändert werden.
+
+## Modellbewertung und zusätzliche Hinweise
+
+Auf dem Mac Pro bewertet Gemma 4 26B-A4B jedes Ticket. `POST /api/tickets/{id}/analyse` liefert Spamverdacht, Kategorie, Priorität und Begründung. Die vom Support gespeicherte Priorität und die Mitarbeiterentscheidung zu Spam haben Vorrang. `regelhinweise` enthält ergänzende Beobachtungen zu Werbung und Phishing.
+
+Dashboard und Auswertung nutzen denselben Projektprompt v2 und denselben Modellaufruf. Bei laufendem Dashboard prüft `python scripts/auswertung_eingang.py` die ursprünglichen 30 Fälle. `python scripts/auswertung.py --vergleich` vergleicht den Projektprompt mit einem einfachen Prompt auf weiteren 20 Fällen.

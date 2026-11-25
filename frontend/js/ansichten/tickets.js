@@ -3,8 +3,8 @@
 
 import { PRIORITAET, STATUS } from "../config.js";
 import {
-  alter, dauer, h, istOffen, istSpamVerdacht, jetzt, nachDringlichkeit, prioBadge, prioRang, sla, slaAmpel,
-  statusBadge, ticketNr, wartezeit,
+  alter, dauer, h, istOffen, istImSpamfilter, jetzt, nachDringlichkeit, prioRang, sla, slaAmpel,
+  spamBadge, statusBadge, ticketNr, ticketPrioBadge, wartezeit,
 } from "../hilfen.js";
 import { anzeigeName, kundeName, mitarbeiterListe, zustand } from "../zustand.js";
 
@@ -82,6 +82,7 @@ export function zeigeTickets(ziel, { abfrage }) {
 function filtern(tickets, f, bezugszeit) {
   const text = f.suche.toLowerCase().replace(/^#/, "");
   return tickets.filter((t) => {
+    if (f.status !== "alle" && f.status !== "geschlossen" && istImSpamfilter(t)) return false;
     if (f.status === "offen" && !istOffen(t)) return false;
     if (f.status !== "offen" && f.status !== "alle" && t.status !== f.status) return false;
     if (f.kunde === "_ohne" ? t.kunde : f.kunde && t.kunde !== f.kunde) return false;
@@ -107,15 +108,14 @@ export function ticketTabelle(tickets, { kompakt = false, bezugszeit = jetzt() }
       h("thead", {}, h("tr", {}, kopf.map((k) => h("th", { scope: "col" }, k)))),
       h("tbody", {}, tickets.map((t) => {
         const warten = wartezeit(t, bezugszeit);
-        const zeile = h("tr", { class: istSpamVerdacht(t) ? "zeile-spam" : "" },
+        const zeile = h("tr", { class: istImSpamfilter(t) ? "zeile-spam" : "" },
           h("td", { class: "spalte-sla" }, slaAmpel(t, false, bezugszeit)),
           h("td", { class: "nr" }, h("a", { href: `#/ticket/${t.id}` }, ticketNr(t.id))),
           h("td", { class: "betreff", title: t.titel },
-            h("span", { class: "betreff-titel" }, t.titel,
-              istSpamVerdacht(t) ? h("span", { class: "badge badge-ki" }, "Spam?") : null),
+            h("span", { class: "betreff-titel" }, t.titel, spamBadge(t)),
             h("span", { class: "betreff-kunde" }, kundeName(t.kunde))),
           h("td", {}, statusBadge(t.status)),
-          h("td", {}, prioBadge(t.prioritaet, t.prioritaet_quelle)),
+          h("td", {}, istImSpamfilter(t) ? "–" : ticketPrioBadge(t)),
           kompakt ? null : h("td", {}, t.zugewiesen_an ? anzeigeName(t.zugewiesen_an) : h("span", { class: "gedimmt" }, "–")),
           h("td", { class: "gedimmt", title: t.erstellt_am }, alter(t.erstellt_am, bezugszeit) || "–"),
           h("td", { class: "gedimmt", title: warten ? `Wartezeit auf ${warten.auf}` : null },

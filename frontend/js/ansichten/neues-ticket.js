@@ -1,7 +1,7 @@
-// Neues Ticket: Mail oder Anruf-Notiz einfügen, die KI bewertet direkt danach.
+// Ticket anlegen, Eingangsprüfung berücksichtigen und auf Wunsch bewerten.
 
 import { api } from "../api.js";
-import { h } from "../hilfen.js";
+import { h, spamOffen } from "../hilfen.js";
 import { meldung, ticketErsetzen, zustand } from "../zustand.js";
 
 export function oeffneNeuesTicket() {
@@ -25,7 +25,8 @@ export function oeffneNeuesTicket() {
       h("label", { for: "n-kunde" }, "Kunde", kunde),
       h("label", { for: "n-titel" }, "Betreff", titel),
       h("label", { for: "n-text" }, "Nachricht", text),
-      h("label", { class: "inline" }, bewerten, " Direkt von der KI bewerten lassen und ähnliche Fälle suchen"),
+      h("label", { class: "inline" }, bewerten, " ", h("span", { class: "ki-marke" }, "✦ KI-Bewertung"),
+        " mit Spam-Prüfung starten und für Supporttickets ähnliche Fälle suchen"),
       h("div", { class: "knopfreihe" },
         anlegen,
         h("button", { class: "knopf", type: "button", onclick: () => dialog.close() }, "Abbrechen"))));
@@ -35,7 +36,7 @@ export function oeffneNeuesTicket() {
     anlegen.disabled = true;
     anlegen.textContent = "Lege an …";
     try {
-      const t = await api.ticketAnlegen({
+      let t = await api.ticketAnlegen({
         kunde: kunde.value === "_ohne" ? null : kunde.value,
         titel: titel.value.trim(),
         beschreibung: text.value.trim(),
@@ -45,14 +46,18 @@ export function oeffneNeuesTicket() {
         anlegen.textContent = "KI bewertet …";
         try {
           await api.analysieren(t.id);
-          anlegen.textContent = "Suche ähnliche Fälle …";
-          await api.loesungsvorschlag(t.id);
+          t = await api.ticket(t.id);
+          ticketErsetzen(t);
+          if (!spamOffen(t)) {
+            anlegen.textContent = "Suche ähnliche Fälle …";
+            await api.loesungsvorschlag(t.id);
+          }
         } catch (e) {
           meldung(`Angelegt, aber KI fehlgeschlagen: ${e.message}`, "fehler");
         }
       }
       dialog.close();
-      meldung(`Ticket #${t.id} angelegt`, "erfolg");
+      meldung(spamOffen(t) ? `Ticket #${t.id} liegt unter Spam / Werbung.` : `Ticket #${t.id} angelegt`, "erfolg");
       location.hash = `#/ticket/${t.id}`;
     } catch (e) {
       meldung(e.message, "fehler");

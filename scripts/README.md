@@ -5,41 +5,63 @@ Skripte für Windows als `.ps1`, für macOS/Linux als `.sh`.
 | Skript | Wofür | Wo ausführen |
 |---|---|---|
 | `start-backend.sh` / `.ps1` | Backend starten | Entwickler-Rechner |
-| `auswertung.py` | Trefferquote der KI-Ticket-Analyse messen, mehrere Modelle vergleichen | Rechner mit Backend und `.env` |
-| `auswertung_rag.py` | Ähnliche Tickets (RAG) gegen die Messziele prüfen, Schwelle bestimmen | Rechner mit Backend und `.env` |
+| `auswertung.py` | Ticketpriorisierung und Laufzeit messen, Modell- oder Promptvergleich | Rechner mit lokalem Chat-Dienst |
+| `auswertung_eingang.py` | Regelhinweise und Treffer bei Spam, Kategorie und Priorität über die laufende Anwendung messen | Rechner mit lokalem Dashboard |
+| `auswertung_prioritaet.py` | Gespeicherte Dashboard-Prioritäten für neue Tickets mit vorab vergebenen Sollwerten prüfen | Rechner mit lokalem Chat-Dienst |
+| `auswertung_rag.py` | Ähnliche Tickets mit und ohne Historie prüfen, Suchschwelle bestimmen | Rechner mit lokalem Chat- und Embedding-Dienst oder Mock |
+| `auswertung_doku.py` | Fundstellen, fehlende Treffer und Ticketbezug der Kundendoku-Suche prüfen | Rechner mit laufendem Backend |
 | `macpro/install-llama-dienst.sh` | llama-server als Dienst auf dem Mac Pro einrichten | Mac Pro, nur Marlon |
 
 ## auswertung.py
 
-Lässt alle Testtickets von der KI bewerten und vergleicht mit `data/testdaten/erwartet.json`. Benutzt die Prompts und Prüfungen des Backends, die Testdaten bleiben unverändert.
+Der Standardlauf vergleicht KI-Bewertungen mit `data/testdaten/erwartet.json`. Für die Abnahme lässt `--vergleich` den einfachen Vergleichsprompt und den unveränderten Projektprompt v2 auf denselben 20 neuen Prüftickets aus `data/testdaten/tickets_promptvergleich.json` laufen. Pro Priorität gibt es fünf Fälle.
 
 ```bash
 source .venv/bin/activate
-python scripts/auswertung.py                              # alle Modelle des llama-servers
-python scripts/auswertung.py -m gemma-4-26B-A4B-it-Q4_0   # nur ein Modell
+python scripts/auswertung.py                    # Modellvergleich auf Entwicklungsdaten
+python scripts/auswertung.py --vergleich        # Promptvergleich auf Abnahmedaten
+python scripts/auswertung.py --vergleich --mock # Auswertungsablauf mit Platzhaltern
 ```
 
-- Braucht in der `.env`: `LLAMA_URL`, `LLAMA_API_KEY` und bei Router-Modus `LLAMA_MODEL`
-- Das Modell aus `LLAMA_MODEL` wird zuletzt getestet, damit es danach wieder geladen ist
-- Ergebnis als Markdown-Tabelle (für das Testprotokoll) und JSON unter `data/laufzeit/auswertung/`
-- Abbrechen mit Ctrl+C, bisherige Ergebnisse werden trotzdem ausgewertet
-- Die Zeile "Analyse-Prompt (SHA-256)" zeigt, mit welcher Prompt-Version gemessen wurde (vorher/nachher vergleichen)
+- Für den echten Lauf `LLAMA_URL`, gegebenenfalls `LLAMA_API_KEY` und im Router-Modus das verwendete Modell konfigurieren.
+- Der Lauf mit Prompt v2 nutzt dieselbe Modellbewertung wie das Dashboard. Die regelbasierten Hinweise gehen in keine Modellquote ein.
+- Für den Modellvergleich lassen sich Modelle mit `-m` auswählen. Der Promptvergleich nutzt standardmäßig `LLAMA_MODEL` oder das Standardmodell des Servers. Je Vergleichspaar bleibt das Modell gleich.
+- Die Promptberichte `data/laufzeit/auswertung/promptvergleich-*.md` und `*.json` enthalten Trefferquoten, Fehlzuordnungen, Prompt-Versionen und Laufzeiten. Bei echtem Modellbetrieb wird die erste Ausgabe im Stream des Chat-Diensts gemessen. Der Mock prüft den Auswertungsablauf mit Platzhaltern.
+
+## auswertung_eingang.py
+
+Bei laufendem Dashboard prüft `python scripts/auswertung_eingang.py` die gesamte Verarbeitung der Demotickets über HTTP. Das Skript ruft die Bewertung mit `speichern=false` auf und vergleicht den Modellbefund mit den ursprünglichen Sollwerten. Es meldet Spamtreffer, durchgelassene Supportmeldungen sowie korrekte Kategorien und Prioritäten. Fehlende Fälle und Fälle mit abweichenden Eingangsdaten werden als ausgelassen ausgewiesen. Der Einzelbericht liegt unter `data/laufzeit/auswertung/eingangspruefung-*.json`.
+
+## auswertung_prioritaet.py
+
+```bash
+python scripts/auswertung_prioritaet.py --faelle data/testdaten/prioritaet_blindtest.json --bericht data/laufzeit/auswertung/prioritaeten.json
+```
+
+Das Skript legt die Supportfälle über die Dashboard-API in einer isolierten Arbeitskopie an und liest die gespeicherte Priorität nach der KI-Analyse wieder aus. Die Sollwerte bleiben außerhalb der Anwendung. Als Spam gekennzeichnete Testfälle werden ausgenommen. Ein Auswertungsfehler wird im Bericht als verfehlter Fall erfasst. Der Bericht enthält Treffer pro Stufe, zu hohe und zu niedrige Einstufungen, die Herkunft des Vorschlags und die mediane Antwortzeit erfolgreicher Analysen. Für einen Vorher-Nachher-Vergleich zweimal denselben Datensatz und Modellserver verwenden. `--projektstand` wählt einen lokalen Checkout, `--bericht` jeweils eine neue Ergebnisdatei.
 
 ## auswertung_rag.py
 
-Prüft die Lösungsvorschläge aus ähnlichen Tickets gegen die Messziele aus dem Antrag (je 80 %): Der passende Fall steht unter den Top 3, und ohne passenden Fall erfindet die KI nichts. Welcher Fall passt, steht in `data/testdaten/erwartet.json` im Feld `aehnlich`.
+Prüft, ob bei einem bekannten Treffer die erwartete Ticketnummer unter den ersten drei Vorschlägen erscheint. Bei Fällen ohne Treffer prüft die Auswertung, ob die Antwort das kenntlich macht. Beide Quoten haben im Projektantrag ein Ziel von 80 %.
 
 ```bash
 source .venv/bin/activate
-python scripts/auswertung_rag.py --nur-suche   # nur Suche, schnell, mit Empfehlung für RAG_SCHWELLE
-python scripts/auswertung_rag.py               # Suche plus Chat-KI
-python scripts/auswertung_rag.py --vergleich   # zusätzlich Vorschläge ohne Ticket-Historie (Test "ohne/mit Training")
+python scripts/auswertung_rag.py --nur-suche                    # Suche und Schwellenwert auf Entwicklungsdaten
+python scripts/auswertung_rag.py --datensatz abnahme --vergleich # Suche und Modellvergleich für die Abnahme
 ```
 
-- Braucht in der `.env` zusätzlich `EMBED_URL`
-- Prüft außerdem, ob ein frisch geschlossenes Ticket beim nächsten ähnlichen Fall gefunden wird (Wissensbasis wächst)
-- Nutzt die Testdaten und eine eigene Vektor-Datei, das Dashboard bleibt unverändert
-- Ergebnis als Markdown und JSON unter `data/laufzeit/auswertung/rag_*`
+- Der echte Lauf benötigt zusätzlich den lokalen Embedding-Dienst unter `EMBED_URL`.
+- Der Standarddatensatz `entwicklung` dient zur Wahl von `RAG_SCHWELLE`. Der Datensatz `abnahme` verwendet festgelegte neue Fälle unter `data/testdaten/rag_abnahme.json`.
+- Die Wachstumskontrolle prüft, ob ein frisch geschlossenes Ticket beim nächsten ähnlichen Fall gefunden wird.
+- `--vergleich` speichert bei echtem Modellbetrieb auch Antworten derselben Fälle ohne Ticket-Historie. Der Mock bildet nur den Ablauf mit simulierten Ausgaben ab.
+- Ergebnisse als Markdown und JSON stehen unter `data/laufzeit/auswertung/rag_*`.
+
+## auswertung_doku.py
+
+Mit laufendem Backend `python scripts/auswertung_doku.py` ausführen. Der Bericht
+unter `data/laufzeit/auswertung/` enthält den Backend-Modus und das Ergebnis je
+Testfall. Für den Vergleich mit dem echten Modell das Backend mit
+`KI_MOCK=false` und dem lokalen llama-server starten.
 
 ## macpro/install-llama-dienst.sh
 

@@ -1,0 +1,140 @@
+[
+  {
+    "id": 1031,
+    "kunde": "autohaus",
+    "titel": "Fotos am Annahmeplatz 2: USB-Kartenleser fällt aus",
+    "beschreibung": "Die Werkstattfotos lassen sich am Annahmeplatz 2 nicht mehr einlesen. Wir haben zwei Speicherkarten ausprobiert. Mit demselben USB-Kartenleser klappt es am Nachbarplatz. Bis zur Reparatur importieren wir die Bilder dort.",
+    "status": "antwort_erhalten",
+    "prioritaet": "mittel",
+    "prioritaet_quelle": "manuell",
+    "zugewiesen_an": "tim",
+    "erstellt_am": "2026-11-19T09:10:00",
+    "statushistorie": [
+      {
+        "status": "neu",
+        "seit": "2026-11-19T09:10:00"
+      },
+      {
+        "status": "in_bearbeitung",
+        "seit": "2026-11-19T09:26:00"
+      },
+      {
+        "status": "warten_auf_kunde",
+        "seit": "2026-11-19T09:36:00"
+      },
+      {
+        "status": "antwort_erhalten",
+        "seit": "2026-11-19T10:12:00"
+      }
+    ],
+    "ki": null,
+    "ursache": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1032,
+    "kunde": null,
+    "titel": "Zutritt zum Technikraum für den vereinbarten Wartungstermin",
+    "beschreibung": "Hier ist der Elektroservice für den angekündigten USV-Tausch am Freitag. Unser Auftrag nennt 8 Uhr als Beginn. Wer kann uns dann den Technikraum aufschließen? Wir brauchen nur eine Terminbestätigung.",
+    "status": "neu",
+    "prioritaet": null,
+    "prioritaet_quelle": null,
+    "zugewiesen_an": null,
+    "erstellt_am": "2026-11-19T10:20:00",
+    "statushistorie": [
+      {
+        "status": "neu",
+        "seit": "2026-11-19T10:20:00"
+      }
+    ],
+    "ki": null,
+    "ursache": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1033,
+    "kunde": "praxis",
+    "titel": "Kann die angebliche Speicherwarnung gelöscht werden?",
+    "beschreibung": "Die Anmeldung hat eine E-Mail mit einer Speicherwarnung bekommen. In Outlook selbst sehen wir noch 3 GB freien Platz. Wir haben nichts angeklickt. Könnt ihr die Mail prüfen, bevor wir sie löschen?",
+    "status": "neu",
+    "prioritaet": null,
+    "prioritaet_quelle": null,
+    "zugewiesen_an": null,
+    "erstellt_am": "2026-11-19T10:44:00",
+    "statushistorie": [
+      {
+        "status": "neu",
+        "seit": "2026-11-19T10:44:00"
+      }
+    ],
+    "ki": null,
+    "ursache": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1034,
+    "kunde": "logistik",
+    "titel": "Warenausgang: Buchung bricht an allen vier Versandplätzen ab",
+    "beschreibung": "Seit 10:40 Uhr meldet die Warenwirtschaft beim Abschluss jedes Versandauftrags „Buchung fehlgeschlagen“. Alle vier Plätze sind betroffen. Die Aufträge bleiben offen und kein Lkw kann freigegeben werden. Auch mit einem anderen Konto tritt derselbe Fehler auf.",
+    "status": "neu",
+    "prioritaet": null,
+    "prioritaet_quelle": null,
+    "zugewiesen_an": null,
+    "erstellt_am": "2026-11-19T10:52:00",
+    "statushistorie": [
+      {
+        "status": "neu",
+        "seit": "2026-11-19T10:52:00"
+      }
+    ],
+    "ki": null,
+    "ursache": null,
+    "loesungsweg": null,
+    "geschlossen_am": null
+  },
+  {
+    "id": 1035,
+    "kunde": "autohaus",
+    "erstellt_am": "2026-11-19T10:56:00",
+    "titel": "Handscanner piept, im Ersatzteilauftrag fehlt die Teilenummer",
+    "beschreibung": "Unser Handscanner am Teiletresen piept beim Scannen, aber im offenen Auftrag erscheint keine Nummer. Tippen wir die Nummer vom Karton ab, wird das Teil gebucht. Die Ausgabe an die Werkstatt läuft so weiter, dauert aber länger."
+  },
+  {
+    "id": 1036,
+    "kunde": "logistik",
+    "erstellt_am": "2026-11-19T11:03:00",
+    "titel": "Pakete an beiden Verladerampen lassen sich nicht quittieren",
+    "beschreibung": "An beiden Rampen lesen die Handscanner den Paketcode und zeigen danach „Übergabe nicht gespeichert“. Auch eine von Hand eingegebene Paketnummer wird abgelehnt. Ohne Quittung nimmt der Fahrer die Sendungen nicht mit. Seit 10:50 Uhr geht kein Paket mehr raus."
+  },
+  {
+    "id": 1037,
+    "kunde": "steuerbuero",
+    "erstellt_am": "2026-11-19T11:06:00",
+    "titel": "Gesprächspartner hören mich nur im Teams-Anruf nicht",
+    "beschreibung": "Auf meinem Notebook höre ich die anderen in Teams. Mein eigenes Mikrofon bleibt im Testanruf stumm. Mit demselben Headset kann ich im Windows-Audiorekorder eine Aufnahme machen und anhören. Für den heutigen Rückruf nutze ich das Tischtelefon."
+  },
+  {
+    "id": 1038,
+    "kunde": "bau",
+    "erstellt_am": "2026-11-19T11:10:00",
+    "titel": "Bauplan auf dem Tablet hat noch den alten Revisionsstand",
+    "beschreibung": "Im Büro sehe ich im Projektordner die Zeichnung mit Revision C. Auf meinem Baustellen-Tablet steht im selben Auftrag weiterhin Revision B, obwohl die App „Synchronisierung abgeschlossen“ meldet. Bevor ich den Plan freigebe: Wie prüfe ich, an welcher Stelle die neue Fassung fehlt?"
+  },
+  {
+    "id": 1039,
+    "kunde": "praxis",
+    "erstellt_am": "2026-11-19T11:17:00",
+    "titel": "Leserechte für den Raumkalender ab Januar vorbereiten",
+    "beschreibung": "Ab Januar soll unsere neue Kollegin die Belegung des Besprechungsraums sehen können. Termine anlegen und ändern soll weiterhin nur die Anmeldung. Heute arbeiten alle mit den bisherigen Rechten. Könnt ihr uns sagen, welche Freigabe wir dafür einplanen?"
+  },
+  {
+    "id": 1040,
+    "kunde": null,
+    "erstellt_am": "2026-11-19T11:21:00",
+    "titel": "Ihr Banner im regionalen Azubi-Newsletter",
+    "beschreibung": "Guten Tag, wir bieten Ihnen einen Anzeigenplatz in der Dezemberausgabe unseres Azubi-Newsletters für 180 Euro an. Reservieren Sie Ihren Platz bis Freitag und senden Sie uns Ihr Firmenlogo für die Veröffentlichung."
+  }
+]
