@@ -24,9 +24,11 @@ from urllib.parse import urlparse
 import httpx
 from dotenv import load_dotenv
 from fastapi import HTTPException
+from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from fastapi_offline import FastAPIOffline
 from pydantic import BaseModel, Field
+from starlette.types import Scope
 
 from backend import doku, eingang, gespraech, rag, ticketfragen, wiki
 from backend.speicher import schreibe_atomar
@@ -1273,5 +1275,12 @@ def loesungsvorschlag(ticket_id: int, speichern: bool = True):
 # unter http://127.0.0.1:<APP_PORT>/ gleich mit aus. Muss am Ende stehen,
 # damit /api/... und /docs Vorrang haben.
 
+class FrontendDateien(StaticFiles):
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        antwort = await super().get_response(path, scope)
+        antwort.headers["Cache-Control"] = "no-cache"
+        return antwort
+
+
 if (FRONTEND / "index.html").exists():
-    app.mount("/", StaticFiles(directory=FRONTEND, html=True), name="frontend")
+    app.mount("/", FrontendDateien(directory=FRONTEND, html=True), name="frontend")
