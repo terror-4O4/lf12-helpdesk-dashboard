@@ -571,7 +571,6 @@ def kundendoku_suche(kunde: str, eingabe: Frage):
             treffer = doku.suche(dokument, frage)
             if treffer:
                 auswahl = 1
-                modus = "mock" if KI_MOCK else "llama"
                 if not KI_MOCK:
                     kundenname = next((k["name"] for k in kunden if k["kunde"] == kunde), kunde)
                     auswahl, tokens = waehle_doku_fundstelle(frage, treffer, kundenname)
@@ -579,6 +578,7 @@ def kundendoku_suche(kunde: str, eingabe: Frage):
                     quellen = [treffer[auswahl - 1].als_quelle()]
     if quellen:
         antwort = quellen[0]["text"]
+        modus = "doku"
     return {"antwort": antwort, "quellen": quellen, "modus": modus, "tokens": tokens,
             "dauer_ms": round((time.perf_counter() - start) * 1000)}
 
