@@ -100,6 +100,7 @@ Auf dem Mac Pro läuft Gemma 4 26B-A4B. Der Router verwendet den Modellnamen `ge
 | `EMBED_URL` | Embedding-Server, eigener llama-server mit EmbeddingGemma 300M (auf dem Mac Pro Port 8081, CPU). Gleicher API-Key wie `LLAMA_API_KEY` |
 | `RAG_SCHWELLE` | Ab welcher Ähnlichkeit ein Fall passt. Empfehlung liefert `scripts/auswertung_rag.py --nur-suche` |
 | `RAG_KUNDENBONUS` | Bonus für denselben Kunden, Standard 0.05 |
+| `RAG_MIT_URSACHE` | `true` bettet gelöste Fälle mit ihrer Ursache ein (Problem + Ursache), das neue Ticket bleibt ohne. Standard `false` |
 
 Mit `KI_MOCK=true` vergleicht der Mock einfach gleiche Wörter und übernimmt Ursache und Lösung der gefundenen Tickets direkt. Das reicht zum Entwickeln, ersetzt aber keinen Test mit dem echten Modell.
 

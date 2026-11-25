@@ -64,6 +64,8 @@ RAG_SCHWELLE = float(os.getenv("RAG_SCHWELLE", "0.55"))
 RAG_SCHWELLE_MOCK = 0.40
 # Bonus für Fälle beim selben Kunden (laut Antrag "bevorzugt beim selben Kunden")
 RAG_KUNDENBONUS = float(os.getenv("RAG_KUNDENBONUS", "0.05"))
+# true = gelöste Fälle werden mit ihrer Ursache eingebettet (siehe rag.fall_text)
+RAG_MIT_URSACHE = os.getenv("RAG_MIT_URSACHE", "false").lower() == "true"
 
 
 def pruefe_lokale_adresse(url: str) -> None:
@@ -953,7 +955,7 @@ def finde_aehnliche(t: dict, liste: list, anzahl: int = 3, schwelle: float | Non
     """
     faelle = [x for x in liste if rag.ist_fall(x) and x["id"] != t["id"]]
     try:
-        vektoren = (wb or wissensbasis).vektoren(faelle, einbetter)
+        vektoren = (wb or wissensbasis).vektoren(faelle, einbetter, mit_ursache=RAG_MIT_URSACHE)
         anfrage = einbetter.einbetten([rag.ticket_text(t)])[0]
     except rag.EmbeddingFehler as fehler:
         raise HTTPException(502, str(fehler))

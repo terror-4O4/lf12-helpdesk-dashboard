@@ -153,7 +153,7 @@ def main():
     print(f"Modus: {'Mock' if app.KI_MOCK else 'llama'} | Embeddings: {app.EMBED_URL} | "
           f"Chat: {app.LLAMA_URL} {app.LLAMA_MODEL}")
     print(f"Wissensbasis: {len(faelle)} gelöste Tickets | Schwelle {app.aktuelle_schwelle()} | "
-          f"Kundenbonus {app.RAG_KUNDENBONUS}")
+          f"Kundenbonus {app.RAG_KUNDENBONUS} | Fälle mit Ursache: {app.RAG_MIT_URSACHE}")
     print(f"Datensatz {args.datensatz}: {len(tests)} Testtickets "
           f"({sum(bool(erwartet[t['id']]['aehnlich']) for t in tests)} mit passendem Fall)\n")
 
@@ -252,7 +252,8 @@ def main():
             "modus": "mock" if app.KI_MOCK else "llama", "chat_modell": app.LLAMA_MODEL,
             "embedding": app.einbetter.kennung, "schwelle": app.aktuelle_schwelle(),
             "ausgabelimit_tokens": app.LOESUNG_MAX_TOKENS,
-            "kundenbonus": app.RAG_KUNDENBONUS, "nur_suche": args.nur_suche,
+            "kundenbonus": app.RAG_KUNDENBONUS, "mit_ursache": app.RAG_MIT_URSACHE,
+            "nur_suche": args.nur_suche,
             "aufbau_s": round(aufbau, 2), "zusammenfassung": zusammenfassung,
             "wachstum": wachstum, "tickets": zeilen}
     (ZIEL / f"rag_{stempel}.json").write_text(json.dumps(lauf, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -262,7 +263,8 @@ def main():
           f"- Datensatz: {args.datensatz}",
           f"- Ausgabelimit für beide Modellvarianten: {app.LOESUNG_MAX_TOKENS} Tokens",
           f"- Wissensbasis: {len(faelle)} gelöste Tickets, Aufbau {aufbau:.1f} s",
-          f"- Schwelle {app.aktuelle_schwelle()}, Kundenbonus {app.RAG_KUNDENBONUS}", "",
+          f"- Schwelle {app.aktuelle_schwelle()}, Kundenbonus {app.RAG_KUNDENBONUS}, "
+          f"Fälle mit Ursache: {app.RAG_MIT_URSACHE}", "",
           *[f"- {s}" for s in zusammenfassung], "",
           "| Ticket | Erwartet | Top 3 (Suche) | KI verweist auf | Bester Wert | Ergebnis | Dauer |",
           "|---|---|---|---|---|---|---|"]

@@ -42,6 +42,20 @@ def ticket_text(t: dict) -> str:
     return f"{t['titel']}\n{t['beschreibung']}"
 
 
+def fall_text(t: dict, mit_ursache: bool = False) -> str:
+    """Text eines gelösten Falls für die Wissensbasis.
+
+    Standard ist nur das Problem (wie ticket_text). Mit mit_ursache=True kommt
+    die Ursache dazu, damit auch Tickets mit anderen Symptomen, aber gleicher
+    Ursache gefunden werden (z. B. Warnung "Postfach fast voll" gegen den Fall
+    "Speichergrenze erreicht"). Das neue Ticket hat noch keine Ursache und wird
+    weiter mit ticket_text verglichen.
+    """
+    text = ticket_text(t)
+    ursache = (t.get("ursache") or "").strip()
+    return f"{text}\nUrsache: {ursache}" if mit_ursache and ursache else text
+
+
 def ist_fall(t: dict) -> bool:
     """Gehört das Ticket in die Wissensbasis?"""
     return (
@@ -156,7 +170,8 @@ class Wissensbasis:
         with self._datei_lock:
             schreibe_atomar(self.pfad, json.dumps(daten))
 
-    def vektoren(self, faelle: list[dict], einbetter: Einbetter) -> dict[int, list[float]]:
+    def vektoren(self, faelle: list[dict], einbetter: Einbetter,
+                 mit_ursache: bool = False) -> dict[int, list[float]]:
         """Vektoren aller Fälle. Berechnet nur, was neu ist oder sich geändert hat."""
         daten = self._lade()
         if daten.get("kennung") != einbetter.kennung:
@@ -165,7 +180,7 @@ class Wissensbasis:
 
         neu, fehlend = {}, []
         for t in faelle:
-            text = ticket_text(t)
+            text = fall_text(t, mit_ursache)
             pruefsumme = hashlib.sha256(text.encode()).hexdigest()[:16]
             eintrag = alt.get(str(t["id"]))
             if eintrag and eintrag["pruefsumme"] == pruefsumme:
