@@ -20,6 +20,8 @@
 
 ## Software
 - Praxissoftware (Client auf allen Arbeitsplätzen, Datenbank auf `PX-SRV01`)
+
+## Hardware
 - Kartenlesegerät an Anmeldeplatz 1
 
 ## Zugangsdaten
@@ -29,3 +31,13 @@
 ## Besonderheiten
 - Fallen die Patientenaufnahme (Kartenlesegerät) oder der Empfang der Laborbefunde per E-Mail aus, immer sehr hohe Priorität
 - Fernwartung nur nach Freigabe durch die Praxisleitung (Patientendaten)
+
+## Vorgehen bei Postfach fast voll
+
+Prüfe zeitnah die Belegung des betroffenen Praxispostfachs. Im Microsoft-365-Admincenter zeigt der Bericht zur Postfachnutzung den verbrauchten Speicher und das eingestellte Limit. Vergleiche beide Werte und beachte den Stand des Berichts.
+
+Ist der Speicher tatsächlich knapp, stimme mit der Praxisleitung ab, welche Nachrichten gemäß den geltenden Aufbewahrungsregeln archiviert werden dürfen. Falls externe Laborbefunde bereits ausbleiben, melde den Ausfall sofort an den Support.
+
+Vergleichsfall: #1020
+
+[Microsoft Learn – Bericht zur Postfachnutzung](https://learn.microsoft.com/de-de/microsoft-365/admin/activity-reports/mailbox-usage?view=o365-worldwide)

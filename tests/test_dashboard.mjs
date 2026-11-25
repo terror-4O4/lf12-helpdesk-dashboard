@@ -7,6 +7,7 @@ import {
 import { ticketTabelle } from "../frontend/js/ansichten/tickets.js";
 import { zeigeTicket } from "../frontend/js/ansichten/ticket.js";
 import { spamAktionen, zeigeSpam } from "../frontend/js/ansichten/spam.js";
+import { aktualisiereAssistent, initAssistent, oeffneAssistent } from "../frontend/js/ansichten/assistent.js";
 import { api, ApiFehler } from "../frontend/js/api.js";
 import { ladeDaten, ticketErsetzen, zustand } from "../frontend/js/zustand.js";
 
@@ -129,6 +130,82 @@ test("Beratungspunkte erscheinen als Liste und Modellprioritäten tragen eine le
   assert.equal(ticketPrioBadge(basis).textContent, "Hoch ✦");
 });
 
+test("der Assistent trennt offene Anfragen, Entwürfe und Folgefragen beim Ticketwechsel", async t => {
+  testDokument(t);
+  const panel = document.createElement("aside");
+  document.getElementById = () => panel;
+  document.addEventListener = () => {};
+  document.body = { classList: { add() {}, remove() {} } };
+  let antwortePraxis;
+  const aufrufe = [];
+  t.mock.method(api, "frageTicket", async (id, frage, verlauf) => {
+    aufrufe.push([id, frage, verlauf]);
+    if (id === 1021) return new Promise(resolve => { antwortePraxis = resolve; });
+    if (frage === "Wie ist das Wetter?") return { antwort: "- Hier geht es um IT-Hilfe.", modus: "themenfremd" };
+    return { antwort: "Datenbankdienst prüfen.", modus: "modellvorschlag" };
+  });
+  t.mock.method(api, "frage", async frage => ({ antwort: `Allgemeine Antwort auf ${frage}` }));
+  initAssistent();
+  const [, kontext, chat, formular] = panel.children;
+  const [eingabe, senden] = formular.children;
+  const abschicken = frage => {
+    eingabe.value = frage;
+    formular.submit({ preventDefault() {} });
+  };
+  const fertig = () => new Promise(resolve => setImmediate(resolve));
+  const praxis = { id: 1021, titel: "Postfach fast voll" };
+  const kanzlei = { id: 1017, titel: "Datenbankfehler" };
+  oeffneAssistent(praxis);
+  abschicken("Postfach prüfen?");
+  assert.equal(senden.disabled, true);
+  eingabe.value = "Entwurf der Praxis";
+  eingabe.input();
+  aktualisiereAssistent(kanzlei);
+  assert.match(kontext.textContent, /#1017/);
+  assert.equal(eingabe.value, "");
+  assert.equal(senden.disabled, false);
+  abschicken("Alle Arbeitsplätze betroffen.");
+  await fertig();
+  antwortePraxis({ antwort: "Postfachbelegung prüfen." });
+  await fertig();
+  assert.match(chat.textContent, /Datenbankdienst/);
+  assert.match(chat.textContent, /✦ Prüfschritt vom lokalen Modell/);
+  assert.doesNotMatch(chat.textContent, /Postfach/);
+  abschicken("Und danach?");
+  await fertig();
+  abschicken("Die Datenbank läuft bereits.");
+  await fertig();
+  assert.deepEqual(aufrufe, [
+    [1021, "Postfach prüfen?", []],
+    [1017, "Alle Arbeitsplätze betroffen.", []],
+    [1017, "Und danach?", ["Alle Arbeitsplätze betroffen."]],
+    [1017, "Die Datenbank läuft bereits.", ["Alle Arbeitsplätze betroffen.", "Und danach?"]],
+  ]);
+  const weitereFragen = Array.from({ length: 7 }, (_, i) => `Rückmeldung ${i + 1}`);
+  for (const frage of weitereFragen) {
+    abschicken(frage);
+    await fertig();
+  }
+  assert.deepEqual(aufrufe.at(-1), [1017, weitereFragen[6], weitereFragen.slice(0, 6)]);
+  abschicken("Wie ist das Wetter?");
+  await fertig();
+  assert.match(chat.textContent, /Hinweis zum Themenbereich/);
+  assert.doesNotMatch(chat.textContent, /✦ Hinweis zum Themenbereich/);
+  abschicken("Der Dienst läuft.");
+  await fertig();
+  assert.match(chat.textContent, /Wie ist das Wetter\?/);
+  assert.deepEqual(aufrufe.at(-1)[2], weitereFragen.slice(1));
+  aktualisiereAssistent(praxis);
+  assert.match(chat.textContent, /Postfachbelegung/);
+  assert.equal(eingabe.value, "Entwurf der Praxis");
+  aktualisiereAssistent(null);
+  assert.equal(eingabe.value, "");
+  abschicken("Was ist eine Datenbank?");
+  await fertig();
+  assert.match(chat.textContent, /Allgemeine Antwort/);
+  assert.doesNotMatch(chat.textContent, /Postfachbelegung|Datenbankdienst/);
+});
+
 test("in der Ticketliste stehen Alter und Wartezeit in getrennten Spalten", (t) => {
   testDokument(t);
   const wrapper = ticketTabelle([ticket({ status: "warten_auf_kunde", seit: 35 })], {
@@ -219,6 +296,33 @@ test("Detailansicht hält Modellwerte, Regelhinweis und manuelle Entscheidungen 
       assert.doesNotMatch(analyse.textContent, /Neu bewerten/);
     }
   }
+});
+
+test("im Kundenticket öffnet die direkte Aktensuche und zeigt die genaue Fundstelle", async t => {
+  testDokument(t);
+  browserGlobal(t, "location", { search: "" });
+  const { tickets, kunden } = zustand;
+  t.after(() => { Object.assign(zustand, { tickets, kunden }); });
+  zustand.tickets = [{ ...ticket({ id: 1021 }), kunde: "praxis" }];
+  zustand.kunden = [{ kunde: "praxis", name: "Praxis" }];
+  t.mock.method(api, "kundendoku", async () => ({ markdown: "# Praxis" }));
+  t.mock.method(api, "ticketDoku", async () => ({ quellen: [] }));
+  const suche = t.mock.method(api, "frageKundendoku", async () => ({
+    antwort: "Postfach Praxis", modus: "doku",
+    quellen: [{ titel: "Software", quelle: "doku/praxis.md#software", text: "Postfach Praxis" }],
+  }));
+  const ziel = document.createElement("main");
+  zeigeTicket(ziel, { teile: ["1021"] });
+  const karte = ziel.children[2].children[1].children.at(-1);
+  const finde = (el, passt) => passt(el) ? el : el.children.map(kind => finde(kind, passt)).find(Boolean);
+  const oeffnen = finde(karte, el => el.tag === "button" && el.textContent === "Kundendoku anzeigen");
+  await oeffnen.click();
+  const feld = finde(karte, el => el.tag === "input" && el.attributes.type === "search");
+  feld.value = "Wie heißt das gemeinsame Postfach?";
+  await finde(karte, el => el.className === "aktensuche").submit({ preventDefault() {} });
+  assert.deepEqual(suche.mock.calls[0].arguments, ["praxis", feld.value]);
+  assert.match(karte.textContent, /Postfach Praxis/);
+  assert.match(karte.textContent, /Fundstelle doku\/praxis.md#software/);
 });
 
 test("eine Hintergrundabfrage darf eine jüngere Ticketänderung nicht überschreiben", async (t) => {
