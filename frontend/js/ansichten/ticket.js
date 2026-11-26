@@ -232,9 +232,8 @@ function kiFaelle(t) {
   const ki = t.ki || {};
   const gesucht = Boolean(ki.loesungsvorschlag || ki.treffer?.length || ki.ursachen?.length);
   const modell = ki.loesungsmodus === "llama";
-  const titeltext = "Ähnliche gelöste Fälle";
   const karte = h("section", { class: modell ? "karte karte-ki" : "karte", "aria-labelledby": "t-faelle" },
-    h("div", { class: "karte-kopf" }, h("h3", { id: "t-faelle" }, modell ? kiMarke(titeltext) : titeltext)));
+    h("div", { class: "karte-kopf" }, h("h3", { id: "t-faelle" }, kiMarke("Ähnliche gelöste Fälle"))));
 
   const knopf = h("button", { class: "knopf knopf-ki" }, gesucht ? "✦ Neu suchen" : "✦ Ähnliche Fälle suchen");
   knopf.addEventListener("click", async () => {

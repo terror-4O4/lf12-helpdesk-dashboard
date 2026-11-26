@@ -298,6 +298,19 @@ test("Detailansicht hält Modellwerte, Regelhinweis und manuelle Entscheidungen 
   }
 });
 
+test("Ähnliche gelöste Fälle trägt das ✦ schon vor der ersten Suche", t => {
+  testDokument(t);
+  browserGlobal(t, "location", { search: "" });
+  const vorher = zustand.tickets;
+  t.after(() => { zustand.tickets = vorher; });
+  zustand.tickets = [ticket({ id: 1021 })];
+  const ziel = document.createElement("main");
+  zeigeTicket(ziel, { teile: ["1021"] });
+  const karten = ziel.children[2].children[1].children;
+  const faelle = karten.find(el => el.attributes["aria-labelledby"] === "t-faelle");
+  assert.equal(faelle.children[0].textContent, "✦ Ähnliche gelöste Fälle");
+});
+
 test("im Kundenticket öffnet die direkte Aktensuche und zeigt die genaue Fundstelle", async t => {
   testDokument(t);
   browserGlobal(t, "location", { search: "" });
