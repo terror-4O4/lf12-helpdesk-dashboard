@@ -11,9 +11,9 @@ Grundlage ist der **Projektantrag V2.1**. Die [Projektdokumentation](docs/README
 | Name | Rolle |
 |---|---|
 | Marlon G. | Server, Bereitstellung, Code-Review |
-| Linus R. | |
-| Ricardo H. | |
-| Jennan H. | |
+| Linus R. | Gar nichts |
+| Ricardo H. | Keine Ahnung |
+| Jennan H. | rauchen |
 
 ## Architektur
 
