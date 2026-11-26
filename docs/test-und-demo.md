@@ -37,7 +37,7 @@ python scripts/auswertung_rag.py
 | Fallsuche auf den Abnahmefällen im Mock-Modus | 3/6 Fälle mit erwarteter Referenz (50 %) und 6/6 Fälle ohne Referenz (100 %). Der neu geschlossene Fall erschien bei der Wachstumskontrolle. |
 | Dashboard-Tests | 6/6 Tests bestanden, darunter SLA-Grenzwerte, Wartezeit und Reihenfolge in der Übersicht. |
 
-Der Mock bestätigt die Bedienung und die Auswertungslogik. Die Fallsuche verwendet darin einen Wortvergleich. Die Abnahme dieser Überarbeitung auf dem Mac Pro steht aus.
+Der Mock bestätigt die Bedienung und die Auswertungslogik. Die Fallsuche verwendet darin einen Wortvergleich.
 
 ## Entwicklungsnotizen vom Windows-Laptop (23.–24.11.2026)
 
@@ -52,7 +52,20 @@ Diese früheren Versuche mit Qwen dienten der Fehlersuche auf dem Schullaptop. S
 
 ## Messlauf auf dem Mac Pro
 
-1. Gemma 4 26B-A4B über `LLAMA_URL` und `LLAMA_MODEL` sowie den lokalen Embedding-Dienst einrichten, `KI_MOCK=false` setzen und das Backend neu starten. `/api/status` zeigt den Betriebsmodus sowie die Erreichbarkeit beider Dienste. Den verwendeten Commit und die Modellnamen mit den Berichten festhalten.
+### Ergebnis der Fallsuche
+
+Marlon hat die Ergebnisse am 25.11.2026 nach der Überarbeitung in #14 bis #16 gemeldet. Für die Wahl der Schwelle lief `scripts/auswertung_rag.py --nur-suche` mit dem Embedding-Dienst. Im vollständigen Abnahmelauf wertete zusätzlich Gemma 4 26B die gefundenen Fälle aus. [Messbericht in Issue #19](https://github.com/terror-4O4/lf12-helpdesk-dashboard/issues/19)
+
+| Datensatz und Modus | Schwelle 0,65 | Schwelle 0,75 |
+|---|---|---|
+| Entwicklung, nur Suche (16 Tickets) | Bei 5 von 10 Tickets ohne Referenz erschien fälschlich ein früherer Fall. | 15/16 richtig. Das Skript empfahl diese Schwelle. |
+| Abnahme, nur Suche (12 Tickets) | 7/12 richtig | 12/12 richtig |
+
+Im vollständigen Abnahmelauf mit **0,75** verwies die Lösung bei **6/6** Tickets mit Referenz auf den erwarteten früheren Fall. Bei **6/6** Tickets ohne Referenz meldete das System korrekt, dass kein passender Fall vorliegt. Damit erreichte die Fallsuche in beiden Gruppen das Ziel von mindestens 80 %.
+
+### Messlauf wiederholen
+
+1. Gemma 4 26B-A4B über `LLAMA_URL` und `LLAMA_MODEL` sowie den lokalen Embedding-Dienst einrichten. In der lokalen `.env` für den gemessenen Stand `KI_MOCK=false` und `RAG_SCHWELLE=0.75` setzen und das Backend neu starten. `/api/status` zeigt den Betriebsmodus sowie die Erreichbarkeit beider Dienste. Den verwendeten Commit und die Modellnamen mit den Berichten festhalten.
 2. Die für die Abgabe bestimmten Testfälle und Sollwerte vor dem Lauf festschreiben. Schwellenwerte und Prompts anhand von Entwicklungsfällen festlegen. Die Abnahmefälle dienen anschließend als unabhängiger Vergleich.
 3. Im selben Setup die drei Auswertungen ausführen.
 

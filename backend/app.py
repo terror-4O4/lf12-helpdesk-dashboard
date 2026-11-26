@@ -60,7 +60,7 @@ EMBED_MODEL = os.getenv("EMBED_MODEL", "").strip()
 EMBED_PRAEFIX = os.getenv("EMBED_PRAEFIX", rag.STANDARD_PRAEFIX)
 # Ab welcher Ähnlichkeit (0 bis 1) ein gelöstes Ticket als passender Fall gilt.
 # Wert mit scripts/auswertung_rag.py bestimmen. Im Mock gilt ein eigener Wert.
-RAG_SCHWELLE = float(os.getenv("RAG_SCHWELLE", "0.55"))
+RAG_SCHWELLE = float(os.getenv("RAG_SCHWELLE", "0.75"))
 RAG_SCHWELLE_MOCK = 0.40
 # Bonus für Fälle beim selben Kunden (laut Antrag "bevorzugt beim selben Kunden")
 RAG_KUNDENBONUS = float(os.getenv("RAG_KUNDENBONUS", "0.05"))
