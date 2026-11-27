@@ -4,6 +4,8 @@ Das Helpdesk-Dashboard für Lernfeld 12 (Klasse 12BE15) zeigt offene Tickets, Wa
 
 Grundlage ist der **Projektantrag V2.1**. Die [Projektdokumentation](docs/README.md) beschreibt den Aufbau und die Projektgrenzen. Der [Prüf- und Demoablauf](docs/test-und-demo.md) enthält Messziele, Auswertung und Präsentationsfälle.
 
+**[Projektdokumentation als Word-Datei herunterladen](docs/Projektdokumentation_LF12_Helpdesk.docx?raw=true)** · Die Gruppe pflegt den gemeinsamen Bericht direkt in dieser Datei.
+
 > **Alle Daten in diesem Repo sind frei erfunden.** Es gibt keine echten Kunden, Tickets, Personen oder Zugangsdaten.
 
 ## Team
